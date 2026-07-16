@@ -9,6 +9,9 @@ final class FakeEngine: PlayerEngine {
     var currentTimeSeconds: TimeInterval = 0
     var onEndOfItem: (() -> Void)?
     var onTimeUpdate: ((TimeInterval) -> Void)?
+    var onRMS: ((Float, Double) -> Void)?
+    private(set) var boostGain: Float = 1.0
+    func setBoostGain(_ gain: Float) { boostGain = gain }
     private(set) var loadedURL: URL?
     private(set) var startAt: TimeInterval = 0
     private(set) var playing = false

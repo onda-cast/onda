@@ -7,18 +7,24 @@ protocol PlayerEngine: AnyObject {
     var currentTimeSeconds: TimeInterval { get }
     var onEndOfItem: (() -> Void)? { get set }
     var onTimeUpdate: ((TimeInterval) -> Void)? { get set }
+    var onRMS: ((Float, Double) -> Void)? { get set }
     func load(url: URL, startAt: TimeInterval)
     func play()
     func pause()
     func seek(to seconds: TimeInterval)
+    func setBoostGain(_ gain: Float)
 }
 
 @MainActor
 final class AVPlayerEngine: PlayerEngine {
     private let player = AVPlayer()
     private var timeObserver: Any?
+    private var tap: AudioTap?
     var onEndOfItem: (() -> Void)?
     var onTimeUpdate: ((TimeInterval) -> Void)?
+    var onRMS: ((Float, Double) -> Void)?
+
+    func setBoostGain(_ gain: Float) { tap?.gain = gain }
 
     var rate: Float {
         get { player.rate }
@@ -31,6 +37,23 @@ final class AVPlayerEngine: PlayerEngine {
         player.replaceCurrentItem(with: item)
         if startAt > 0 { seek(to: startAt) }
         addObservers(for: item)
+        installTap(on: item)
+    }
+
+    private func installTap(on item: AVPlayerItem) {
+        Task { [weak self, weak item] in
+            guard let item,
+                  let track = try? await item.asset.loadTracks(withMediaCharacteristic: .audible).first
+            else { return }
+            guard let self else { return }
+            let t = AudioTap()
+            t.gain = self.tap?.gain ?? 1.0   // carry the current boost across episodes
+            t.onRMS = { rms, secs in
+                Task { @MainActor [weak self] in self?.onRMS?(rms, secs) }
+            }
+            item.audioMix = t.makeAudioMix(for: track)
+            self.tap = t
+        }
     }
 
     func play() { player.play() }
