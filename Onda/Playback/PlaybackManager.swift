@@ -88,12 +88,16 @@ final class PlaybackManager {
         engine.seek(to: target); positionSeconds = target
     }
 
-    // Resolve a downloaded file to a playable URL (Plan 5 populates downloadedFile).
+    // Resolve a downloaded file to a playable URL. Checks the relationship first, then
+    // falls back to the guid-derived path on disk — the relationship can be stale within
+    // a session because downloads persist via a separate @ModelActor context.
     func localURL(for episode: Episode) -> URL? {
-        guard let name = episode.downloadedFile?.localFileName else { return nil }
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let url = dir.appendingPathComponent(name)
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        if let name = episode.downloadedFile?.localFileName {
+            let url = DownloadManager.fileURL(named: name)
+            if FileManager.default.fileExists(atPath: url.path) { return url }
+        }
+        let byGuid = DownloadManager.fileURL(named: DownloadManager.fileName(for: episode.guid))
+        return FileManager.default.fileExists(atPath: byGuid.path) ? byGuid : nil
     }
 
     private func handleTimeUpdate(_ t: TimeInterval) {

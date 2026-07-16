@@ -9,6 +9,8 @@ struct ParsedEpisode {
     let audioURL: URL
     let notes: String
     let chaptersURL: URL?
+    var transcriptURL: URL? = nil
+    var transcriptType: String? = nil
 }
 
 struct ParsedFeed {
@@ -52,6 +54,8 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
         var duration: TimeInterval = 0
         var audioURL: URL?
         var chaptersURL: URL?
+        var transcriptURL: URL?
+        var transcriptType: String?
     }
     private var items: [Item] = []
     private var current: Item?
@@ -75,6 +79,18 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
         case "itunes:category": if !inItem, let t = attrs["text"], channelCategory.isEmpty { channelCategory = t }
         case "enclosure": if inItem, let u = attrs["url"] { current?.audioURL = URL(string: u) }
         case "podcast:chapters": if inItem, let u = attrs["url"] { current?.chaptersURL = URL(string: u) }
+        case "podcast:transcript":
+            if inItem, let u = attrs["url"] {
+                // Prefer JSON over VTT over SRT when a feed offers multiple formats.
+                let type = attrs["type"] ?? ""
+                let rank: (String) -> Int = { t in
+                    t.contains("json") ? 3 : (t.contains("vtt") ? 2 : (t.contains("srt") || t.contains("subrip") ? 1 : 0))
+                }
+                if current?.transcriptURL == nil || rank(type) > rank(current?.transcriptType ?? "") {
+                    current?.transcriptURL = URL(string: u)
+                    current?.transcriptType = type
+                }
+            }
         default: break
         }
     }
@@ -120,7 +136,8 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
             let guid = it.guid.isEmpty ? audio.absoluteString : it.guid
             return ParsedEpisode(guid: guid, title: it.title, publishDate: it.pubDate,
                                  duration: it.duration, audioURL: audio, notes: it.notes,
-                                 chaptersURL: it.chaptersURL)
+                                 chaptersURL: it.chaptersURL,
+                                 transcriptURL: it.transcriptURL, transcriptType: it.transcriptType)
         }
         return ParsedFeed(title: channelTitle, author: channelAuthor,
                           artworkURL: channelArtwork, category: channelCategory.isEmpty ? "Podcast" : channelCategory,

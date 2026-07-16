@@ -7,6 +7,7 @@ struct NowPlayingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showQueue = false
     @State private var showSettings = false
+    @State private var showTranscript = false
 
     private var ep: Episode? { playback.currentEpisode }
     private var settings: ShowSettings? { ep?.podcast?.settings }
@@ -41,6 +42,9 @@ struct NowPlayingView: View {
         .sheet(isPresented: $showSettings) {
             if let pod = ep?.podcast { ShowSettingsSheet(podcast: pod) }
         }
+        .sheet(isPresented: $showTranscript) {
+            if let ep { TranscriptView(episode: ep) }
+        }
     }
 
     private var header: some View {
@@ -48,6 +52,7 @@ struct NowPlayingView: View {
             Button { dismiss() } label: { Image(systemName: "chevron.down").font(.system(size: 16, weight: .bold)) }
             Spacer()
             SleepTimerMenu()
+            Button { showTranscript = true } label: { Image(systemName: "text.quote").font(.system(size: 16, weight: .bold)) }
             Button { showQueue = true } label: { Image(systemName: "list.bullet").font(.system(size: 16, weight: .bold)) }
             Button { showSettings = true } label: { Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold)) }
         }

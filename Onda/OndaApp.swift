@@ -11,6 +11,7 @@ struct OndaApp: App {
     @State private var playback: PlaybackManager
     @State private var downloads: DownloadManager
     @State private var refresh: FeedRefreshService
+    @State private var transcripts: TranscriptService
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -22,8 +23,14 @@ struct OndaApp: App {
             let dm = DownloadManager(persistence: PersistenceActor(modelContainer: c))
             _subscriptions = State(initialValue: subs)
             _downloads = State(initialValue: dm)
-            _playback = State(initialValue:
-                PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext))
+            let pm = PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext)
+            _playback = State(initialValue: pm)
+            let engine: AudioTranscribing? = {
+                if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }
+            }()
+            _transcripts = State(initialValue: TranscriptService(
+                modelContext: c.mainContext, engine: engine,
+                localURL: { pm.localURL(for: $0) }))
             let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs, downloads: dm)
             rs.registerBackgroundTask()
             _refresh = State(initialValue: rs)
@@ -40,6 +47,7 @@ struct OndaApp: App {
                 .environment(clientBox)
                 .environment(playback)
                 .environment(downloads)
+                .environment(transcripts)
                 .preferredColorScheme(theme.colorScheme)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
