@@ -46,7 +46,18 @@ final class PlaybackManager {
         return min(1, max(0, positionSeconds / durationSeconds))
     }
 
+    private var clipEndBound: TimeInterval?
+
+    func playClip(_ clip: Clip) {
+        guard let ep = clip.episode else { return }
+        play(ep)                          // clears any prior bound
+        engine.seek(to: clip.startTime)
+        positionSeconds = clip.startTime
+        clipEndBound = clip.endTime
+    }
+
     func play(_ episode: Episode) {
+        clipEndBound = nil
         currentEpisode = episode
         durationSeconds = episode.duration
         let intro = TimeInterval(settings?.introTrimSec ?? 0)
@@ -79,11 +90,13 @@ final class PlaybackManager {
     }
 
     func skip(by seconds: TimeInterval) {
+        clipEndBound = nil
         let target = max(0, min(durationSeconds, positionSeconds + seconds))
         engine.seek(to: target); positionSeconds = target
     }
 
     func seek(toFraction f: Double) {
+        clipEndBound = nil
         let target = max(0, min(durationSeconds, durationSeconds * f))
         engine.seek(to: target); positionSeconds = target
     }
@@ -103,6 +116,15 @@ final class PlaybackManager {
     private func handleTimeUpdate(_ t: TimeInterval) {
         positionSeconds = t
         guard let ep = currentEpisode else { return }
+
+        // Clip-bounded playback: stop at the clip end without marking played/advancing.
+        if let bound = clipEndBound, t >= bound {
+            clipEndBound = nil
+            engine.pause()
+            isPlaying = false
+            persistPosition()
+            return
+        }
 
         // Ad detection from real Podcasting 2.0 markers; auto mode seeks past the ad.
         if !ep.chapters.isEmpty {
