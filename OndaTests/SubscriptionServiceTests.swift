@@ -8,6 +8,7 @@ private struct StubFeeds: FeedFetching {
     func fetchFeed(_ url: URL) async throws -> ParsedFeed { feed }
 }
 
+@MainActor
 final class SubscriptionServiceTests: XCTestCase {
     private func context() throws -> ModelContext {
         let c = try ModelContainer(for: Schema(ondaSchema),

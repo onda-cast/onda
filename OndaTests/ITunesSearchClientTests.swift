@@ -2,6 +2,7 @@
 import XCTest
 @testable import Onda
 
+@MainActor
 final class ITunesSearchClientTests: XCTestCase {
     private func fixture(_ name: String, _ ext: String) throws -> Data {
         let url = Bundle(for: Self.self).url(forResource: name, withExtension: ext)!
@@ -20,11 +21,12 @@ final class ITunesSearchClientTests: XCTestCase {
 
     func test_search_usesInjectedTransport_andEncodesTerm() async throws {
         let data = try fixture("itunes_search", "json")
-        var requestedURL: URL?
-        let client = ITunesSearchClient(transport: { url in requestedURL = url; return data })
+        final class URLBox: @unchecked Sendable { var url: URL? }
+        let box = URLBox()
+        let client = ITunesSearchClient(transport: { url in box.url = url; return data })
         let dtos = try await client.search(term: "slow burn")
         XCTAssertEqual(dtos.count, 2)
-        XCTAssertTrue(requestedURL?.absoluteString.contains("term=slow%20burn") ?? false)
-        XCTAssertTrue(requestedURL?.absoluteString.contains("media=podcast") ?? false)
+        XCTAssertTrue(box.url?.absoluteString.contains("term=slow%20burn") ?? false)
+        XCTAssertTrue(box.url?.absoluteString.contains("media=podcast") ?? false)
     }
 }

@@ -2,6 +2,7 @@
 import Foundation
 import SwiftData
 
+@MainActor
 @Observable
 final class SubscriptionService {
     private let modelContext: ModelContext

@@ -19,7 +19,7 @@ struct ParsedFeed {
     let episodes: [ParsedEpisode]
 }
 
-protocol FeedFetching {
+protocol FeedFetching: Sendable {
     func fetchFeed(_ url: URL) async throws -> ParsedFeed
 }
 
@@ -129,7 +129,7 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
 }
 
 struct RSSFeedClient: FeedFetching {
-    typealias Transport = (URL) async throws -> Data
+    typealias Transport = @Sendable (URL) async throws -> Data
     private let transport: Transport
     private let parser = RSSFeedParser()
 

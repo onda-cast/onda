@@ -11,7 +11,7 @@ struct PodcastDTO: Codable, Equatable {
 }
 
 struct ITunesSearchClient: Searching {
-    typealias Transport = (URL) async throws -> Data
+    typealias Transport = @Sendable (URL) async throws -> Data
     private let transport: Transport
 
     init(transport: @escaping Transport = { url in

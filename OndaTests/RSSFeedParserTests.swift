@@ -2,6 +2,7 @@
 import XCTest
 @testable import Onda
 
+@MainActor
 final class RSSFeedParserTests: XCTestCase {
     private func fixture(_ name: String) throws -> Data {
         let url = Bundle(for: Self.self).url(forResource: name, withExtension: "xml")!
