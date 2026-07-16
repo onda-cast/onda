@@ -75,15 +75,10 @@ struct TranscriptView: View {
         VStack(spacing: 14) {
             Text("No transcript available").foregroundStyle(theme.color(.textTertiary))
             if transcripts.canTranscribeOnDevice(episode) {
-                // TODO(onda#1): re-enable once the dispatch_assert_queue_fail crash in the
-                // on-device transcribe flow is fixed — see docs/BUGS.md.
                 Button("Transcribe episode") { Task { await transcribe() } }
                     .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
                     .padding(.horizontal, 20).padding(.vertical, 12)
-                    .background(theme.color(.textTertiary)).brutalBorder(width: 2)
-                    .disabled(true)
-                Text("Temporarily disabled while we fix a crash")
-                    .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+                    .background(theme.color(.accent)).brutalBorder(width: 2)
             } else if transcripts.hasEngine {
                 Text("Download this episode to transcribe it on device")
                     .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))

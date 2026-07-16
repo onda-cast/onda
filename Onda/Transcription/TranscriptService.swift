@@ -72,10 +72,12 @@ final class TranscriptService {
         return tr
     }
 
-    static func requestSpeechAuthorization() async -> Bool {
+    // nonisolated: TCC delivers the completion on a background queue, so the closure must
+    // not inherit this class's MainActor isolation (docs/BUGS.md #1 — dispatch_assert_queue trap).
+    nonisolated static func requestSpeechAuthorization() async -> Bool {
         #if canImport(Speech)
         await withCheckedContinuation { cont in
-            SFSpeechRecognizer.requestAuthorization { status in
+            SFSpeechRecognizer.requestAuthorization { @Sendable status in
                 cont.resume(returning: status == .authorized)
             }
         }
