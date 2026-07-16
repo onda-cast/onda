@@ -1,0 +1,124 @@
+# Onda — iOS Podcast App: Design
+
+## Summary
+
+Onda is a personal podcast-listening app for iOS (SwiftUI, iOS 17+, SwiftData). v1 is single-user,
+no backend of our own — podcast discovery/metadata comes from the PodcastIndex.org API, episode
+audio streams or downloads directly from each show's own RSS-hosted files. Visual/interaction
+design is already established via an imported Claude Design prototype
+(`Podcast App.dc.html`, project `1310b975-5d75-42ee-a464-29f8adb3c925`): a neo-brutalist style
+(thick borders, hard drop shadows, sharp corners, uppercase Arial Black headers) with light/dark
+theming.
+
+## Scope (v1)
+
+- Search/subscribe to podcasts, browse by category/trending
+- Per-show episode lists, playback (stream or downloaded)
+- Playback: variable speed, sleep timer, skip-silence, voice boost, cross-show manual queue
+- Per-show settings: speed, voice boost, skip silence, ad-skip mode, auto-download, intro/outro
+  trim, notification preference
+- Episode downloads for offline playback
+- Light/dark appearance
+
+Out of scope for v1: multi-device sync, backend of our own, social features, real ad-detection
+beyond Podcasting 2.0 chapter markers.
+
+## Screens & Navigation
+
+- **Tab bar**: Library, Discover, Profile
+- **Library** — 2-column grid of subscribed shows → tap → **Episode List**
+- **Episode List** *(new — not in the original prototype, which jumped straight to playback)* —
+  show header (art, name, category, unsubscribe) + episode rows (title, date, duration,
+  played/in-progress indicator, download control) → tap episode → **Now Playing**
+- **Discover** — search bar (PodcastIndex search-by-term), category chips, trending list with
+  Follow button
+- **Now Playing** — artwork, title/show, scrubber, skip ±15/30, play/pause, Speed/Voice
+  Boost/Skip-Silence chips, ad banner (only rendered when the current episode has a real
+  Podcasting-2.0 ad-marked chapter active — no simulated/timer-based ads), Chapters list, About
+  This Episode notes, **+ Up Next queue** *(new)* reachable via a queue icon/swipe — cross-show
+  manual queue, reorderable, tap to jump
+- **Per-show settings sheet** — Speed, Voice Boost, Skip Silence, Ad Skip mode, Auto-Download,
+  Skip Intro/Outro trim (±5s steps), Notification preference (All/Important/None)
+- **Profile** — Appearance toggle (light/dark), Notifications, **Downloads & Storage** *(new —
+  actual manager screen, not just a settings row)*: downloaded episodes list, storage used,
+  delete, About
+
+Visual style (borders, hard shadows, sharp corners, typography, oklch-based light/dark palette)
+carries over from the prototype as the source of truth; new screens (Episode List, Up Next queue,
+Downloads & Storage) are designed to match that visual language.
+
+## Architecture
+
+Plain SwiftUI "MV" pattern: `@Observable` model/service classes, no separate ViewModel layer.
+Views read directly from SwiftData `@Query` and `@Observable` service singletons injected via
+the environment.
+
+## Data Model (SwiftData)
+
+```
+@Model Podcast        — feedURL, title, author, artworkURL, category, podcastIndexId
+@Model Episode        — belongs to Podcast; guid, title, publishDate, duration, audioURL,
+                         notes (HTML→plain), playbackPosition, played: Bool
+@Model Chapter        — belongs to Episode; title, startTime, isAd: Bool
+                         (derived from Podcasting 2.0 chapter JSON when a feed publishes it)
+@Model ShowSettings   — 1:1 with Podcast; speed, voiceBoost, skipSilence, adSkipMode,
+                         autoDownload, introTrimSec, outroTrimSec, notifMode
+                         (created lazily with defaults on first subscribe / first settings open)
+@Model QueueItem      — ordered list; references Episode, position: Int
+@Model DownloadedFile — 1:1 with Episode; localFileURL, fileSizeBytes, downloadedAt
+```
+
+`Episode.playbackPosition` is persisted every ~5s during playback so resume works across app
+launches; `played` flips true past ~95% listened.
+
+## Services
+
+- **`PodcastIndexClient`** — async/await wrapper over the PodcastIndex.org REST API (search,
+  trending/by-category, episodes-by-feed). Handles PodcastIndex's required
+  `Authorization`/`X-Auth-Date` SHA-1 header signing. API key/secret live in a gitignored
+  `Secrets.swift` — requires registering a free key at podcastindex.org.
+- **`FeedRefreshService`** — re-fetches each subscribed show's episodes on app foreground + a
+  background refresh task; upserts new `Episode` rows; triggers auto-download for shows with
+  `autoDownload = true`.
+- **`PlaybackManager`** (`@Observable`) — wraps `AVPlayer`:
+  - Plays from `DownloadedFile.localFileURL` when present, else streams `Episode.audioURL`
+  - Applies per-show `speed` via `AVPlayer.rate`; applies `introTrimSec`/`outroTrimSec` via
+    seek-on-start / stop-before-end
+  - Voice Boost / Skip Silence via an `AVAudioEngine` tap chain (dynamics processor for boost;
+    energy-threshold detection + time-compression for silence skip) — highest-complexity,
+    highest-risk piece of v1
+  - Publishes now-playing info to `MPNowPlayingInfoCenter`; wires `MPRemoteCommandCenter` for
+    lock screen / Control Center / AirPods controls
+  - Owns the `QueueItem` list; on episode end, advances to the next queue item, else next
+    unplayed episode in the same show
+- **`DownloadManager`** — `URLSession` background-configuration download tasks per episode;
+  publishes per-episode progress; deletes `DownloadedFile` row + on-disk file together.
+
+## Error Handling
+
+- SwiftData is the source of truth for what's rendered; network only refreshes it — search/refresh
+  failures show inline retry state, never blank screens
+- Streaming playback failure (no local file + bad network) surfaces a toast (reusing the
+  prototype's toast component), not a crash
+- Failed background downloads retry once automatically, then show a manual-retry affordance in
+  Downloads & Storage
+- `AVAudioSession` category `.playback` configured at launch so audio continues when
+  backgrounded/screen-locked
+
+## Testing
+
+- Unit tests: `PodcastIndexClient` request signing + response decoding against fixture JSON (no
+  live network in tests)
+- Unit tests: `PlaybackManager` trim/queue-advance logic against a fake player protocol
+- SwiftData model tests (in-memory container): subscribe/unsubscribe, settings defaults, queue
+  reordering
+- No UI snapshot tests for v1 — the prototype is the visual source of truth; manual verification
+  against it is sufficient at this stage
+
+## Open Risks
+
+- **Voice Boost / Skip Silence via `AVAudioEngine`** is genuinely complex DSP work; may need to
+  descope to a simpler implementation (e.g. boost = static gain node only, no dynamic silence
+  detection) if it proves too costly during implementation
+- **Ad-skip only fires for feeds with real Podcasting 2.0 ad-marked chapters**, which are rare in
+  practice — the feature may rarely activate; that's an accepted v1 tradeoff over faking it
