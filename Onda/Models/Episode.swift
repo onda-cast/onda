@@ -27,6 +27,9 @@ final class Episode {
     @Relationship(deleteRule: .cascade, inverse: \Transcript.episode)
     var transcript: Transcript?
 
+    @Relationship(deleteRule: .cascade, inverse: \Clip.episode)
+    var clips: [Clip] = []
+
     init(guid: String, title: String, publishDate: Date, duration: TimeInterval,
          audioURL: URL, notes: String, playbackPosition: TimeInterval = 0, played: Bool = false,
          chaptersURL: URL? = nil, transcriptURL: URL? = nil, transcriptType: String? = nil) {
