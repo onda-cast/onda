@@ -15,7 +15,9 @@
 		1E685B05282CE25807E43C13 /* EpisodeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27845D9408FFD9F14078875D /* EpisodeListView.swift */; };
 		1E8AB667ED8824B30B554CA9 /* feed_basic.xml in Resources */ = {isa = PBXBuildFile; fileRef = C5A676C4BB0A69A0343594E4 /* feed_basic.xml */; };
 		27584798B97AA15CE864F386 /* BrutalStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D11CA7EC934C9F4DA99381A /* BrutalStyle.swift */; };
+		30C1A58FEB8B7BF7EA77947D /* ChapterFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73EDE887722F9B111D8D3594 /* ChapterFetcher.swift */; };
 		3372A46B0B026B1B9D03CF76 /* DownloadedFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17790937A7B431A19F327E1 /* DownloadedFile.swift */; };
+		398589EBC0C1BEA39A1F315D /* ChapterFetcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC73D73042EFA6EC9C639B5 /* ChapterFetcherTests.swift */; };
 		50F2A63B66880427543240D1 /* PlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE17DF4802CE3FAEFCCA9B2C /* PlaybackManager.swift */; };
 		515A6963BCF14A81E0C28174 /* itunes_search.json in Resources */ = {isa = PBXBuildFile; fileRef = 34C33A334266DCF78E6FF739 /* itunes_search.json */; };
 		5696B33BCF9054FA4C4AFA68 /* EpisodeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C792A2C9B971CE0D7699E235 /* EpisodeRow.swift */; };
@@ -31,6 +33,7 @@
 		9593E05ACDBDF1828267053F /* QueueItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E0512972681EB4C4F71DA9 /* QueueItem.swift */; };
 		9984B175F6497AFC38E0BF2F /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C56597246CCC6EC9FC34A3C6 /* Palette.swift */; };
 		99DBAB55F788DBE13FE89810 /* Podcast.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCF6C8AE0E3030E7AE86BC20 /* Podcast.swift */; };
+		A5094C87A231F37D330E5BE4 /* chapters.json in Resources */ = {isa = PBXBuildFile; fileRef = E60E9938DD85518ACBD94F9F /* chapters.json */; };
 		A7BCE3FD3DFB5A83D604DA82 /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26BA9D1CEE05EAA5CDF381C /* ThemeTests.swift */; };
 		AC8BFE08CC7BB14BB4BCEF06 /* PlayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF527AF76929ACA91A63D7 /* PlayerEngine.swift */; };
 		AF097E07975F74F4EA8226D5 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20505A324537A29B2E603405 /* ProfileView.swift */; };
@@ -68,9 +71,11 @@
 		421075011CD9ACC11AC9E688 /* ShowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowCard.swift; sourceTree = "<group>"; };
 		469CC05685CD4AF03D586364 /* SubscriptionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionServiceTests.swift; sourceTree = "<group>"; };
 		4981733BFE82B20F4431CC7B /* ModelSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelSchema.swift; sourceTree = "<group>"; };
+		5AC73D73042EFA6EC9C639B5 /* ChapterFetcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterFetcherTests.swift; sourceTree = "<group>"; };
 		5E11F07C519566716B0038C8 /* ITunesSearchClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ITunesSearchClient.swift; sourceTree = "<group>"; };
 		64BB3761E9D6DB90106AE150 /* feed_messy.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = feed_messy.xml; sourceTree = "<group>"; };
 		724742E0E1635727F2999811 /* TrendingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendingRow.swift; sourceTree = "<group>"; };
+		73EDE887722F9B111D8D3594 /* ChapterFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterFetcher.swift; sourceTree = "<group>"; };
 		7D11CA7EC934C9F4DA99381A /* BrutalStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrutalStyle.swift; sourceTree = "<group>"; };
 		8C1426D72C602B5DCF50A4F7 /* OndaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OndaApp.swift; sourceTree = "<group>"; };
 		A2AC269F8B3F5991E1C14136 /* PlaybackManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackManagerTests.swift; sourceTree = "<group>"; };
@@ -91,6 +96,7 @@
 		E17DE2A261EF9700BB2D4FA5 /* ArtworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkView.swift; sourceTree = "<group>"; };
 		E24483CC8707435EC6912901 /* RSSFeedParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSSFeedParser.swift; sourceTree = "<group>"; };
 		E5BB7141944B4292CB54376C /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
+		E60E9938DD85518ACBD94F9F /* chapters.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = chapters.json; sourceTree = "<group>"; };
 		F26BA9D1CEE05EAA5CDF381C /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 		F60CC9C8832A8B37941AC88D /* ShowSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowSettings.swift; sourceTree = "<group>"; };
 		FCF6C8AE0E3030E7AE86BC20 /* Podcast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Podcast.swift; sourceTree = "<group>"; };
@@ -122,6 +128,7 @@
 		3E2A49E887504F602D626288 /* Fixtures */ = {
 			isa = PBXGroup;
 			children = (
+				E60E9938DD85518ACBD94F9F /* chapters.json */,
 				C5A676C4BB0A69A0343594E4 /* feed_basic.xml */,
 				64BB3761E9D6DB90106AE150 /* feed_messy.xml */,
 				34C33A334266DCF78E6FF739 /* itunes_search.json */,
@@ -132,6 +139,7 @@
 		43CFA085C1ECB4B30C71433F /* Playback */ = {
 			isa = PBXGroup;
 			children = (
+				73EDE887722F9B111D8D3594 /* ChapterFetcher.swift */,
 				CE17DF4802CE3FAEFCCA9B2C /* PlaybackManager.swift */,
 				2DEF527AF76929ACA91A63D7 /* PlayerEngine.swift */,
 			);
@@ -226,6 +234,7 @@
 		F6DE9B703BCC4E04F8CB016B /* OndaTests */ = {
 			isa = PBXGroup;
 			children = (
+				5AC73D73042EFA6EC9C639B5 /* ChapterFetcherTests.swift */,
 				AB38DA8A4E82A891E4D93ACD /* ITunesSearchClientTests.swift */,
 				CB7D89A90138AEE75E6CA063 /* ModelTests.swift */,
 				A2AC269F8B3F5991E1C14136 /* PlaybackManagerTests.swift */,
@@ -312,6 +321,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A5094C87A231F37D330E5BE4 /* chapters.json in Resources */,
 				1E8AB667ED8824B30B554CA9 /* feed_basic.xml in Resources */,
 				7DDC912815DCEEC18A0AF8CF /* feed_messy.xml in Resources */,
 				515A6963BCF14A81E0C28174 /* itunes_search.json in Resources */,
@@ -328,6 +338,7 @@
 				1AF0D83674AD7053FD7645B7 /* ArtworkView.swift in Sources */,
 				27584798B97AA15CE864F386 /* BrutalStyle.swift in Sources */,
 				E10FE48367E1073EB58FC0D9 /* Chapter.swift in Sources */,
+				30C1A58FEB8B7BF7EA77947D /* ChapterFetcher.swift in Sources */,
 				BEFEE44A6A7727F4F9C86D5E /* DiscoverView.swift in Sources */,
 				3372A46B0B026B1B9D03CF76 /* DownloadedFile.swift in Sources */,
 				80B349B3C8D9F8D4B1EB2735 /* Episode.swift in Sources */,
@@ -359,6 +370,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				398589EBC0C1BEA39A1F315D /* ChapterFetcherTests.swift in Sources */,
 				C72934F09B99AF20E74BB6F6 /* ITunesSearchClientTests.swift in Sources */,
 				7A6EAA5D11DC0D5777865B37 /* ModelTests.swift in Sources */,
 				FE6348117ECF5D6A5DC58060 /* PlaybackManagerTests.swift in Sources */,
