@@ -16,10 +16,22 @@ final class SpeechTranscriberEngine: AudioTranscribing {
     func transcribe(fileURL: URL, progress: @escaping @Sendable (Double) -> Void) async throws -> [ParsedCue] {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { throw TranscriptionError.noAudioFile }
 
-        let transcriber = SpeechTranscriber(locale: .current,
+        // Pick a locale the transcriber actually supports (falls back to en-US).
+        let supported = await SpeechTranscriber.supportedLocales
+        let locale = supported.first { $0.identifier(.bcp47) == Locale.current.identifier(.bcp47) }
+            ?? supported.first { $0.language.languageCode == Locale.current.language.languageCode }
+            ?? Locale(identifier: "en-US")
+
+        let transcriber = SpeechTranscriber(locale: locale,
                                             transcriptionOptions: [],
                                             reportingOptions: [],
                                             attributeOptions: [.audioTimeRange])
+
+        // The on-device speech model is a downloadable asset — install it if missing.
+        if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
+            try await request.downloadAndInstall()
+        }
+
         let analyzer = SpeechAnalyzer(modules: [transcriber])
 
         let asset = AVURLAsset(url: fileURL)

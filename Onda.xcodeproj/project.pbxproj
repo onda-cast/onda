@@ -27,6 +27,7 @@
 		3905F44B0C6212DB3D4BFD95 /* DownloadState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1F9BB0E871FB11D09BC5367 /* DownloadState.swift */; };
 		391593E2D7A4313CEBBC4D20 /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE2B49FBD5405DE238541D8 /* NowPlayingView.swift */; };
 		398589EBC0C1BEA39A1F315D /* ChapterFetcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC73D73042EFA6EC9C639B5 /* ChapterFetcherTests.swift */; };
+		4202299A935C6A8B1C29A4D7 /* SpeechEngineReproTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027D2498D259920B8FD7659E /* SpeechEngineReproTests.swift */; };
 		4E84B4456ABA3BD4CA4FAC24 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2958F56426F97414D9AFA575 /* QueueView.swift */; };
 		50F2A63B66880427543240D1 /* PlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE17DF4802CE3FAEFCCA9B2C /* PlaybackManager.swift */; };
 		51051ACFD355B9FDDBC285ED /* DownloadManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA17CA2E65778F63487C7A /* DownloadManagerTests.swift */; };
@@ -36,6 +37,7 @@
 		6185652FB9787D113E01ECEF /* DownloadsStorageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F054A4C32FC6891BC6555A06 /* DownloadsStorageView.swift */; };
 		652E023072D240017728BB95 /* ParsedCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67CE2B1E3EF1BFC12BF71E97 /* ParsedCue.swift */; };
 		67C5E5BABD29BF4D05855F20 /* SilenceDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038C26F4DBED21BB7B7008BE /* SilenceDetector.swift */; };
+		6C8852EAC870DE46697CA7B6 /* spoken.aiff in Resources */ = {isa = PBXBuildFile; fileRef = E567318617E0D911B3945650 /* spoken.aiff */; };
 		6F663B2EBE40D001D9C4CD7A /* FeedRefreshServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A438C9713DECE88526A93F4D /* FeedRefreshServiceTests.swift */; };
 		704D55B56F96BA2997EBAA9C /* OndaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1426D72C602B5DCF50A4F7 /* OndaApp.swift */; };
 		722AF450B80687A094B08684 /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E7D73117D054CD51D1A7E7 /* DownloadManager.swift */; };
@@ -98,6 +100,7 @@
 
 /* Begin PBXFileReference section */
 		01AA17CA2E65778F63487C7A /* DownloadManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManagerTests.swift; sourceTree = "<group>"; };
+		027D2498D259920B8FD7659E /* SpeechEngineReproTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechEngineReproTests.swift; sourceTree = "<group>"; };
 		038C26F4DBED21BB7B7008BE /* SilenceDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SilenceDetector.swift; sourceTree = "<group>"; };
 		097BB2EF5DA616773F62F1C3 /* TranscriptServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptServiceTests.swift; sourceTree = "<group>"; };
 		0D8FD0B68F0BA4837E28DBCD /* AudioTranscribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTranscribing.swift; sourceTree = "<group>"; };
@@ -164,6 +167,7 @@
 		DAEF393589BFDADE7CF562DE /* BoostLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoostLevel.swift; sourceTree = "<group>"; };
 		E17DE2A261EF9700BB2D4FA5 /* ArtworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkView.swift; sourceTree = "<group>"; };
 		E24483CC8707435EC6912901 /* RSSFeedParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSSFeedParser.swift; sourceTree = "<group>"; };
+		E567318617E0D911B3945650 /* spoken.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = spoken.aiff; sourceTree = "<group>"; };
 		E5BB7141944B4292CB54376C /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
 		E60E9938DD85518ACBD94F9F /* chapters.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = chapters.json; sourceTree = "<group>"; };
 		E805DE0D40D2B33E85D10F1F /* ActiveCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveCue.swift; sourceTree = "<group>"; };
@@ -220,6 +224,7 @@
 				C5A676C4BB0A69A0343594E4 /* feed_basic.xml */,
 				64BB3761E9D6DB90106AE150 /* feed_messy.xml */,
 				34C33A334266DCF78E6FF739 /* itunes_search.json */,
+				E567318617E0D911B3945650 /* spoken.aiff */,
 				93E1B51E3A6C164EC3CC2A61 /* transcript_pc20.json */,
 				7D4A4C78D59DF948B8BD06A8 /* transcript.srt */,
 				7B9EF093482D7A3CB1420F55 /* transcript.vtt */,
@@ -390,6 +395,7 @@
 				A2AC269F8B3F5991E1C14136 /* PlaybackManagerTests.swift */,
 				A314E30235A9437DD24EB94A /* RSSFeedParserTests.swift */,
 				F75263D3463872DF06D72219 /* SilenceDetectorTests.swift */,
+				027D2498D259920B8FD7659E /* SpeechEngineReproTests.swift */,
 				469CC05685CD4AF03D586364 /* SubscriptionServiceTests.swift */,
 				F26BA9D1CEE05EAA5CDF381C /* ThemeTests.swift */,
 				23FA5F027F92CA348778CADB /* TranscriptParserTests.swift */,
@@ -479,6 +485,7 @@
 				1E8AB667ED8824B30B554CA9 /* feed_basic.xml in Resources */,
 				7DDC912815DCEEC18A0AF8CF /* feed_messy.xml in Resources */,
 				515A6963BCF14A81E0C28174 /* itunes_search.json in Resources */,
+				6C8852EAC870DE46697CA7B6 /* spoken.aiff in Resources */,
 				2D85CAB8112CDEB1F8DA2C5E /* transcript.srt in Resources */,
 				823EE68AB440D457D02413F5 /* transcript.vtt in Resources */,
 				2BBF04B5CCE01017EF766B5B /* transcript_pc20.json in Resources */,
@@ -564,6 +571,7 @@
 				FE6348117ECF5D6A5DC58060 /* PlaybackManagerTests.swift in Sources */,
 				B8A8966E10D6A300EDCD78B3 /* RSSFeedParserTests.swift in Sources */,
 				8F4AD92E7C308E36054E4466 /* SilenceDetectorTests.swift in Sources */,
+				4202299A935C6A8B1C29A4D7 /* SpeechEngineReproTests.swift in Sources */,
 				9518DC32144DA86BF1115FCF /* SubscriptionServiceTests.swift in Sources */,
 				A7BCE3FD3DFB5A83D604DA82 /* ThemeTests.swift in Sources */,
 				07D5638371C4F282BED2F0B2 /* TranscriptParserTests.swift in Sources */,

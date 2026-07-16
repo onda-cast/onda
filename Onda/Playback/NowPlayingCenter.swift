@@ -18,12 +18,13 @@ final class NowPlayingCenter {
                                  pause: @escaping @MainActor () -> Void,
                                  skipForward: @escaping @MainActor () -> Void,
                                  skipBack: @escaping @MainActor () -> Void) {
-        center.playCommand.addTarget { _ in MainActor.assumeIsolated { play() }; return .success }
-        center.pauseCommand.addTarget { _ in MainActor.assumeIsolated { pause() }; return .success }
+        // Remote commands can arrive on a non-main MediaRemote queue — hop, never assume.
+        center.playCommand.addTarget { _ in Task { @MainActor in play() }; return .success }
+        center.pauseCommand.addTarget { _ in Task { @MainActor in pause() }; return .success }
         center.skipForwardCommand.preferredIntervals = [30]
-        center.skipForwardCommand.addTarget { _ in MainActor.assumeIsolated { skipForward() }; return .success }
+        center.skipForwardCommand.addTarget { _ in Task { @MainActor in skipForward() }; return .success }
         center.skipBackwardCommand.preferredIntervals = [15]
-        center.skipBackwardCommand.addTarget { _ in MainActor.assumeIsolated { skipBack() }; return .success }
+        center.skipBackwardCommand.addTarget { _ in Task { @MainActor in skipBack() }; return .success }
     }
 
     func update(title: String, show: String, position: TimeInterval, duration: TimeInterval, rate: Float) {
