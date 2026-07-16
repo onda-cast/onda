@@ -8,13 +8,24 @@ struct LibraryView: View {
            sort: \Podcast.title) private var shows: [Podcast]
 
     private let cols = [GridItem(.flexible(), spacing: 18), GridItem(.flexible(), spacing: 18)]
+    @State private var showSearch = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Library").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
-                        .padding(.horizontal, 20).padding(.top, 56)
+                    HStack {
+                        Text("Library").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
+                        Spacer()
+                        Button { showSearch = true } label: {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(theme.color(.textSecondary))
+                                .frame(width: 36, height: 36)
+                                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                        }.buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20).padding(.top, 56)
 
                     if shows.isEmpty {
                         Text("No shows yet — find some in Discover")
@@ -33,6 +44,7 @@ struct LibraryView: View {
             }
             .background(theme.color(.bg))
             .navigationDestination(for: Podcast.self) { EpisodeListView(podcast: $0) }
+            .sheet(isPresented: $showSearch) { LibrarySearchView() }
         }
     }
 }
