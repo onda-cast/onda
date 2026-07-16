@@ -1,0 +1,97 @@
+//  PlaybackManager.swift
+import Foundation
+import SwiftData
+import AVFoundation
+
+@MainActor
+@Observable
+final class PlaybackManager {
+    private let engine: PlayerEngine
+    private let modelContext: ModelContext
+
+    var currentEpisode: Episode?
+    var isPlaying: Bool = false
+    var positionSeconds: TimeInterval = 0
+    var durationSeconds: TimeInterval = 0
+
+    private var lastPersistedAt: TimeInterval = -100
+
+    init(engine: PlayerEngine, modelContext: ModelContext) {
+        self.engine = engine
+        self.modelContext = modelContext
+        engine.onTimeUpdate = { [weak self] t in self?.handleTimeUpdate(t) }
+        engine.onEndOfItem = { [weak self] in self?.handleEndOfItem() }
+    }
+
+    private var settings: ShowSettings? { currentEpisode?.podcast?.settings }
+    var progressFraction: Double {
+        guard durationSeconds > 0 else { return 0 }
+        return min(1, max(0, positionSeconds / durationSeconds))
+    }
+
+    func play(_ episode: Episode) {
+        currentEpisode = episode
+        durationSeconds = episode.duration
+        let intro = TimeInterval(settings?.introTrimSec ?? 0)
+        let start = max(episode.playbackPosition, intro)
+        let url = localURL(for: episode) ?? episode.audioURL
+        engine.load(url: url, startAt: start)
+        engine.rate = Float(settings?.speed ?? 1.0)
+        positionSeconds = start
+        engine.play()
+        isPlaying = true
+    }
+
+    func togglePlayPause() {
+        guard currentEpisode != nil else { return }
+        if isPlaying { engine.pause(); persistPosition() }
+        else { engine.play() }
+        isPlaying.toggle()
+    }
+
+    func skip(by seconds: TimeInterval) {
+        let target = max(0, min(durationSeconds, positionSeconds + seconds))
+        engine.seek(to: target); positionSeconds = target
+    }
+
+    func seek(toFraction f: Double) {
+        let target = max(0, min(durationSeconds, durationSeconds * f))
+        engine.seek(to: target); positionSeconds = target
+    }
+
+    // Resolve a downloaded file to a playable URL (Plan 5 populates downloadedFile).
+    func localURL(for episode: Episode) -> URL? {
+        guard let name = episode.downloadedFile?.localFileName else { return nil }
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let url = dir.appendingPathComponent(name)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    private func handleTimeUpdate(_ t: TimeInterval) {
+        positionSeconds = t
+        guard let ep = currentEpisode else { return }
+
+        // Outro trim: treat (duration - outro) as the effective end.
+        let outro = TimeInterval(settings?.outroTrimSec ?? 0)
+        if outro > 0, t >= ep.duration - outro { handleEndOfItem(); return }
+
+        if t - lastPersistedAt >= 5 { persistPosition() }
+        if ep.duration > 0, t >= ep.duration * 0.95, !ep.played {
+            ep.played = true; try? modelContext.save()
+        }
+    }
+
+    private func persistPosition() {
+        guard let ep = currentEpisode else { return }
+        ep.playbackPosition = positionSeconds
+        lastPersistedAt = positionSeconds
+        try? modelContext.save()
+    }
+
+    // Extended in Task 3 to advance the queue.
+    func handleEndOfItem() {
+        if let ep = currentEpisode { ep.played = true; ep.playbackPosition = 0 }
+        isPlaying = false
+        try? modelContext.save()
+    }
+}
