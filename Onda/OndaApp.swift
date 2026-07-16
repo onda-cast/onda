@@ -10,18 +10,23 @@ struct OndaApp: App {
     @State private var clientBox = ITunesSearchClientBox(client: ITunesSearchClient())
     @State private var playback: PlaybackManager
     @State private var downloads: DownloadManager
+    @State private var refresh: FeedRefreshService
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         do {
             let c = try ModelContainer(for: Schema(ondaSchema))
             container = c
             AudioSession.activate()
-            _subscriptions = State(initialValue:
-                SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient()))
+            let subs = SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient())
+            let dm = DownloadManager(persistence: PersistenceActor(modelContainer: c))
+            _subscriptions = State(initialValue: subs)
+            _downloads = State(initialValue: dm)
             _playback = State(initialValue:
                 PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext))
-            _downloads = State(initialValue:
-                DownloadManager(persistence: PersistenceActor(modelContainer: c)))
+            let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs, downloads: dm)
+            rs.registerBackgroundTask()
+            _refresh = State(initialValue: rs)
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
         }
@@ -36,6 +41,13 @@ struct OndaApp: App {
                 .environment(playback)
                 .environment(downloads)
                 .preferredColorScheme(theme.colorScheme)
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active {
+                        Task { [refresh] in await refresh.refreshAll() }
+                    } else if phase == .background {
+                        refresh.scheduleBackgroundRefresh()
+                    }
+                }
         }
         .modelContainer(container)
     }

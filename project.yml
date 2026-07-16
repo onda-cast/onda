@@ -19,6 +19,7 @@ targets:
     settings:
       base:
         INFOPLIST_KEY_CFBundleDisplayName: Onda
+        INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers: com.onda.refresh
   OndaTests:
     type: bundle.unit-test
     platform: iOS
