@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Messy Show</title>
+    <item>
+      <title>Good Episode</title>
+      <guid>good-1</guid>
+      <pubDate>Mon, 14 Jul 2026 09:00:00 +0000</pubDate>
+      <itunes:duration>1:02:03</itunes:duration>
+      <enclosure url="https://ex.com/good.mp3" type="audio/mpeg"/>
+      <description>Fine.</description>
+    </item>
+    <item>
+      <title>No Enclosure Episode</title>
+      <guid>bad-1</guid>
+      <pubDate>garbage-date</pubDate>
+      <description>Should be skipped (no audio url).</description>
+    </item>
+  </channel>
+</rss>
