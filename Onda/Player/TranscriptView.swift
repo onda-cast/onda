@@ -10,6 +10,10 @@ struct TranscriptView: View {
     @State private var transcript: Transcript?
     @State private var loading = false
     @State private var transcribing = false
+    @State private var selecting = false
+    @State private var selStart: Int?
+    @State private var selEnd: Int?
+    @State private var showClipSheet = false
 
     private var cues: [TranscriptCue] {
         (transcript?.cues ?? []).sorted { $0.startTime < $1.startTime }
@@ -28,8 +32,49 @@ struct TranscriptView: View {
             .background(theme.color(.bg))
             .navigationTitle("Transcript")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if transcript != nil, !(transcript?.cues.isEmpty ?? true) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(selecting ? "Done" : "Select") {
+                            selecting.toggle(); selStart = nil; selEnd = nil
+                        }
+                    }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if selecting, let lo = selectionRange?.lowerBound, let hi = selectionRange?.upperBound {
+                    Button {
+                        showClipSheet = true
+                    } label: {
+                        Text("Clip \(hi - lo + 1) line\(hi == lo ? "" : "s")")
+                            .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 14)
+                            .background(theme.color(.accent)).brutalBorder(width: 2)
+                    }
+                    .buttonStyle(.plain).padding(16)
+                    .background(theme.color(.bg))
+                }
+            }
+            .sheet(isPresented: $showClipSheet, onDismiss: { selecting = false; selStart = nil; selEnd = nil }) {
+                if let r = selectionRange {
+                    ClipEditSheet(episode: episode,
+                                  requestedStart: cues[r.lowerBound].startTime,
+                                  requestedEnd: cues[r.upperBound].endTime)
+                }
+            }
         }
         .task { await load() }
+    }
+
+    private var selectionRange: ClosedRange<Int>? {
+        guard let s = selStart else { return nil }
+        let e = selEnd ?? s
+        return min(s, e)...max(s, e)
+    }
+
+    private func handleSelectionTap(_ i: Int) {
+        if let s = selStart, selEnd == nil, i != s { selEnd = i }
+        else { selStart = i; selEnd = nil }
     }
 
     private var transcriptList: some View {
@@ -38,7 +83,8 @@ struct TranscriptView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(Array(cues.enumerated()), id: \.offset) { i, cue in
                         Button {
-                            playback.seek(toFraction: cue.startTime / max(1, episode.duration))
+                            if selecting { handleSelectionTap(i) }
+                            else { playback.seek(toFraction: cue.startTime / max(1, episode.duration)) }
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 if let s = cue.speaker {
@@ -50,7 +96,10 @@ struct TranscriptView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(10)
-                            .background(i == activeIndex ? theme.color(.accentWash) : .clear)
+                            .background(
+                                (selecting && (selectionRange?.contains(i) ?? false))
+                                    ? theme.color(.accentWash)
+                                    : (i == activeIndex && !selecting ? theme.color(.accentWash) : .clear))
                         }
                         .buttonStyle(.plain).id(i)
                     }

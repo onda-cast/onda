@@ -35,6 +35,21 @@ final class PlaybackManager {
             pause: { [weak self] in self?.pauseExternally() },
             skipForward: { [weak self] in self?.skip(by: 30) },
             skipBack: { [weak self] in self?.skip(by: -15) })
+        nowPlaying.configureBookmarkCommand { [weak self] in self?.onCaptureRequested?() }
+    }
+
+    // MARK: Capture (lock-screen quick clip)
+    var onCaptureRequested: (() -> Void)?
+    var captureToast: String?
+    private var toastTask: Task<Void, Never>?
+
+    func showCaptureToast(_ text: String) {
+        captureToast = text
+        toastTask?.cancel()
+        toastTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            self?.captureToast = nil
+        }
     }
 
     private func resumeExternally() { guard !isPlaying, currentEpisode != nil else { return }; togglePlayPause() }

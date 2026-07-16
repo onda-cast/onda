@@ -38,6 +38,17 @@ struct NowPlayingView: View {
             .frame(maxWidth: .infinity)
         }
         .background(theme.color(.bg).ignoresSafeArea())
+        .overlay(alignment: .bottom) {
+            if let toast = playback.captureToast {
+                Text(toast)
+                    .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(.white)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
+                    .background(theme.color(.accent)).brutalBorder(width: 2)
+                    .padding(.bottom, 30)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: playback.captureToast)
         .sheet(isPresented: $showQueue) { QueueView() }
         .sheet(isPresented: $showSettings) {
             if let pod = ep?.podcast { ShowSettingsSheet(podcast: pod) }

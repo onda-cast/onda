@@ -12,6 +12,7 @@ struct OndaApp: App {
     @State private var downloads: DownloadManager
     @State private var refresh: FeedRefreshService
     @State private var transcripts: TranscriptService
+    @State private var clips: ClipService
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -31,6 +32,13 @@ struct OndaApp: App {
             _transcripts = State(initialValue: TranscriptService(
                 modelContext: c.mainContext, engine: engine,
                 localURL: { pm.localURL(for: $0) }))
+            let cs = ClipService(modelContext: c.mainContext)
+            _clips = State(initialValue: cs)
+            pm.onCaptureRequested = { [weak pm] in
+                guard let pm, let ep = pm.currentEpisode else { return }
+                cs.quickClip(episode: ep, at: pm.positionSeconds)
+                pm.showCaptureToast("Clipped last \(Int(ClipService.quickClipWindow))s")
+            }
             let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs, downloads: dm)
             rs.registerBackgroundTask()
             _refresh = State(initialValue: rs)
@@ -48,6 +56,7 @@ struct OndaApp: App {
                 .environment(playback)
                 .environment(downloads)
                 .environment(transcripts)
+                .environment(clips)
                 .preferredColorScheme(theme.colorScheme)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
