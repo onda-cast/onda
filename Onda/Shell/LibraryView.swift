@@ -9,6 +9,7 @@ struct LibraryView: View {
 
     private let cols = [GridItem(.flexible(), spacing: 18), GridItem(.flexible(), spacing: 18)]
     @State private var showSearch = false
+    @State private var showClips = false
 
     var body: some View {
         NavigationStack {
@@ -17,6 +18,13 @@ struct LibraryView: View {
                     HStack {
                         Text("Library").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
                         Spacer()
+                        Button { showClips = true } label: {
+                            Image(systemName: "bookmark")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(theme.color(.textSecondary))
+                                .frame(width: 36, height: 36)
+                                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                        }.buttonStyle(.plain)
                         Button { showSearch = true } label: {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 17, weight: .semibold))
@@ -45,6 +53,7 @@ struct LibraryView: View {
             .background(theme.color(.bg))
             .navigationDestination(for: Podcast.self) { EpisodeListView(podcast: $0) }
             .sheet(isPresented: $showSearch) { LibrarySearchView() }
+            .sheet(isPresented: $showClips) { ClipsView() }
         }
     }
 }

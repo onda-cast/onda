@@ -27,6 +27,12 @@ final class NowPlayingCenter {
         center.skipBackwardCommand.addTarget { _ in Task { @MainActor in skipBack() }; return .success }
     }
 
+    func configureBookmarkCommand(_ handler: @escaping @MainActor () -> Void) {
+        let cmd = MPRemoteCommandCenter.shared().bookmarkCommand
+        cmd.isEnabled = true
+        cmd.addTarget { _ in Task { @MainActor in handler() }; return .success }
+    }
+
     func update(title: String, show: String, position: TimeInterval, duration: TimeInterval, rate: Float) {
         let info: [String: Any] = [
             MPMediaItemPropertyTitle: title,

@@ -153,6 +153,36 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertEqual(engine.boostGain, 2.4, accuracy: 0.001)
     }
 
+    func test_playClip_startsAtClipStart_andPausesAtClipEnd() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        let clip = Clip(startTime: 100, endTime: 160, text: "", note: nil,
+                        createdAt: .now, needsReview: false)
+        clip.episode = ep; ep.clips.append(clip); ctx.insert(clip)
+        pm.playClip(clip)
+        XCTAssertEqual(engine.currentTimeSeconds, 100)
+        engine.emitTime(159); XCTAssertTrue(pm.isPlaying)
+        engine.emitTime(161)
+        XCTAssertFalse(pm.isPlaying, "paused at clip end")
+        XCTAssertFalse(ep.played, "clip end must not mark episode played")
+    }
+
+    func test_manualSeek_clearsClipBound() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        let clip = Clip(startTime: 100, endTime: 160, text: "", note: nil,
+                        createdAt: .now, needsReview: false)
+        clip.episode = ep; ep.clips.append(clip); ctx.insert(clip)
+        pm.playClip(clip)
+        pm.skip(by: 200)              // user takes over
+        engine.emitTime(320)
+        XCTAssertTrue(pm.isPlaying, "bound cleared by manual skip")
+    }
+
     func test_skip_movesPositionInFeedTime() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
