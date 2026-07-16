@@ -19,9 +19,13 @@ theming.
   trim, notification preference
 - Episode downloads for offline playback
 - Light/dark appearance
+- Transcripts: follow-along transcript view (doubles as captions), full-text transcript search —
+  sourced from published Podcasting 2.0 transcripts first, on-device Apple Speech transcription as
+  an iOS 26+ fallback
 
 Out of scope for v1: multi-device sync, backend of our own, social features, real ad-detection
-beyond Podcasting 2.0 chapter markers.
+beyond Podcasting 2.0 chapter markers, transcript-based chapter/ad inference (unreliable;
+Podcasting 2.0 markers already cover ads), on-device transcription below iOS 26.
 
 ## Screens & Navigation
 
@@ -38,7 +42,12 @@ beyond Podcasting 2.0 chapter markers.
   opens a menu: 5/10/15/30/45 min, "End of episode", Off)*, ad banner (only rendered when the
   current episode has a real Podcasting-2.0 ad-marked chapter active — no simulated/timer-based
   ads), Chapters list, About This Episode notes, **+ Up Next queue** *(new)* reachable via a
-  queue icon/swipe — cross-show manual queue, reorderable, tap to jump
+  queue icon/swipe — cross-show manual queue, reorderable, tap to jump, **+ Transcript view**
+  *(new)* — scrollable time-aligned cues with the active cue highlighted + auto-scrolling, tap a
+  cue to seek; doubles as captions/accessibility. When no transcript exists, shows a "Transcribe
+  episode" affordance (iOS 26+, downloaded episodes only) or a "not available" message
+- **Library search** — *(new)* transcript full-text search across subscribed shows; a hit jumps
+  to the matching moment in the episode
 - **Per-show settings sheet** — Speed, Voice Boost, Skip Silence, Ad Skip mode, Auto-Download,
   Skip Intro/Outro trim (±5s steps), Notification preference (All/Important/None)
 - **Profile** — Appearance toggle (light/dark), Notifications, **Downloads & Storage** *(new —
@@ -69,7 +78,13 @@ the environment.
                          (created lazily with defaults on first subscribe / first settings open)
 @Model QueueItem      — ordered list; references Episode, position: Int
 @Model DownloadedFile — 1:1 with Episode; localFileURL, fileSizeBytes, downloadedAt
+@Model Transcript     — 1:1 with Episode; source ("published"|"ondevice"), language, cues: [TranscriptCue]
+@Model TranscriptCue  — belongs to Transcript; startTime, endTime (feed-seconds), text, speaker: String?
 ```
+
+`Episode` also carries `transcriptURL: URL?` and `transcriptType: String?`, captured from the
+feed's `<podcast:transcript>` tag. `TranscriptCue` times are in feed-seconds, so follow-along
+highlighting and tap-to-seek reuse the canonical-timeline position math.
 
 `Episode.playbackPosition` is persisted every ~5s during playback so resume works across app
 launches; `played` flips true past ~95% listened.
@@ -128,6 +143,20 @@ stay consistent regardless of active effects.
 - **`ArtworkCache`** — disk-backed image cache for show/episode artwork (grids and lists re-render
   during scroll, so raw `AsyncImage` would refetch); a lightweight `URLCache`-backed loader or
   small on-disk LRU, exposed as a SwiftUI image view used everywhere artwork appears.
+- **`TranscriptParser`** — pure parser turning a published transcript (Podcasting 2.0 JSON, WebVTT,
+  or SRT) into time-aligned `[ParsedCue]`. Tolerant of format quirks like `RSSFeedParser`.
+- **`SpeechTranscriberEngine`** (`@available(iOS 26)`, behind an `AudioTranscribing` protocol) —
+  on-device Apple Speech (`SpeechAnalyzer`/`SpeechTranscriber`) transcription of a downloaded audio
+  file into time-aligned cues, with progress. Gated to iOS 26+; the protocol keeps it stubbable in
+  tests and cleanly absent on older OSes.
+- **`TranscriptService`** (`@Observable`) — `transcript(for:)`: if the episode has a published
+  `transcriptURL`, fetch + `TranscriptParser` + persist (`source = "published"`); else on iOS 26+
+  with the episode downloaded, run `SpeechTranscriberEngine` (`source = "ondevice"`); else none.
+  Fetching is **on-demand** (first time the transcript view opens), then cached. Owns Speech
+  authorization (`NSSpeechRecognitionUsageDescription`).
+- **`TranscriptSearch`** — full-text query over persisted `TranscriptCue.text` (SwiftData
+  predicate) across subscribed shows → hits (episode + cue + feed-second timestamp); backs Library
+  search.
 
 ## Error Handling
 
@@ -147,6 +176,10 @@ stay consistent regardless of active effects.
 - Unit tests: `PlaybackManager` trim/queue-advance/sleep-timer logic against a fake player
   protocol; energy-threshold silence-detection logic tested against synthetic PCM buffers
   (loud/quiet fixtures) independent of live `AVPlayer`
+- Unit tests: `TranscriptParser` against VTT/SRT/PC2.0-JSON fixtures (incl. malformed cues);
+  active-cue selection logic against a synthetic cue list + position; `TranscriptSearch` matching
+  against an in-memory container. `SpeechTranscriberEngine` is exercised behind its protocol with a
+  stub — no real Speech recognition in tests.
 - SwiftData model tests (in-memory container): subscribe/unsubscribe, settings defaults, queue
   reordering
 - No UI snapshot tests for v1 — the prototype is the visual source of truth; manual verification
@@ -166,3 +199,8 @@ stay consistent regardless of active effects.
 - **Client-side RSS parsing (`RSSFeedParser`) must handle messy real-world feeds** (malformed
   dates, missing fields, nonstandard namespaces) that PodcastIndex would otherwise have normalized
   for us — expect to harden this incrementally against real shows during implementation
+- **On-device transcription is iOS 26+ only and best-effort.** On iOS 17–25, episodes without a
+  published transcript simply have none. Even on iOS 26+, transcribing a full episode is time/
+  battery-intensive, so it's opt-in and limited to downloaded audio. Published Podcasting 2.0
+  transcripts are the primary path and cover this gap wherever shows provide them; transcript
+  coverage will otherwise be uneven.
