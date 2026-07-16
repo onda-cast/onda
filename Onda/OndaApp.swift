@@ -8,6 +8,7 @@ struct OndaApp: App {
     @State private var theme = AppTheme()
     @State private var subscriptions: SubscriptionService
     @State private var clientBox = ITunesSearchClientBox(client: ITunesSearchClient())
+    @State private var playback: PlaybackManager
 
     init() {
         do {
@@ -16,6 +17,8 @@ struct OndaApp: App {
             AudioSession.activate()
             _subscriptions = State(initialValue:
                 SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient()))
+            _playback = State(initialValue:
+                PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext))
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
         }
@@ -27,6 +30,7 @@ struct OndaApp: App {
                 .environment(theme)
                 .environment(subscriptions)
                 .environment(clientBox)
+                .environment(playback)
                 .preferredColorScheme(theme.colorScheme)
         }
         .modelContainer(container)
