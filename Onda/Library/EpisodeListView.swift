@@ -23,6 +23,7 @@ struct EpisodeListView: View {
                 Divider().overlay(theme.color(.separator))
                 ForEach(episodes) { ep in
                     EpisodeRow(episode: ep,
+                               downloadState: downloads.state(for: ep),
                                onPlay: { playback.play(ep) },
                                onDownload: {
                                    switch downloads.state(for: ep) {

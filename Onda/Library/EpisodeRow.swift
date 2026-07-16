@@ -4,6 +4,7 @@ import SwiftUI
 struct EpisodeRow: View {
     @Environment(AppTheme.self) private var theme
     let episode: Episode
+    var downloadState: DownloadState = .none
     var onPlay: () -> Void = {}
     var onDownload: () -> Void = {}
 
@@ -36,10 +37,31 @@ struct EpisodeRow: View {
             }
             Spacer(minLength: 8)
             Button(action: onDownload) {
-                Image(systemName: episode.downloadedFile == nil ? "arrow.down.circle" : "checkmark.circle.fill")
-                    .font(.system(size: 22)).foregroundStyle(theme.color(.textSecondary))
+                downloadIcon
             }.buttonStyle(.plain)
         }
         .padding(.vertical, 12)
+    }
+
+    @ViewBuilder private var downloadIcon: some View {
+        switch downloadState {
+        case .none:
+            Image(systemName: "arrow.down.circle")
+                .font(.system(size: 22)).foregroundStyle(theme.color(.textSecondary))
+        case .downloading(let progress):
+            ZStack {
+                Circle().stroke(theme.color(.separator).opacity(0.3), lineWidth: 2.5)
+                Circle().trim(from: 0, to: max(0.03, progress))
+                    .stroke(theme.color(.accent), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            .frame(width: 22, height: 22)
+        case .downloaded:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 22)).foregroundStyle(theme.color(.accent))
+        case .failed:
+            Image(systemName: "exclamationmark.arrow.circlepath")
+                .font(.system(size: 22)).foregroundStyle(.red)
+        }
     }
 }
