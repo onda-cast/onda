@@ -3,6 +3,7 @@ import XCTest
 import SwiftUI
 @testable import Onda
 
+@MainActor
 final class ThemeTests: XCTestCase {
     func test_toggle_flipsAppearance() {
         let theme = AppTheme(appearance: .light, persist: false)

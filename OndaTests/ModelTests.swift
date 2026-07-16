@@ -3,6 +3,7 @@ import XCTest
 import SwiftData
 @testable import Onda
 
+@MainActor
 final class ModelTests: XCTestCase {
     private func inMemoryContext() throws -> ModelContext {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)

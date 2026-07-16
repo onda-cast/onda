@@ -3,9 +3,7 @@ import SwiftUI
 
 @Observable
 final class AppTheme {
-    var appearance: Appearance {
-        didSet { if persist { UserDefaults.standard.set(appearance.rawValue, forKey: Self.key) } }
-    }
+    private(set) var appearance: Appearance
     private let persist: Bool
     private static let key = "appearance"
 
@@ -20,6 +18,13 @@ final class AppTheme {
     }
 
     var colorScheme: ColorScheme { appearance == .dark ? .dark : .light }
-    func toggle() { appearance = (appearance == .light) ? .dark : .light }
+
+    func toggle() { setAppearance(appearance == .light ? .dark : .light) }
+
+    func setAppearance(_ a: Appearance) {
+        appearance = a
+        if persist { UserDefaults.standard.set(a.rawValue, forKey: Self.key) }
+    }
+
     func color(_ t: ColorToken) -> Color { OndaColors.token(t, for: appearance) }
 }
