@@ -23,6 +23,9 @@ struct NowPlayingView: View {
                     Text(ep.podcast?.title ?? "").font(.system(size: 15, weight: .bold))
                         .textCase(.uppercase).foregroundStyle(theme.color(.accent))
                     scrubber
+                    if playback.adActive {
+                        adBanner(ep)
+                    }
                     transport
                     chips
                     chapterList(ep)
@@ -130,6 +133,28 @@ struct NowPlayingView: View {
         }
     }
 
+    private func adBanner(_ ep: Episode) -> some View {
+        HStack {
+            Text(settings?.adSkipMode == "auto" ? "Skipping ad…" : "Ad break in progress")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(theme.color(.text))
+            Spacer()
+            if settings?.adSkipMode == "manual" {
+                Button("Skip Ad") {
+                    let w = AdWindow(chapters: ep.chapters.map { ($0.startTime, $0.isAd) },
+                                     duration: ep.duration)
+                    if let end = w.adEnd(at: playback.positionSeconds) {
+                        playback.seek(toFraction: end / max(1, ep.duration))
+                    }
+                }
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(theme.color(.accent))
+            }
+        }
+        .padding(12).background(theme.color(.accentWash)).brutalBorder(width: 2)
+        .frame(maxWidth: 280)
+    }
+
     private func about(_ ep: Episode) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("About This Episode").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
@@ -143,8 +168,14 @@ struct NowPlayingView: View {
         let i = steps.firstIndex(of: s.speed) ?? 1
         s.speed = steps[(i + 1) % steps.count]
     }
-    private func toggleBoost() { settings.map { $0.voiceBoost = ($0.voiceBoost + 1) % 3 } }
-    private func toggleSilence() { settings.map { $0.skipSilence.toggle() } }
+    private func toggleBoost() {
+        settings.map { $0.voiceBoost = ($0.voiceBoost + 1) % 3 }
+        playback.applyAudioSettings()
+    }
+    private func toggleSilence() {
+        settings.map { $0.skipSilence.toggle() }
+        playback.applyAudioSettings()
+    }
 
     private func timeStr(_ s: TimeInterval) -> String {
         let t = Int(max(0, s)); return String(format: "%d:%02d", t / 60, t % 60)
