@@ -31,12 +31,14 @@ beyond Podcasting 2.0 chapter markers.
   show header (art, name, category, unsubscribe) + episode rows (title, date, duration,
   played/in-progress indicator, download control) → tap episode → **Now Playing**
 - **Discover** — search bar (iTunes Search by-term), category chips, trending list with
-  Follow button (trending sourced from iTunes' charts endpoint per-category)
+  Follow button (trending resolved per-category via `ITunesSearchClient`'s two-hop charts path —
+  see Services)
 - **Now Playing** — artwork, title/show, scrubber, skip ±15/30, play/pause, Speed/Voice
-  Boost/Skip-Silence chips, ad banner (only rendered when the current episode has a real
-  Podcasting-2.0 ad-marked chapter active — no simulated/timer-based ads), Chapters list, About
-  This Episode notes, **+ Up Next queue** *(new)* reachable via a queue icon/swipe — cross-show
-  manual queue, reorderable, tap to jump
+  Boost/Skip-Silence chips, **sleep-timer action** *(new — moon/timer icon near the chips;
+  opens a menu: 5/10/15/30/45 min, "End of episode", Off)*, ad banner (only rendered when the
+  current episode has a real Podcasting-2.0 ad-marked chapter active — no simulated/timer-based
+  ads), Chapters list, About This Episode notes, **+ Up Next queue** *(new)* reachable via a
+  queue icon/swipe — cross-show manual queue, reorderable, tap to jump
 - **Per-show settings sheet** — Speed, Voice Boost, Skip Silence, Ad Skip mode, Auto-Download,
   Skip Intro/Outro trim (±5s steps), Notification preference (All/Important/None)
 - **Profile** — Appearance toggle (light/dark), Notifications, **Downloads & Storage** *(new —
@@ -72,13 +74,25 @@ the environment.
 `Episode.playbackPosition` is persisted every ~5s during playback so resume works across app
 launches; `played` flips true past ~95% listened.
 
+**Canonical timeline.** `playbackPosition`, `Chapter.startTime`, the scrubber, and all seeks are
+always expressed in **original feed seconds**. Intro/outro trim and skip-silence are playback-layer
+effects (they change what wall-clock time gets you to a given feed second) but never change the
+stored/displayed timeline — position math stays in feed-time so resume, chapters, and the scrubber
+stay consistent regardless of active effects.
+
 ## Services
 
-- **`ITunesSearchClient`** — async/await wrapper over Apple's public iTunes Search API
-  (`itunes.apple.com/search?media=podcast`, `.../lookup`, and the charts/RSS-generator feed for
-  trending-by-category). No API key or account needed. Returns each show's `feedUrl`, which is
-  the handoff point into `RSSFeedParser`. Unofficial/undocumented — no SLA — so calls are
-  defensive (timeouts, tolerant JSON decoding) rather than assuming a stable contract.
+- **`ITunesSearchClient`** — async/await wrapper over Apple's public iTunes Search API. No API key
+  or account needed. Three call shapes:
+  - **Search**: `itunes.apple.com/search?media=podcast&term=…` → shows with `feedUrl`
+  - **Lookup**: `itunes.apple.com/lookup?id=…` → resolve a chart entry's iTunes ID to its `feedUrl`
+  - **Trending by category** *(two hops — there is no single "trending by category" endpoint)*:
+    the Marketing Tools RSS generator (`rss.marketingtools.apple.com/.../podcasts/top/…`) returns
+    top-podcast **iTunes IDs** per genre → batch `/lookup` those IDs to get `feedUrl`s. The two-step
+    is explicit here so it isn't a surprise during implementation.
+
+  `feedUrl` is the handoff point into `RSSFeedParser`. Unofficial/undocumented — no SLA — so calls
+  are defensive (timeouts, tolerant JSON decoding) rather than assuming a stable contract.
 - **`RSSFeedParser`** — `XMLParser`-based client-side parser for a show's own RSS feed: episode
   list (title, guid, publish date, duration, enclosure/audioURL, show notes), plus optional
   Podcasting 2.0 tags (`<podcast:chapters>` JSON link for chapters/ad-markers,
@@ -88,19 +102,32 @@ launches; `played` flips true past ~95% listened.
 - **`FeedRefreshService`** — re-fetches each subscribed show's feed via `RSSFeedParser` on app
   foreground + a background refresh task; upserts new `Episode` rows; triggers auto-download for
   shows with `autoDownload = true`.
-- **`PlaybackManager`** (`@Observable`) — wraps `AVPlayer`:
+- **`PlaybackManager`** (`@Observable`) — wraps `AVPlayer` (chosen over `AVAudioEngine` for its
+  network streaming, range-download, and `AVPlayerItem` support):
   - Plays from `DownloadedFile.localFileURL` when present, else streams `Episode.audioURL`
   - Applies per-show `speed` via `AVPlayer.rate`; applies `introTrimSec`/`outroTrimSec` via
-    seek-on-start / stop-before-end
-  - Voice Boost / Skip Silence via an `AVAudioEngine` tap chain (dynamics processor for boost;
-    energy-threshold detection + time-compression for silence skip) — highest-complexity,
-    highest-risk piece of v1
+    seek-on-start / stop-before-end (in feed-time — see Canonical timeline above)
+  - **Real-time audio DSP via `MTAudioProcessingTap`** attached to the `AVPlayerItem`'s
+    `audioMix` (this is the correct way to tap `AVPlayer` audio — `AVAudioEngine` is a separate,
+    incompatible playback path and is *not* used):
+    - **Voice Boost** — gain/dynamics applied inside the tap's process callback (low risk)
+    - **Skip Silence** — the tap's process callback runs a rolling energy analysis on PCM
+      buffers; sustained sub-threshold energy triggers an `AVPlayer` seek to jump the quiet
+      span. **Highest-complexity, highest-risk piece of v1** — buffering latency means detection
+      and the resulting seek are inherently coarse; accept some imprecision. Kept in v1 scope.
+  - **Sleep timer** — a duration-based timer (5/10/15/30/45 min) or an "end of episode" mode that
+    pauses playback when it fires; surfaced via the Now Playing sleep-timer action
   - Publishes now-playing info to `MPNowPlayingInfoCenter`; wires `MPRemoteCommandCenter` for
     lock screen / Control Center / AirPods controls
   - Owns the `QueueItem` list; on episode end, advances to the next queue item, else next
     unplayed episode in the same show
 - **`DownloadManager`** — `URLSession` background-configuration download tasks per episode;
-  publishes per-episode progress; deletes `DownloadedFile` row + on-disk file together.
+  publishes per-episode progress; deletes `DownloadedFile` row + on-disk file together. Background
+  completions arrive on a system queue via the app-delegate handler, so the resulting SwiftData
+  writes hop to a dedicated `@ModelActor` context rather than touching a view context off-thread.
+- **`ArtworkCache`** — disk-backed image cache for show/episode artwork (grids and lists re-render
+  during scroll, so raw `AsyncImage` would refetch); a lightweight `URLCache`-backed loader or
+  small on-disk LRU, exposed as a SwiftUI image view used everywhere artwork appears.
 
 ## Error Handling
 
@@ -117,7 +144,9 @@ launches; `played` flips true past ~95% listened.
 
 - Unit tests: `ITunesSearchClient` response decoding and `RSSFeedParser` XML parsing against
   fixture JSON/RSS (including malformed/real-world feed samples) — no live network in tests
-- Unit tests: `PlaybackManager` trim/queue-advance logic against a fake player protocol
+- Unit tests: `PlaybackManager` trim/queue-advance/sleep-timer logic against a fake player
+  protocol; energy-threshold silence-detection logic tested against synthetic PCM buffers
+  (loud/quiet fixtures) independent of live `AVPlayer`
 - SwiftData model tests (in-memory container): subscribe/unsubscribe, settings defaults, queue
   reordering
 - No UI snapshot tests for v1 — the prototype is the visual source of truth; manual verification
@@ -125,9 +154,11 @@ launches; `played` flips true past ~95% listened.
 
 ## Open Risks
 
-- **Voice Boost / Skip Silence via `AVAudioEngine`** is genuinely complex DSP work; may need to
-  descope to a simpler implementation (e.g. boost = static gain node only, no dynamic silence
-  detection) if it proves too costly during implementation
+- **Skip Silence via `MTAudioProcessingTap` + seek** is the highest-risk piece and is kept in v1
+  scope by choice. `AVPlayer` buffering makes real-time detection + jump inherently coarse
+  compared to commercial apps; if it feels too rough during implementation, the fallback is to
+  keep the UI but soften behavior (larger silence threshold / gentler skips) rather than removing
+  it. Voice Boost (same tap, gain only) is low-risk and unconditional.
 - **Ad-skip only fires for feeds with real Podcasting 2.0 ad-marked chapters**, which are rare in
   practice — the feature may rarely activate; that's an accepted v1 tradeoff over faking it
 - **iTunes Search API is unofficial/undocumented** with no SLA — acceptable for a personal v1, but
