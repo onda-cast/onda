@@ -7,8 +7,10 @@ struct EpisodeListView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(SubscriptionService.self) private var subscriptions
     @Environment(PlaybackManager.self) private var playback
+    @Environment(DownloadManager.self) private var downloads
     @Environment(\.dismiss) private var dismiss
     let podcast: Podcast
+    @State private var showSettings = false
 
     private var episodes: [Episode] {
         podcast.episodes.sorted { $0.publishDate > $1.publishDate }
@@ -20,7 +22,17 @@ struct EpisodeListView: View {
                 header
                 Divider().overlay(theme.color(.separator))
                 ForEach(episodes) { ep in
-                    EpisodeRow(episode: ep, onPlay: { playback.play(ep) })
+                    EpisodeRow(episode: ep,
+                               downloadState: downloads.state(for: ep),
+                               onPlay: { playback.play(ep) },
+                               onDownload: {
+                                   switch downloads.state(for: ep) {
+                                   case .downloaded: downloads.delete(ep)
+                                   case .failed:     downloads.retryManually(guid: ep.guid)
+                                   case .downloading: break
+                                   case .none:       downloads.download(ep)
+                                   }
+                               })
                     Divider().overlay(theme.color(.separator))
                 }
             }
@@ -30,6 +42,12 @@ struct EpisodeListView: View {
         .refreshable { await refresh() }
         .navigationTitle(podcast.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showSettings = true } label: { Image(systemName: "gearshape") }
+            }
+        }
+        .sheet(isPresented: $showSettings) { ShowSettingsSheet(podcast: podcast) }
     }
 
     private func refresh() async {
