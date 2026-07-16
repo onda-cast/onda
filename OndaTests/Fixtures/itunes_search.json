@@ -1,0 +1,10 @@
+{
+  "resultCount": 2,
+  "results": [
+    { "collectionId": 1, "collectionName": "The Signal", "artistName": "Ex Media",
+      "feedUrl": "https://ex.com/signal.xml", "artworkUrl600": "https://ex.com/a600.jpg",
+      "primaryGenreName": "Technology" },
+    { "collectionId": 2, "collectionName": "No Feed Show", "artistName": "Nobody",
+      "artworkUrl600": "https://ex.com/b600.jpg", "primaryGenreName": "Comedy" }
+  ]
+}
