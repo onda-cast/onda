@@ -15,13 +15,22 @@ final class PlaybackManager {
     var durationSeconds: TimeInterval = 0
 
     private var lastPersistedAt: TimeInterval = -100
+    private let nowPlaying = NowPlayingCenter()
 
     init(engine: PlayerEngine, modelContext: ModelContext) {
         self.engine = engine
         self.modelContext = modelContext
         engine.onTimeUpdate = { [weak self] t in self?.handleTimeUpdate(t) }
         engine.onEndOfItem = { [weak self] in self?.handleEndOfItem() }
+        nowPlaying.configureRemoteCommands(
+            play: { [weak self] in self?.resumeExternally() },
+            pause: { [weak self] in self?.pauseExternally() },
+            skipForward: { [weak self] in self?.skip(by: 30) },
+            skipBack: { [weak self] in self?.skip(by: -15) })
     }
+
+    private func resumeExternally() { guard !isPlaying, currentEpisode != nil else { return }; togglePlayPause() }
+    private func pauseExternally() { guard isPlaying else { return }; togglePlayPause() }
 
     private var settings: ShowSettings? { currentEpisode?.podcast?.settings }
     var progressFraction: Double {
@@ -79,6 +88,9 @@ final class PlaybackManager {
         if ep.duration > 0, t >= ep.duration * 0.95, !ep.played {
             ep.played = true; try? modelContext.save()
         }
+        nowPlaying.update(title: ep.title, show: ep.podcast?.title ?? "",
+                          position: positionSeconds, duration: durationSeconds,
+                          rate: isPlaying ? Float(settings?.speed ?? 1.0) : 0)
     }
 
     private func persistPosition() {

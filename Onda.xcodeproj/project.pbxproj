@@ -43,6 +43,7 @@
 		BEFEE44A6A7727F4F9C86D5E /* DiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBEC28D305C0AF9EB03669B1 /* DiscoverView.swift */; };
 		C4C5120BA3D15BB3B79D6421 /* ShowSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60CC9C8832A8B37941AC88D /* ShowSettings.swift */; };
 		C72934F09B99AF20E74BB6F6 /* ITunesSearchClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB38DA8A4E82A891E4D93ACD /* ITunesSearchClientTests.swift */; };
+		C8862665D462667A35E17445 /* NowPlayingCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB81669B0B7A51F6D9136B0E /* NowPlayingCenter.swift */; };
 		E10FE48367E1073EB58FC0D9 /* Chapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B66F7F8374B5A6DA938F1481 /* Chapter.swift */; };
 		EBF3D546A8A34C903BA08430 /* TrendingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724742E0E1635727F2999811 /* TrendingRow.swift */; };
 		FE6348117ECF5D6A5DC58060 /* PlaybackManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2AC269F8B3F5991E1C14136 /* PlaybackManagerTests.swift */; };
@@ -89,6 +90,7 @@
 		C5A676C4BB0A69A0343594E4 /* feed_basic.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = feed_basic.xml; sourceTree = "<group>"; };
 		C792A2C9B971CE0D7699E235 /* EpisodeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeRow.swift; sourceTree = "<group>"; };
 		CB7D89A90138AEE75E6CA063 /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
+		CB81669B0B7A51F6D9136B0E /* NowPlayingCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingCenter.swift; sourceTree = "<group>"; };
 		CBEC28D305C0AF9EB03669B1 /* DiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverView.swift; sourceTree = "<group>"; };
 		CCED420BAEC9D54A817C10D7 /* OndaTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OndaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE17DF4802CE3FAEFCCA9B2C /* PlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackManager.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				73EDE887722F9B111D8D3594 /* ChapterFetcher.swift */,
+				CB81669B0B7A51F6D9136B0E /* NowPlayingCenter.swift */,
 				CE17DF4802CE3FAEFCCA9B2C /* PlaybackManager.swift */,
 				2DEF527AF76929ACA91A63D7 /* PlayerEngine.swift */,
 			);
@@ -349,6 +352,7 @@
 				79124B9489A4D77E1F6D7025 /* ITunesSearchClientBox.swift in Sources */,
 				00CCB3C9EC4EF568C89F1E15 /* LibraryView.swift in Sources */,
 				0EF858DBCF0C958D90B463D7 /* ModelSchema.swift in Sources */,
+				C8862665D462667A35E17445 /* NowPlayingCenter.swift in Sources */,
 				704D55B56F96BA2997EBAA9C /* OndaApp.swift in Sources */,
 				9984B175F6497AFC38E0BF2F /* Palette.swift in Sources */,
 				50F2A63B66880427543240D1 /* PlaybackManager.swift in Sources */,

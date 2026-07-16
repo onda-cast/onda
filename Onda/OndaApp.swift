@@ -13,6 +13,7 @@ struct OndaApp: App {
         do {
             let c = try ModelContainer(for: Schema(ondaSchema))
             container = c
+            AudioSession.activate()
             _subscriptions = State(initialValue:
                 SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient()))
         } catch {
