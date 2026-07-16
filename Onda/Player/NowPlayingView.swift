@@ -6,6 +6,7 @@ struct NowPlayingView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(\.dismiss) private var dismiss
     @State private var showQueue = false
+    @State private var showSettings = false
 
     private var ep: Episode? { playback.currentEpisode }
     private var settings: ShowSettings? { ep?.podcast?.settings }
@@ -37,6 +38,9 @@ struct NowPlayingView: View {
         }
         .background(theme.color(.bg).ignoresSafeArea())
         .sheet(isPresented: $showQueue) { QueueView() }
+        .sheet(isPresented: $showSettings) {
+            if let pod = ep?.podcast { ShowSettingsSheet(podcast: pod) }
+        }
     }
 
     private var header: some View {
@@ -45,6 +49,7 @@ struct NowPlayingView: View {
             Spacer()
             SleepTimerMenu()
             Button { showQueue = true } label: { Image(systemName: "list.bullet").font(.system(size: 16, weight: .bold)) }
+            Button { showSettings = true } label: { Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold)) }
         }
         .foregroundStyle(theme.color(.textSecondary))
     }

@@ -9,6 +9,7 @@ struct EpisodeListView: View {
     @Environment(PlaybackManager.self) private var playback
     @Environment(\.dismiss) private var dismiss
     let podcast: Podcast
+    @State private var showSettings = false
 
     private var episodes: [Episode] {
         podcast.episodes.sorted { $0.publishDate > $1.publishDate }
@@ -30,6 +31,12 @@ struct EpisodeListView: View {
         .refreshable { await refresh() }
         .navigationTitle(podcast.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showSettings = true } label: { Image(systemName: "gearshape") }
+            }
+        }
+        .sheet(isPresented: $showSettings) { ShowSettingsSheet(podcast: podcast) }
     }
 
     private func refresh() async {
