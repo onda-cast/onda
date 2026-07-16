@@ -16,12 +16,20 @@ final class PlaybackManager {
 
     private var lastPersistedAt: TimeInterval = -100
     private let nowPlaying = NowPlayingCenter()
+    var adActive: Bool = false
+    private var silence = SilenceDetector()
 
     init(engine: PlayerEngine, modelContext: ModelContext) {
         self.engine = engine
         self.modelContext = modelContext
         engine.onTimeUpdate = { [weak self] t in self?.handleTimeUpdate(t) }
         engine.onEndOfItem = { [weak self] in self?.handleEndOfItem() }
+        engine.onRMS = { [weak self] rms, secs in
+            guard let self, self.settings?.skipSilence == true else { return }
+            if let skip = self.silence.consume(rms: rms, bufferSeconds: secs) {
+                self.skip(by: skip.seconds)
+            }
+        }
         nowPlaying.configureRemoteCommands(
             play: { [weak self] in self?.resumeExternally() },
             pause: { [weak self] in self?.pauseExternally() },
@@ -47,8 +55,20 @@ final class PlaybackManager {
         engine.load(url: url, startAt: start)
         engine.rate = Float(settings?.speed ?? 1.0)
         positionSeconds = start
+        applyAudioSettings()
+        silence.reset()
         engine.play()
         isPlaying = true
+    }
+
+    func applyAudioSettings() {
+        let boost = BoostLevel(clamping: settings?.voiceBoost ?? 0)
+        engine.setBoostGain(boost.gain)
+        if settings?.skipSilence != true { silence.reset() }
+    }
+
+    private func adWindow(for ep: Episode) -> AdWindow {
+        AdWindow(chapters: ep.chapters.map { ($0.startTime, $0.isAd) }, duration: ep.duration)
     }
 
     func togglePlayPause() {
@@ -79,6 +99,17 @@ final class PlaybackManager {
     private func handleTimeUpdate(_ t: TimeInterval) {
         positionSeconds = t
         guard let ep = currentEpisode else { return }
+
+        // Ad detection from real Podcasting 2.0 markers; auto mode seeks past the ad.
+        if !ep.chapters.isEmpty {
+            let w = adWindow(for: ep)
+            adActive = w.isAd(at: t)
+            if adActive, settings?.adSkipMode == "auto", let end = w.adEnd(at: t), end > t {
+                engine.seek(to: end); positionSeconds = end; adActive = false
+            }
+        } else {
+            adActive = false
+        }
 
         // Outro trim: treat (duration - outro) as the effective end.
         let outro = TimeInterval(settings?.outroTrimSec ?? 0)

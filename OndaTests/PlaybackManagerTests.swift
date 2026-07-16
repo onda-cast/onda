@@ -115,6 +115,44 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertFalse(pm.isPlaying)
     }
 
+    func test_skipSilenceSetting_seeksOnDetectedSilence() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        ep.podcast?.settings?.skipSilence = true
+        pm.play(ep)
+        engine.emitTime(100)
+        // Feed sustained silence via the engine RMS hook.
+        for _ in 0..<10 { engine.onRMS?(0.001, 0.1) }
+        XCTAssertGreaterThan(engine.currentTimeSeconds, 100, "a silence skip advanced position")
+    }
+
+    func test_adActive_trueInsideAdChapter_whenChaptersPresent() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let ep = makeEpisode(in: ctx, duration: 2292)
+        let c1 = Chapter(title: "Intro", startTime: 0, isAd: false)
+        let c2 = Chapter(title: "Sponsor", startTime: 600, isAd: true)
+        let c3 = Chapter(title: "Main", startTime: 780, isAd: false)
+        for c in [c1, c2, c3] { c.episode = ep; ep.chapters.append(c); ctx.insert(c) }
+        pm.play(ep)
+        engine.emitTime(100); XCTAssertFalse(pm.adActive)
+        engine.emitTime(650); XCTAssertTrue(pm.adActive)
+        engine.emitTime(900); XCTAssertFalse(pm.adActive)
+    }
+
+    func test_playApplyingBoost_setsEngineGain() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let ep = makeEpisode(in: ctx)
+        ep.podcast?.settings?.voiceBoost = 2
+        pm.play(ep)
+        XCTAssertEqual(engine.boostGain, 2.4, accuracy: 0.001)
+    }
+
     func test_skip_movesPositionInFeedTime() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
