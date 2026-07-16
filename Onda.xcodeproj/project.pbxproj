@@ -67,6 +67,7 @@
 		EBF3D546A8A34C903BA08430 /* TrendingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724742E0E1635727F2999811 /* TrendingRow.swift */; };
 		F339BE46425621A1A28C19E7 /* AdWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1167AF2050B72699C1A53695 /* AdWindow.swift */; };
 		F8112CCD4BFC192E00FC7B69 /* SegmentedRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81E6C698734C534FA80E44B /* SegmentedRow.swift */; };
+		F8BF36096CD22B461C04864C /* Transcript.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9F3DA6972693D50DE7CDD1 /* Transcript.swift */; };
 		FE6348117ECF5D6A5DC58060 /* PlaybackManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2AC269F8B3F5991E1C14136 /* PlaybackManagerTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -129,6 +130,7 @@
 		CB81669B0B7A51F6D9136B0E /* NowPlayingCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingCenter.swift; sourceTree = "<group>"; };
 		CBEC28D305C0AF9EB03669B1 /* DiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverView.swift; sourceTree = "<group>"; };
 		CCED420BAEC9D54A817C10D7 /* OndaTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OndaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD9F3DA6972693D50DE7CDD1 /* Transcript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transcript.swift; sourceTree = "<group>"; };
 		CE17DF4802CE3FAEFCCA9B2C /* PlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackManager.swift; sourceTree = "<group>"; };
 		D2CF0359FFD2A2518DFC0CFC /* ITunesSearchClientBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ITunesSearchClientBox.swift; sourceTree = "<group>"; };
 		DAEF393589BFDADE7CF562DE /* BoostLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoostLevel.swift; sourceTree = "<group>"; };
@@ -166,6 +168,7 @@
 				FCF6C8AE0E3030E7AE86BC20 /* Podcast.swift */,
 				A9E0512972681EB4C4F71DA9 /* QueueItem.swift */,
 				F60CC9C8832A8B37941AC88D /* ShowSettings.swift */,
+				CD9F3DA6972693D50DE7CDD1 /* Transcript.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -476,6 +479,7 @@
 				9C5DAB9D2100554F4F0465D8 /* SleepTimerMenu.swift in Sources */,
 				1C9E9551E5DC0567C6748E0E /* SubscriptionService.swift in Sources */,
 				AFCEA49459314178CF2BD336 /* Theme.swift in Sources */,
+				F8BF36096CD22B461C04864C /* Transcript.swift in Sources */,
 				EBF3D546A8A34C903BA08430 /* TrendingRow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
