@@ -76,6 +76,42 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertTrue(ep.played)
     }
 
+    func test_endOfItem_advancesToNextQueueItem() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let ep1 = makeEpisode(in: ctx, guid: "g")
+        let ep2 = makeEpisode(in: ctx, guid: "g2")
+        pm.play(ep1)
+        pm.enqueue(ep2)
+        engine.emitEnd()
+        XCTAssertEqual(pm.currentEpisode?.guid, "g2")
+        XCTAssertTrue(pm.isPlaying)
+    }
+
+    func test_removeFromQueue_dropsEpisode() throws {
+        let ctx = try makeContext()
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        let ep = makeEpisode(in: ctx)
+        pm.enqueue(ep)
+        XCTAssertEqual(pm.queue.count, 1)
+        pm.removeFromQueue(ep)
+        XCTAssertEqual(pm.queue.count, 0)
+    }
+
+    func test_sleepEndOfEpisode_pausesInsteadOfAdvancing() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let ep1 = makeEpisode(in: ctx, guid: "g")
+        let ep2 = makeEpisode(in: ctx, guid: "g2")
+        pm.play(ep1); pm.enqueue(ep2)
+        pm.setSleepTimer(.endOfEpisode)
+        engine.emitEnd()
+        XCTAssertEqual(pm.currentEpisode?.guid, "g", "stays on the finished episode, does not auto-advance")
+        XCTAssertFalse(pm.isPlaying)
+    }
+
     func test_skip_movesPositionInFeedTime() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()

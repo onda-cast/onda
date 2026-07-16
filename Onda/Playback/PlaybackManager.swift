@@ -88,10 +88,82 @@ final class PlaybackManager {
         try? modelContext.save()
     }
 
-    // Extended in Task 3 to advance the queue.
     func handleEndOfItem() {
         if let ep = currentEpisode { ep.played = true; ep.playbackPosition = 0 }
-        isPlaying = false
         try? modelContext.save()
+        if sleepMode == .endOfEpisode {
+            isPlaying = false
+            sleepMode = .off
+            return
+        }
+        playNextInQueue()
+    }
+
+    // MARK: Queue
+    private(set) var queue: [Episode] = []
+
+    func enqueue(_ episode: Episode) {
+        guard !queue.contains(where: { $0.guid == episode.guid }) else { return }
+        let item = QueueItem(episode: episode, position: queue.count)
+        modelContext.insert(item)
+        queue.append(episode)
+        try? modelContext.save()
+    }
+
+    func removeFromQueue(_ episode: Episode) {
+        queue.removeAll { $0.guid == episode.guid }
+        let guid = episode.guid
+        let items = (try? modelContext.fetch(FetchDescriptor<QueueItem>())) ?? []
+        for it in items where it.episode?.guid == guid { modelContext.delete(it) }
+        reindexQueue()
+    }
+
+    func moveQueue(from: IndexSet, to: Int) {
+        queue.move(fromOffsets: from, toOffset: to)
+        reindexQueue()
+    }
+
+    private func reindexQueue() {
+        let items = (try? modelContext.fetch(FetchDescriptor<QueueItem>())) ?? []
+        for ep in queue.enumerated() {
+            items.first { $0.episode?.guid == ep.element.guid }?.position = ep.offset
+        }
+        try? modelContext.save()
+    }
+
+    private func playNextInQueue() {
+        if !queue.isEmpty {
+            let next = queue[0]
+            removeFromQueue(next)
+            play(next)
+            return
+        }
+        if let show = currentEpisode?.podcast,
+           let next = show.episodes
+               .filter({ !$0.played && $0.guid != currentEpisode?.guid })
+               .sorted(by: { $0.publishDate > $1.publishDate }).first {
+            play(next)
+            return
+        }
+        isPlaying = false
+    }
+
+    // MARK: Sleep timer
+    enum SleepMode: Equatable { case off, duration(TimeInterval), endOfEpisode }
+    var sleepMode: SleepMode = .off
+    private var sleepTimer: Timer?
+
+    func setSleepTimer(_ mode: SleepMode) {
+        sleepMode = mode
+        sleepTimer?.invalidate(); sleepTimer = nil
+        if case let .duration(seconds) = mode {
+            sleepTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { _ in
+                Task { @MainActor [weak self] in
+                    guard let self, self.isPlaying else { return }
+                    self.togglePlayPause()
+                    self.sleepMode = .off
+                }
+            }
+        }
     }
 }
