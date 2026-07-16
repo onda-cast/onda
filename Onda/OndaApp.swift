@@ -7,6 +7,7 @@ struct OndaApp: App {
     let container: ModelContainer
     @State private var theme = AppTheme()
     @State private var subscriptions: SubscriptionService
+    @State private var clientBox = ITunesSearchClientBox(client: ITunesSearchClient())
 
     init() {
         do {
@@ -24,6 +25,7 @@ struct OndaApp: App {
             RootView()
                 .environment(theme)
                 .environment(subscriptions)
+                .environment(clientBox)
                 .preferredColorScheme(theme.colorScheme)
         }
         .modelContainer(container)
