@@ -185,6 +185,47 @@ stay consistent regardless of active effects.
 - No UI snapshot tests for v1 — the prototype is the visual source of truth; manual verification
   against it is sufficient at this stage
 
+## v0.3 Addendum — Clips & Capture (added 2026-07-16, post-v0.2.0)
+
+**Niche statement.** Onda's differentiation vs. the 2026 field (Apple/Overcast/Pocket Casts all
+ship read-along transcripts; Snipd owns cloud-AI capture at $9.99/mo): **knowledge capture that
+is on-device, private, and free** — transcripts (published-first + on-device), library-wide
+transcript search, and now *clips*: cue-range excerpts with notes, captured even from the lock
+screen. No servers, no subscription, exports are the user's data.
+
+**Scope (v0.3):**
+- **Clips** — a saved range of an episode (feed-seconds start/end) with the transcript text for
+  that range snapshotted at creation, plus an optional user note. Created two ways:
+  - *Transcript selection*: in the transcript view, a selection mode turns cue taps into a range;
+    confirm → clip sheet (range preview + note field).
+  - *Lock-screen capture*: `MPRemoteCommandCenter.bookmarkCommand` while playing creates a
+    **quick clip** of the trailing ~45 s (snapped to cue boundaries when a transcript exists),
+    marked `needsReview` for later titling/trimming. Signature gesture of the niche.
+- **Clips library** — a screen reachable from Library (bookmark icon beside search): all clips
+  across shows, newest-first, text search (reuses the search machinery), tap → play just the
+  clip (playback stops at clip end), swipe-to-delete, edit note.
+- **Clip playback** — `PlaybackManager` plays a bounded range; the clip end behaves like an
+  outro trim (stop, do not auto-advance).
+
+**Data model addition:**
+```
+@Model Clip — belongs to Episode; startTime, endTime (feed-seconds), text (snapshot of cues in
+              range, may be empty when no transcript existed), note: String?, createdAt: Date,
+              needsReview: Bool (true for lock-screen quick clips until edited)
+```
+
+**Deferred (v0.4 candidates):** Markdown export via share sheet; audio-snippet rendering/sharing
+(AVAssetExportSession); Readwise/Obsidian-style bulk export.
+
+**Constraints carried forward:** feed-seconds canonical timeline; no cloud services; clip text is
+a *snapshot* (later transcript improvements don't rewrite existing clips); prototype visual
+language.
+
+**Coordination note:** bug #1 (on-device transcribe crash) was root-caused in a parallel session
+— MainActor-inherited completion handed to TCC; fix = `nonisolated` helper + `@Sendable`
+completion (see memory + docs/BUGS.md). If that fix isn't merged when v0.3 work starts, apply it
+and re-enable the Transcribe button as part of Plan 7.
+
 ## Open Risks
 
 - **Skip Silence via `MTAudioProcessingTap` + seek** is the highest-risk piece and is kept in v1

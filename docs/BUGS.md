@@ -1,6 +1,26 @@
 # Known Bugs
 
-## #1 — On-device transcribe crashes the app (OPEN, feature disabled)
+## #1 — On-device transcribe crashes the app (FIXED 2026-07-16, button re-enabled)
+
+**Root cause:** `TranscriptService` is `@MainActor`, so `requestSpeechAuthorization()` was
+MainActor-isolated and the completion closure passed to `SFSpeechRecognizer.requestAuthorization`
+inherited that isolation. TCC invokes the completion on a background queue
+(`com.apple.root.default-qos`); the Swift runtime isolation check trapped
+(`_swift_task_checkIsolatedSwift` → `dispatch_assert_queue` → EXC_BREAKPOINT). Captured frame:
+`closure #1 in closure #1 in static TranscriptService.requestSpeechAuthorization` ←
+`TCC __TCCAccessRequest_block_invoke_8`.
+
+**Fix:** made `requestSpeechAuthorization` `nonisolated` (and the completion `@Sendable`) so the
+closure carries no actor isolation — resuming a continuation is thread-safe. Regression test:
+`SpeechEngineReproTests.test_requestSpeechAuthorization_completionRunsOffMain_withoutCrashing`
+(crashed with "signal trap" before the fix, passes after). Verified end-to-end in the simulator:
+tap no longer kills the app. Note: on simulators without the downloadable speech model the flow
+still ends back at the empty state (engine throws SFSpeechErrorDomain asset errors — pre-existing
+environment limitation, see the XCTSkip in SpeechEngineReproTests).
+
+Original investigation notes below, kept for history.
+
+### Investigation log (historical)
 
 **Symptom:** Tapping "Transcribe episode" (TranscriptView empty state) kills the app.
 Reproduced 3× by user in iPhone 17 simulator, iOS 26.3. Button is currently `.disabled(true)`
