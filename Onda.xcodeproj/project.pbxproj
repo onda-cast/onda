@@ -14,6 +14,7 @@
 		134B411898C677C4F030743D /* ShowSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730CD80EB3C38D6C119F2570 /* ShowSettingsSheet.swift */; };
 		1AF0D83674AD7053FD7645B7 /* ArtworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17DE2A261EF9700BB2D4FA5 /* ArtworkView.swift */; };
 		1C9E9551E5DC0567C6748E0E /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BB7141944B4292CB54376C /* SubscriptionService.swift */; };
+		1E538B298E30CE4E89A8033C /* TranscriptService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154B53D75F0E31F37EEBAA9B /* TranscriptService.swift */; };
 		1E685B05282CE25807E43C13 /* EpisodeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27845D9408FFD9F14078875D /* EpisodeListView.swift */; };
 		1E8AB667ED8824B30B554CA9 /* feed_basic.xml in Resources */ = {isa = PBXBuildFile; fileRef = C5A676C4BB0A69A0343594E4 /* feed_basic.xml */; };
 		27584798B97AA15CE864F386 /* BrutalStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D11CA7EC934C9F4DA99381A /* BrutalStyle.swift */; };
@@ -72,6 +73,7 @@
 		C8862665D462667A35E17445 /* NowPlayingCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB81669B0B7A51F6D9136B0E /* NowPlayingCenter.swift */; };
 		C8B4B77568FBA30D2A026F1C /* FeedRefreshService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1609FCC4157FDBE3595D980 /* FeedRefreshService.swift */; };
 		CB8C8558D840BEEF8924E26C /* ActiveCueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F66A85825297F08BFE4CB57 /* ActiveCueTests.swift */; };
+		DEA8723A9918A53DD241B8DE /* TranscriptServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 097BB2EF5DA616773F62F1C3 /* TranscriptServiceTests.swift */; };
 		E10FE48367E1073EB58FC0D9 /* Chapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B66F7F8374B5A6DA938F1481 /* Chapter.swift */; };
 		EBF3D546A8A34C903BA08430 /* TrendingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724742E0E1635727F2999811 /* TrendingRow.swift */; };
 		F339BE46425621A1A28C19E7 /* AdWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1167AF2050B72699C1A53695 /* AdWindow.swift */; };
@@ -93,9 +95,11 @@
 /* Begin PBXFileReference section */
 		01AA17CA2E65778F63487C7A /* DownloadManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManagerTests.swift; sourceTree = "<group>"; };
 		038C26F4DBED21BB7B7008BE /* SilenceDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SilenceDetector.swift; sourceTree = "<group>"; };
+		097BB2EF5DA616773F62F1C3 /* TranscriptServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptServiceTests.swift; sourceTree = "<group>"; };
 		0D8FD0B68F0BA4837E28DBCD /* AudioTranscribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTranscribing.swift; sourceTree = "<group>"; };
 		0D98EBBD5A1C251BF9D3E293 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		1167AF2050B72699C1A53695 /* AdWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdWindow.swift; sourceTree = "<group>"; };
+		154B53D75F0E31F37EEBAA9B /* TranscriptService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptService.swift; sourceTree = "<group>"; };
 		20505A324537A29B2E603405 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		23FA5F027F92CA348778CADB /* TranscriptParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptParserTests.swift; sourceTree = "<group>"; };
 		27845D9408FFD9F14078875D /* EpisodeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeListView.swift; sourceTree = "<group>"; };
@@ -266,6 +270,7 @@
 				0D8FD0B68F0BA4837E28DBCD /* AudioTranscribing.swift */,
 				67CE2B1E3EF1BFC12BF71E97 /* ParsedCue.swift */,
 				9F6F98C7130323D95553ABFA /* TranscriptParser.swift */,
+				154B53D75F0E31F37EEBAA9B /* TranscriptService.swift */,
 			);
 			path = Transcription;
 			sourceTree = "<group>";
@@ -377,6 +382,7 @@
 				469CC05685CD4AF03D586364 /* SubscriptionServiceTests.swift */,
 				F26BA9D1CEE05EAA5CDF381C /* ThemeTests.swift */,
 				23FA5F027F92CA348778CADB /* TranscriptParserTests.swift */,
+				097BB2EF5DA616773F62F1C3 /* TranscriptServiceTests.swift */,
 				3E2A49E887504F602D626288 /* Fixtures */,
 			);
 			path = OndaTests;
@@ -522,6 +528,7 @@
 				AFCEA49459314178CF2BD336 /* Theme.swift in Sources */,
 				F8BF36096CD22B461C04864C /* Transcript.swift in Sources */,
 				C5B9BB30AD005353CA028293 /* TranscriptParser.swift in Sources */,
+				1E538B298E30CE4E89A8033C /* TranscriptService.swift in Sources */,
 				EBF3D546A8A34C903BA08430 /* TrendingRow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -545,6 +552,7 @@
 				9518DC32144DA86BF1115FCF /* SubscriptionServiceTests.swift in Sources */,
 				A7BCE3FD3DFB5A83D604DA82 /* ThemeTests.swift in Sources */,
 				07D5638371C4F282BED2F0B2 /* TranscriptParserTests.swift in Sources */,
+				DEA8723A9918A53DD241B8DE /* TranscriptServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -566,6 +574,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = com.onda.refresh;
 				INFOPLIST_KEY_CFBundleDisplayName = Onda;
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Onda transcribes downloaded episodes on your device so you can read and search them.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -683,6 +692,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = com.onda.refresh;
 				INFOPLIST_KEY_CFBundleDisplayName = Onda;
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Onda transcribes downloaded episodes on your device so you can read and search them.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

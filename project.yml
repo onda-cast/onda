@@ -20,6 +20,7 @@ targets:
       base:
         INFOPLIST_KEY_CFBundleDisplayName: Onda
         INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers: com.onda.refresh
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Onda transcribes downloaded episodes on your device so you can read and search them."
   OndaTests:
     type: bundle.unit-test
     platform: iOS
