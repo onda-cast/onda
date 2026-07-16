@@ -46,7 +46,8 @@ final class SubscriptionService {
         let existing = Set(podcast.episodes.map(\.guid))
         for pe in feed.episodes where !existing.contains(pe.guid) {
             let ep = Episode(guid: pe.guid, title: pe.title, publishDate: pe.publishDate,
-                             duration: pe.duration, audioURL: pe.audioURL, notes: pe.notes)
+                             duration: pe.duration, audioURL: pe.audioURL, notes: pe.notes,
+                             chaptersURL: pe.chaptersURL)
             ep.podcast = podcast
             podcast.episodes.append(ep)
             modelContext.insert(ep)

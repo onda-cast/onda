@@ -1,0 +1,9 @@
+{
+  "version": "1.2.0",
+  "chapters": [
+    { "startTime": 0, "title": "Cold open" },
+    { "startTime": 210, "title": "The homepage in 2005" },
+    { "startTime": 600, "title": "Sponsor: Acme", "toc": false },
+    { "startTime": 780, "title": "When feeds took over" }
+  ]
+}

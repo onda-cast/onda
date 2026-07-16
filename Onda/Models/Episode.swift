@@ -12,6 +12,7 @@ final class Episode {
     var notes: String
     var playbackPosition: TimeInterval
     var played: Bool
+    var chaptersURL: URL?
 
     var podcast: Podcast?
 
@@ -22,7 +23,9 @@ final class Episode {
     var downloadedFile: DownloadedFile?
 
     init(guid: String, title: String, publishDate: Date, duration: TimeInterval,
-         audioURL: URL, notes: String, playbackPosition: TimeInterval = 0, played: Bool = false) {
+         audioURL: URL, notes: String, playbackPosition: TimeInterval = 0, played: Bool = false,
+         chaptersURL: URL? = nil) {
+        self.chaptersURL = chaptersURL
         self.guid = guid
         self.title = title
         self.publishDate = publishDate

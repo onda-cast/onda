@@ -6,6 +6,7 @@ import SwiftData
 struct EpisodeListView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(SubscriptionService.self) private var subscriptions
+    @Environment(PlaybackManager.self) private var playback
     @Environment(\.dismiss) private var dismiss
     let podcast: Podcast
 
@@ -19,7 +20,7 @@ struct EpisodeListView: View {
                 header
                 Divider().overlay(theme.color(.separator))
                 ForEach(episodes) { ep in
-                    EpisodeRow(episode: ep)
+                    EpisodeRow(episode: ep, onPlay: { playback.play(ep) })
                     Divider().overlay(theme.color(.separator))
                 }
             }

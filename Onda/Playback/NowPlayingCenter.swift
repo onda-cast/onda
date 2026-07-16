@@ -1,0 +1,39 @@
+//  NowPlayingCenter.swift
+import MediaPlayer
+import AVFoundation
+
+enum AudioSession {
+    static func activate() {
+        let s = AVAudioSession.sharedInstance()
+        try? s.setCategory(.playback, mode: .spokenAudio)
+        try? s.setActive(true)
+    }
+}
+
+@MainActor
+final class NowPlayingCenter {
+    private let center = MPRemoteCommandCenter.shared()
+
+    func configureRemoteCommands(play: @escaping @MainActor () -> Void,
+                                 pause: @escaping @MainActor () -> Void,
+                                 skipForward: @escaping @MainActor () -> Void,
+                                 skipBack: @escaping @MainActor () -> Void) {
+        center.playCommand.addTarget { _ in MainActor.assumeIsolated { play() }; return .success }
+        center.pauseCommand.addTarget { _ in MainActor.assumeIsolated { pause() }; return .success }
+        center.skipForwardCommand.preferredIntervals = [30]
+        center.skipForwardCommand.addTarget { _ in MainActor.assumeIsolated { skipForward() }; return .success }
+        center.skipBackwardCommand.preferredIntervals = [15]
+        center.skipBackwardCommand.addTarget { _ in MainActor.assumeIsolated { skipBack() }; return .success }
+    }
+
+    func update(title: String, show: String, position: TimeInterval, duration: TimeInterval, rate: Float) {
+        let info: [String: Any] = [
+            MPMediaItemPropertyTitle: title,
+            MPMediaItemPropertyArtist: show,
+            MPMediaItemPropertyPlaybackDuration: duration,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: position,
+            MPNowPlayingInfoPropertyPlaybackRate: rate,
+        ]
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+}

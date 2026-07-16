@@ -6,6 +6,7 @@ enum Tab: Hashable { case library, discover, profile }
 struct RootView: View {
     @Environment(AppTheme.self) private var theme
     @State private var tab: Tab = .library
+    @State private var nowPlayingOpen = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -19,8 +20,13 @@ struct RootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            tabBar
+            VStack(spacing: 0) {
+                MiniPlayerView { nowPlayingOpen = true }
+                    .padding(.horizontal, 10).padding(.bottom, 10)
+                tabBar
+            }
         }
+        .fullScreenCover(isPresented: $nowPlayingOpen) { NowPlayingView() }
     }
 
     private var tabBar: some View {
