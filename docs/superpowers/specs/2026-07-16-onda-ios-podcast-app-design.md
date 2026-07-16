@@ -3,8 +3,8 @@
 ## Summary
 
 Onda is a personal podcast-listening app for iOS (SwiftUI, iOS 17+, SwiftData). v1 is single-user,
-no backend of our own — podcast discovery/metadata comes from the PodcastIndex.org API, episode
-audio streams or downloads directly from each show's own RSS-hosted files. Visual/interaction
+no backend of our own — podcast discovery comes from Apple's iTunes Search API, episode/chapter
+metadata and audio come directly from each show's own RSS feed (parsed client-side). Visual/interaction
 design is already established via an imported Claude Design prototype
 (`Podcast App.dc.html`, project `1310b975-5d75-42ee-a464-29f8adb3c925`): a neo-brutalist style
 (thick borders, hard drop shadows, sharp corners, uppercase Arial Black headers) with light/dark
@@ -30,8 +30,8 @@ beyond Podcasting 2.0 chapter markers.
 - **Episode List** *(new — not in the original prototype, which jumped straight to playback)* —
   show header (art, name, category, unsubscribe) + episode rows (title, date, duration,
   played/in-progress indicator, download control) → tap episode → **Now Playing**
-- **Discover** — search bar (PodcastIndex search-by-term), category chips, trending list with
-  Follow button
+- **Discover** — search bar (iTunes Search by-term), category chips, trending list with
+  Follow button (trending sourced from iTunes' charts endpoint per-category)
 - **Now Playing** — artwork, title/show, scrubber, skip ±15/30, play/pause, Speed/Voice
   Boost/Skip-Silence chips, ad banner (only rendered when the current episode has a real
   Podcasting-2.0 ad-marked chapter active — no simulated/timer-based ads), Chapters list, About
@@ -56,11 +56,12 @@ the environment.
 ## Data Model (SwiftData)
 
 ```
-@Model Podcast        — feedURL, title, author, artworkURL, category, podcastIndexId
+@Model Podcast        — feedURL, title, author, artworkURL, category, itunesId
 @Model Episode        — belongs to Podcast; guid, title, publishDate, duration, audioURL,
                          notes (HTML→plain), playbackPosition, played: Bool
 @Model Chapter        — belongs to Episode; title, startTime, isAd: Bool
-                         (derived from Podcasting 2.0 chapter JSON when a feed publishes it)
+                         (derived from a Podcasting 2.0 `<podcast:chapters>` JSON link when the
+                         feed publishes one)
 @Model ShowSettings   — 1:1 with Podcast; speed, voiceBoost, skipSilence, adSkipMode,
                          autoDownload, introTrimSec, outroTrimSec, notifMode
                          (created lazily with defaults on first subscribe / first settings open)
@@ -73,13 +74,20 @@ launches; `played` flips true past ~95% listened.
 
 ## Services
 
-- **`PodcastIndexClient`** — async/await wrapper over the PodcastIndex.org REST API (search,
-  trending/by-category, episodes-by-feed). Handles PodcastIndex's required
-  `Authorization`/`X-Auth-Date` SHA-1 header signing. API key/secret live in a gitignored
-  `Secrets.swift` — requires registering a free key at podcastindex.org.
-- **`FeedRefreshService`** — re-fetches each subscribed show's episodes on app foreground + a
-  background refresh task; upserts new `Episode` rows; triggers auto-download for shows with
-  `autoDownload = true`.
+- **`ITunesSearchClient`** — async/await wrapper over Apple's public iTunes Search API
+  (`itunes.apple.com/search?media=podcast`, `.../lookup`, and the charts/RSS-generator feed for
+  trending-by-category). No API key or account needed. Returns each show's `feedUrl`, which is
+  the handoff point into `RSSFeedParser`. Unofficial/undocumented — no SLA — so calls are
+  defensive (timeouts, tolerant JSON decoding) rather than assuming a stable contract.
+- **`RSSFeedParser`** — `XMLParser`-based client-side parser for a show's own RSS feed: episode
+  list (title, guid, publish date, duration, enclosure/audioURL, show notes), plus optional
+  Podcasting 2.0 tags (`<podcast:chapters>` JSON link for chapters/ad-markers,
+  `<podcast:transcript>` if present later). This is now the *only* source of episode data — it
+  replaces what PodcastIndex used to aggregate, so it must tolerate the real-world messiness of
+  hand-rolled feeds (missing/malformed dates, missing enclosure length, non-standard namespaces).
+- **`FeedRefreshService`** — re-fetches each subscribed show's feed via `RSSFeedParser` on app
+  foreground + a background refresh task; upserts new `Episode` rows; triggers auto-download for
+  shows with `autoDownload = true`.
 - **`PlaybackManager`** (`@Observable`) — wraps `AVPlayer`:
   - Plays from `DownloadedFile.localFileURL` when present, else streams `Episode.audioURL`
   - Applies per-show `speed` via `AVPlayer.rate`; applies `introTrimSec`/`outroTrimSec` via
@@ -107,8 +115,8 @@ launches; `played` flips true past ~95% listened.
 
 ## Testing
 
-- Unit tests: `PodcastIndexClient` request signing + response decoding against fixture JSON (no
-  live network in tests)
+- Unit tests: `ITunesSearchClient` response decoding and `RSSFeedParser` XML parsing against
+  fixture JSON/RSS (including malformed/real-world feed samples) — no live network in tests
 - Unit tests: `PlaybackManager` trim/queue-advance logic against a fake player protocol
 - SwiftData model tests (in-memory container): subscribe/unsubscribe, settings defaults, queue
   reordering
@@ -122,3 +130,8 @@ launches; `played` flips true past ~95% listened.
   detection) if it proves too costly during implementation
 - **Ad-skip only fires for feeds with real Podcasting 2.0 ad-marked chapters**, which are rare in
   practice — the feature may rarely activate; that's an accepted v1 tradeoff over faking it
+- **iTunes Search API is unofficial/undocumented** with no SLA — acceptable for a personal v1, but
+  a risk if usage grows; PodcastIndex remains the preferred fallback if signups reopen
+- **Client-side RSS parsing (`RSSFeedParser`) must handle messy real-world feeds** (malformed
+  dates, missing fields, nonstandard namespaces) that PodcastIndex would otherwise have normalized
+  for us — expect to harden this incrementally against real shows during implementation
