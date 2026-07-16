@@ -79,8 +79,11 @@ struct TranscriptView: View {
                     .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(theme.color(.accent)).brutalBorder(width: 2)
+            } else if transcripts.hasEngine {
+                Text("Download this episode to transcribe it on device")
+                    .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
             } else {
-                Text("Available for downloaded episodes on iOS 26+")
+                Text("On-device transcription requires iOS 26 or later")
                     .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)

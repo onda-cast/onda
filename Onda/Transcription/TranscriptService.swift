@@ -28,6 +28,7 @@ final class TranscriptService {
         self.localURL = localURL
     }
 
+    var hasEngine: Bool { engine != nil }
     func canTranscribeOnDevice(_ episode: Episode) -> Bool { engine != nil && localURL(episode) != nil }
 
     func transcript(for episode: Episode) async -> Transcript? {
