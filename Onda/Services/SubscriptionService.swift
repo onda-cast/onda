@@ -44,15 +44,20 @@ final class SubscriptionService {
     func refreshEpisodes(for podcast: Podcast) async throws {
         let feed = try await feeds.fetchFeed(podcast.feedURL)
         let existing = Set(podcast.episodes.map(\.guid))
+        // Build new episodes first and extend the relationship ONCE — per-item appends to a
+        // SwiftData relationship array are quadratic (same class of hang as the cue persist).
+        var added: [Episode] = []
         for pe in feed.episodes where !existing.contains(pe.guid) {
             let ep = Episode(guid: pe.guid, title: pe.title, publishDate: pe.publishDate,
                              duration: pe.duration, audioURL: pe.audioURL, notes: pe.notes,
                              chaptersURL: pe.chaptersURL,
                              transcriptURL: pe.transcriptURL, transcriptType: pe.transcriptType)
-            ep.podcast = podcast
-            podcast.episodes.append(ep)
             modelContext.insert(ep)
+            added.append(ep)
         }
+        guard !added.isEmpty else { return }
+        podcast.episodes.append(contentsOf: added)
+        for ep in added { ep.podcast = podcast }
         try modelContext.save()
     }
 
