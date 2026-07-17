@@ -14,7 +14,7 @@ final class SwipeActionsUITests: XCTestCase {
         XCTAssertTrue(cell.waitForExistence(timeout: 5), "episode list cell not found")
 
         cell.swipeLeft()
-        let delete = app.buttons["Delete"]
+        let delete = app.buttons["DELETE"]
         XCTAssertTrue(delete.waitForExistence(timeout: 5), "trailing swipe action missing")
         delete.tap()
 
