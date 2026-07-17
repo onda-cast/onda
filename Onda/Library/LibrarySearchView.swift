@@ -6,6 +6,7 @@ struct LibrarySearchView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(PlaybackManager.self) private var playback
     @Environment(\.modelContext) private var modelContext
+    @Environment(SearchIndexBox.self) private var searchIndexBox
     @Query private var episodes: [Episode]
 
     @State private var query = ""
@@ -40,7 +41,11 @@ struct LibrarySearchView: View {
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: query) { _, q in
-                hits = TranscriptSearch(modelContext: modelContext).search(q)
+                guard let index = searchIndexBox.index else {
+                    hits = []
+                    return
+                }
+                hits = TranscriptSearch(modelContext: modelContext, index: index).search(q)
             }
         }
     }

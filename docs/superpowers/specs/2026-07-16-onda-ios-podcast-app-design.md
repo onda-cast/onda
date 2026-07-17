@@ -233,6 +233,58 @@ language.
 completion (see memory + docs/BUGS.md). If that fix isn't merged when v0.3 work starts, apply it
 and re-enable the Transcribe button as part of Plan 7.
 
+## v0.6 Addendum — Smart Queues, Word Highlighting, AI Auto-Chapters, Full-Library Search (added 2026-07-16, post-v0.5)
+
+**Context.** A 2026 competitive pass (Apple Podcasts, Spotify, Overcast, Pocket Casts, Snipd, Castro,
+Podcast Addict/CastBox) found every competitor's best capture/search/organization features are
+paywalled or require a cloud/AI backend (Pocket Casts gates transcripts behind Plus/Patron; Snipd
+throttles free AI clipping to ~2 episodes/week). Onda already ships transcripts, search, and
+clipping free with no backend — reaffirming the v0.3 niche (on-device, private, knowledge capture,
+no cloud tether). This addendum closes the two gaps identified as worth closing without
+compromising that identity — smart queueing and full-library search — plus one AI feature scoped
+tightly enough to stay consistent with it (on-device-only auto-chapters). Cross-device sync,
+social features, AI summarization/chat-with-episode, and algorithmic recommendations remain
+explicitly out of scope: all require a backend or cross-user data this app doesn't have.
+
+**Smart Queues.** A small fixed set of computed filters — *Unplayed*, *Downloaded*, *Recently
+Added* (last 7 days), *Shortest First* — each a `@Query`-driven ordering over subscribed-show
+episodes. Not a custom rule builder (YAGNI for a single-user app); no new persisted rule model.
+Surfaced as a row/section in Library above the show grid. Tapping one materializes it into the
+existing `QueueItem` list as a one-time snapshot, so it inherits all existing queue behavior
+(reorder, play-through, resume) with no new playback logic.
+
+**Word-level transcript highlighting.** `TranscriptCue` gains `words: [WordTiming]?` (word text +
+start/end in feed-seconds), populated only when `Transcript.source == "ondevice"` —
+`SpeechAnalyzer` results carry real per-word timing. Published-transcript cues (WebVTT/SRT/PC2.0
+JSON — almost always cue-level only) leave `words` nil; the transcript view highlights per-word
+when timing exists and falls back to today's whole-cue highlight otherwise. No character-count
+interpolation — an approximate highlight would misrepresent timing as real.
+
+**On-device AI auto-chapters.** New `ChapterGenerator` service behind a protocol (same
+testability pattern as `SpeechTranscriberEngine`), backed by Apple's on-device Foundation Models
+framework — gated to Apple Intelligence-capable hardware/iOS, no network calls. Offered only when
+an episode has zero published chapters (never overrides feed-provided ones) and a transcript
+exists (generation runs on transcript text). On-demand via a "Generate chapters" affordance next
+to the existing empty-chapters state — same UX pattern as "Transcribe episode," not automatic
+background processing. `Chapter` gains `source: "feed" | "generated"`; `isAd` is always `false` for
+generated chapters — this is topic segmentation, not ad detection, which stays out of scope.
+
+**Full-library search (FTS5).** A SQLite FTS5 virtual table (external-content, same on-disk store
+SwiftData already uses) indexes `TranscriptCue.text` and `Clip.text`/`Clip.note` together, kept in
+sync with SwiftData writes via a thin sync step in `TranscriptService`/clip-save paths. Search
+queries hit FTS5 directly via raw SQL (`MATCH`, `bm25()` ranking, `snippet()` for in-context
+excerpts), then resolve hits back to `TranscriptCue`/`Clip` rows via SwiftData for navigation. This
+becomes the backing for the already-spec'd Library search screen — one search box, ranked results
+spanning transcripts *and* personal clips, replacing the earlier plain SwiftData-predicate
+approach (`TranscriptSearch` as originally spec'd) for anything beyond small libraries.
+
+**Data model additions:**
+```
+TranscriptCue.words: [WordTiming]?   — WordTiming: text, startTime, endTime (feed-seconds);
+                                        nil unless source == "ondevice"
+Chapter.source: "feed" | "generated" — generated chapters always have isAd == false
+```
+
 ## Open Risks
 
 - **Skip Silence via `MTAudioProcessingTap` + seek** is the highest-risk piece and is kept in v1
@@ -252,3 +304,15 @@ and re-enable the Transcribe button as part of Plan 7.
   battery-intensive, so it's opt-in and limited to downloaded audio. Published Podcasting 2.0
   transcripts are the primary path and cover this gap wherever shows provide them; transcript
   coverage will otherwise be uneven.
+- **On-device AI auto-chapters depend on Apple Intelligence hardware/OS gating**, which is a
+  narrower device slice than `SpeechTranscriberEngine`'s iOS 26+ gate — expect this to be
+  unavailable on a meaningful fraction of devices for a while; the "no chapters" empty state (v1)
+  remains the fallback when generation isn't available or the user declines it.
+- **FTS5 external-content sync must stay consistent with SwiftData writes** (cue/clip
+  insert/update/delete) — a missed sync step silently degrades search rather than crashing, so this
+  needs test coverage (fixture: write via SwiftData, assert FTS5 row count/content matches) rather
+  than relying on manual verification.
+- **Word-level highlighting only ever applies to on-device transcripts** — most episodes (published
+  transcripts) keep today's whole-cue highlight; this is a real, visible inconsistency across
+  episodes in the same library, not a bug, and should be treated as an accepted tradeoff rather
+  than "fixed" later by interpolating fake word timing for published cues.

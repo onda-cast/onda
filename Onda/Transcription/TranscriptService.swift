@@ -14,6 +14,7 @@ final class TranscriptService {
     private let engine: AudioTranscribing?
     private let fetch: Fetch
     private let localURL: (Episode) -> URL?
+    private let index: SearchIndex?
 
     var progress: [String: Double] = [:]
     var lastFailure: [String: String] = [:]   // guid → human-readable reason
@@ -21,12 +22,14 @@ final class TranscriptService {
     init(modelContext: ModelContext, parser: TranscriptParser = .init(),
          engine: AudioTranscribing?,
          fetch: @escaping Fetch = { try await URLSession.shared.data(from: $0).0 },
-         localURL: @escaping (Episode) -> URL?) {
+         localURL: @escaping (Episode) -> URL?,
+         index: SearchIndex? = nil) {
         self.modelContext = modelContext
         self.parser = parser
         self.engine = engine
         self.fetch = fetch
         self.localURL = localURL
+        self.index = index
     }
 
     var hasEngine: Bool { engine != nil }
@@ -73,6 +76,13 @@ final class TranscriptService {
 
     @discardableResult
     func persist(cues: [ParsedCue], for episode: Episode, source: String) -> Transcript {
+        // Reassigning episode.transcript alone leaves the old Transcript (and its cues)
+        // orphaned in the context — SwiftData's cascade delete rule only fires on an
+        // explicit delete, not a relationship reassignment. Delete it up front so
+        // re-persisting (e.g. re-transcribing) doesn't leave dangling backing data.
+        if let old = episode.transcript {
+            modelContext.delete(old)
+        }
         let tr = Transcript(source: source,
                             language: Locale.current.language.languageCode?.identifier ?? "en")
         tr.episode = episode
@@ -90,6 +100,13 @@ final class TranscriptService {
             built.append(cue)
         }
         tr.cues = built
+        if let index {
+            try? index.deleteAll(episodeGuid: episode.guid, kind: "cue")
+            for cue in built {
+                try? index.upsert(SearchDoc(kind: "cue", episodeGuid: episode.guid,
+                                            startTime: cue.startTime, body: cue.text))
+            }
+        }
         try? modelContext.save()
         return tr
     }

@@ -14,6 +14,7 @@ struct OndaApp: App {
     @State private var refresh: FeedRefreshService
     @State private var transcripts: TranscriptService
     @State private var clips: ClipService
+    @State private var searchIndexBox: SearchIndexBox
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -30,11 +31,30 @@ struct OndaApp: App {
             let engine: AudioTranscribing? = {
                 if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }
             }()
+            let index = try? SearchIndex(path: SearchIndex.defaultFileURL().path)
+            let searchBox = SearchIndexBox(index: index)
+            _searchIndexBox = State(initialValue: searchBox)
             _transcripts = State(initialValue: TranscriptService(
                 modelContext: c.mainContext, engine: engine,
-                localURL: { pm.localURL(for: $0) }))
+                localURL: { pm.localURL(for: $0) },
+                index: index))
             UITestSeed.seed(context: c.mainContext)
-            let cs = ClipService(modelContext: c.mainContext)
+            if let index, (try? index.isEmpty()) == true {
+                let cues = (try? c.mainContext.fetch(FetchDescriptor<TranscriptCue>())) ?? []
+                for cue in cues {
+                    guard let guid = cue.transcript?.episode?.guid else { continue }
+                    try? index.upsert(SearchDoc(kind: "cue", episodeGuid: guid,
+                                                startTime: cue.startTime, body: cue.text))
+                }
+                let clips = (try? c.mainContext.fetch(FetchDescriptor<Clip>())) ?? []
+                for clip in clips {
+                    guard let guid = clip.episode?.guid else { continue }
+                    let body = [clip.text, clip.note].compactMap { $0 }.joined(separator: " ")
+                    try? index.upsert(SearchDoc(kind: "clip", episodeGuid: guid,
+                                                startTime: clip.startTime, body: body))
+                }
+            }
+            let cs = ClipService(modelContext: c.mainContext, index: index)
             _clips = State(initialValue: cs)
             pm.onCaptureRequested = { [weak pm] in
                 guard let pm, let ep = pm.currentEpisode else { return }
@@ -60,6 +80,7 @@ struct OndaApp: App {
                 .environment(downloads)
                 .environment(transcripts)
                 .environment(clips)
+                .environment(searchIndexBox)
                 .preferredColorScheme(theme.colorScheme)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {

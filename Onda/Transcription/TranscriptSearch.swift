@@ -3,7 +3,8 @@ import Foundation
 import SwiftData
 
 struct TranscriptHit: Identifiable {
-    var id: String { episodeGuid + "-\(startTime)" }
+    var id: String { kind + "-" + episodeGuid + "-\(startTime)" }
+    let kind: String            // "cue" | "clip"
     let episodeGuid: String
     let episodeTitle: String
     let showTitle: String
@@ -14,19 +15,23 @@ struct TranscriptHit: Identifiable {
 @MainActor
 struct TranscriptSearch {
     private let modelContext: ModelContext
-    init(modelContext: ModelContext) { self.modelContext = modelContext }
+    private let index: SearchIndex
+    init(modelContext: ModelContext, index: SearchIndex) {
+        self.modelContext = modelContext
+        self.index = index
+    }
 
     func search(_ query: String) -> [TranscriptHit] {
-        let q = query.trimmingCharacters(in: .whitespaces)
-        guard q.count >= 2 else { return [] }
-        let descriptor = FetchDescriptor<TranscriptCue>(
-            predicate: #Predicate { $0.text.localizedStandardContains(q) })
-        let cues = (try? modelContext.fetch(descriptor)) ?? []
-        let hits = cues.compactMap { cue -> TranscriptHit? in
-            guard let ep = cue.transcript?.episode, let pod = ep.podcast, pod.isSubscribed else { return nil }
-            return TranscriptHit(episodeGuid: ep.guid, episodeTitle: ep.title,
-                                 showTitle: pod.title, cueText: cue.text, startTime: cue.startTime)
+        let results = (try? index.search(query)) ?? []
+        let guids = Array(Set(results.map { $0.episodeGuid }))
+        let descriptor = FetchDescriptor<Episode>(predicate: #Predicate { guids.contains($0.guid) })
+        let episodes = (try? modelContext.fetch(descriptor)) ?? []
+        let episodesByGuid = Dictionary(uniqueKeysWithValues: episodes.map { ($0.guid, $0) })
+        return results.compactMap { r -> TranscriptHit? in
+            guard let ep = episodesByGuid[r.episodeGuid],
+                  let pod = ep.podcast, pod.isSubscribed else { return nil }
+            return TranscriptHit(kind: r.kind, episodeGuid: ep.guid, episodeTitle: ep.title,
+                                 showTitle: pod.title, cueText: r.snippet, startTime: r.startTime)
         }
-        return hits.sorted { ($0.showTitle, $0.startTime) < ($1.showTitle, $1.startTime) }
     }
 }

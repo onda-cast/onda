@@ -17,6 +17,8 @@ targets:
     type: application
     platform: iOS
     sources: [Onda]
+    dependencies:
+      - sdk: libsqlite3.tbd
     # INFOPLIST_KEY_* cannot express array-valued plist keys (UIBackgroundModes,
     # BGTaskSchedulerPermittedIdentifiers) — they were silently ignored. Real plist entries:
     info:

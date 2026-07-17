@@ -82,4 +82,31 @@ final class TranscriptServiceTests: XCTestCase {
         let tr = await svc.transcript(for: ep)
         XCTAssertNil(tr)
     }
+
+    func test_persist_indexesCuesForSearch() throws {
+        let ctx = try makeContext()
+        let ep = episode(in: ctx, transcriptURL: nil)
+        let index = try SearchIndex(path: ":memory:")
+        let svc = TranscriptService(modelContext: ctx, engine: nil, fetch: { _ in Data() },
+                                    localURL: { _ in nil }, index: index)
+        let cues = [ParsedCue(startTime: 0, endTime: 2, text: "octopus cognition is wild", speaker: nil)]
+        _ = svc.persist(cues: cues, for: ep, source: "published")
+        let hits = try index.search("octopus")
+        XCTAssertEqual(hits.count, 1)
+        XCTAssertEqual(hits.first?.episodeGuid, "g")
+    }
+
+    func test_persist_reindexing_clearsStaleCuesForSameEpisode() throws {
+        let ctx = try makeContext()
+        let ep = episode(in: ctx, transcriptURL: nil)
+        let index = try SearchIndex(path: ":memory:")
+        let svc = TranscriptService(modelContext: ctx, engine: nil, fetch: { _ in Data() },
+                                    localURL: { _ in nil }, index: index)
+        _ = svc.persist(cues: [ParsedCue(startTime: 0, endTime: 2, text: "first version", speaker: nil)],
+                        for: ep, source: "published")
+        _ = svc.persist(cues: [ParsedCue(startTime: 0, endTime: 2, text: "second version", speaker: nil)],
+                        for: ep, source: "published")
+        XCTAssertTrue(try index.search("first").isEmpty)
+        XCTAssertEqual(try index.search("second").count, 1)
+    }
 }
