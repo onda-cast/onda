@@ -24,6 +24,7 @@ struct TranscriptView: View {
         let end: TimeInterval
         let text: String
         let speaker: String?
+        let words: [WordTiming]?
     }
     @State private var cueVMs: [CueVM] = []
     @State private var timeRanges: [(start: TimeInterval, end: TimeInterval)] = []
@@ -42,9 +43,27 @@ struct TranscriptView: View {
     private func snapshotCues() {
         let sorted = (transcript?.cues ?? []).sorted { $0.startTime < $1.startTime }
         cueVMs = sorted.enumerated().map { i, c in
-            CueVM(id: i, start: c.startTime, end: c.endTime, text: c.text, speaker: c.speaker)
+            CueVM(id: i, start: c.startTime, end: c.endTime, text: c.text, speaker: c.speaker, words: c.words)
         }
         timeRanges = cueVMs.map { ($0.start, $0.end) }
+    }
+
+    private func activeWordIndex(for cue: CueVM) -> Int? {
+        guard let words = cue.words, !words.isEmpty else { return nil }
+        return ActiveCue.index(at: playback.positionSeconds, cues: words.map { ($0.startTime, $0.endTime) })
+    }
+
+    private func styledCueText(_ cue: CueVM, isActiveCue: Bool) -> Text {
+        guard isActiveCue, let words = cue.words, !words.isEmpty else {
+            return Text(cue.text)
+        }
+        let activeWord = activeWordIndex(for: cue)
+        return words.enumerated().reduce(Text("")) { acc, pair in
+            let (i, w) = pair
+            let color = i == activeWord ? theme.color(.text) : theme.color(.textTertiary)
+            let sep = i == 0 ? "" : " "
+            return acc + Text(sep + w.text).foregroundStyle(color)
+        }
     }
 
     var body: some View {
@@ -117,7 +136,8 @@ struct TranscriptView: View {
                                     Text(s).font(.system(size: 12, weight: .bold)).textCase(.uppercase)
                                         .foregroundStyle(theme.color(.accent))
                                 }
-                                Text(cue.text).font(.system(size: 16))
+                                styledCueText(cue, isActiveCue: i == activeIndex)
+                                    .font(.system(size: 16))
                                     .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
