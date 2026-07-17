@@ -19,9 +19,12 @@ struct EpisodeRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Button(action: onPlay) {
-                Image(systemName: episode.played ? "checkmark.circle" : "play.circle.fill")
-                    .font(.system(size: 26))
-                    .foregroundStyle(episode.played ? theme.color(.textTertiary) : theme.color(.accent))
+                Image(systemName: episode.played ? "checkmark" : "play.fill")
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundStyle(episode.played ? theme.color(.textTertiary) : .white)
+                    .frame(width: 34, height: 34)
+                    .background(episode.played ? theme.color(.bgElevated) : theme.color(.accent))
+                    .brutalBorder(width: 2)
             }.buttonStyle(.plain)
             .accessibilityIdentifier("play-episode")
 
@@ -47,22 +50,36 @@ struct EpisodeRow: View {
     @ViewBuilder private var downloadIcon: some View {
         switch downloadState {
         case .none:
-            Image(systemName: "arrow.down.circle")
-                .font(.system(size: 22)).foregroundStyle(theme.color(.textSecondary))
+            Image(systemName: "arrow.down")
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(theme.color(.textSecondary))
+                .frame(width: 30, height: 30)
+                .background(theme.color(.bgElevated))
+                .brutalBorder(width: 2)
         case .downloading(let progress):
-            ZStack {
-                Circle().stroke(theme.color(.separator).opacity(0.3), lineWidth: 2.5)
-                Circle().trim(from: 0, to: max(0.03, progress))
-                    .stroke(theme.color(.accent), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-            }
-            .frame(width: 22, height: 22)
+            // Square progress: the border fills clockwise — brutal, no circles.
+            Rectangle()
+                .fill(theme.color(.accentWash))
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(theme.color(.accent))
+                        .frame(height: max(2, 30 * progress))
+                }
+                .frame(width: 30, height: 30)
+                .brutalBorder(width: 2)
         case .downloaded:
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 22)).foregroundStyle(theme.color(.accent))
+            Image(systemName: "checkmark")
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(theme.color(.accent))
+                .brutalBorder(width: 2)
         case .failed:
-            Image(systemName: "exclamationmark.arrow.circlepath")
-                .font(.system(size: 22)).foregroundStyle(.red)
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(.black)
+                .brutalBorder(width: 2)
         }
     }
 }
