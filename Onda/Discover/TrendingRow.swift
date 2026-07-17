@@ -21,6 +21,7 @@ struct TrendingRow: View {
             Button(action: onFollow) {
                 Text(isSubscribed ? "Following" : "Follow")
                     .font(.system(size: 13, weight: .bold)).textCase(.uppercase)
+                    .lineLimit(1).fixedSize()
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16).padding(.vertical, 7)
                     .background(isSubscribed ? theme.color(.textTertiary) : theme.color(.accent))

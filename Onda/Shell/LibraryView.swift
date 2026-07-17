@@ -25,13 +25,15 @@ struct LibraryView: View {
                         Text("Library").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
                         Spacer()
                         Button { showClips = true } label: {
-                            Image(systemName: "bookmark")
-                                .accessibilityLabel("Clips")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(theme.color(.textSecondary))
-                                .frame(width: 36, height: 36)
-                                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                        }.buttonStyle(.plain)
+                            HStack(spacing: 5) {
+                                Image(systemName: "bookmark")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Text("CLIPS").font(.system(size: 12, weight: .bold))
+                            }
+                            .foregroundStyle(theme.color(.textSecondary))
+                            .padding(.horizontal, 10).frame(height: 36)
+                            .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                        }.buttonStyle(.plain).accessibilityLabel("Clips")
                         Button { showSearch = true } label: {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 17, weight: .semibold))
@@ -63,6 +65,14 @@ struct LibraryView: View {
                                 }
                             }.padding(.horizontal, 20)
                         }
+                        // Fade the right edge so it reads as "more chips off-screen, scroll me".
+                        .mask(
+                            LinearGradient(stops: [
+                                .init(color: .black, location: 0),
+                                .init(color: .black, location: 0.88),
+                                .init(color: .clear, location: 1)
+                            ], startPoint: .leading, endPoint: .trailing)
+                        )
                         .padding(.top, 16)
                     }
 

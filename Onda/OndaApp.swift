@@ -133,6 +133,7 @@ struct OndaApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .modifier(SystemSchemeBridge(theme: theme))
                 .environment(theme)
                 .environment(appSettings)
                 .environment(subscriptions)
@@ -154,5 +155,18 @@ struct OndaApp: App {
                 }
         }
         .modelContainer(container)
+    }
+}
+
+/// Feeds the device's live light/dark scheme into AppTheme so `.system` mode resolves
+/// colours correctly and updates when the user flips their device appearance.
+private struct SystemSchemeBridge: ViewModifier {
+    let theme: AppTheme
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { theme.systemIsDark = colorScheme == .dark }
+            .onChange(of: colorScheme) { _, new in theme.systemIsDark = new == .dark }
     }
 }

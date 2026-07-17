@@ -1,7 +1,7 @@
 //  Palette.swift
 import SwiftUI
 
-enum Appearance: String { case light, dark }
+enum Appearance: String { case system, light, dark }
 
 enum ColorToken {
     case bg, bgElevated, text, textSecondary, textTertiary
