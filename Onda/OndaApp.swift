@@ -13,6 +13,7 @@ struct OndaApp: App {
     @State private var downloads: DownloadManager
     @State private var refresh: FeedRefreshService
     @State private var transcripts: TranscriptService
+    @State private var chapterGen: ChapterGenerationService
     @State private var clips: ClipService
     @State private var searchIndexBox: SearchIndexBox
     @Environment(\.scenePhase) private var scenePhase
@@ -38,6 +39,19 @@ struct OndaApp: App {
                 modelContext: c.mainContext, engine: engine,
                 localURL: { pm.localURL(for: $0) },
                 index: index))
+            let chapterGenerator: ChapterGenerating? = {
+                if #available(iOS 26, *), FoundationModelsChapterGenerator.isAvailable {
+                    return FoundationModelsChapterGenerator()
+                }
+                return nil
+            }()
+            _chapterGen = State(initialValue: ChapterGenerationService(
+                modelContext: c.mainContext, generator: chapterGenerator,
+                transcriptText: { ep in
+                    let cues = ep.transcript?.cues.sorted { $0.startTime < $1.startTime } ?? []
+                    let joined = cues.map(\.text).joined(separator: " ")
+                    return joined.isEmpty ? nil : joined
+                }))
             UITestSeed.seed(context: c.mainContext)
             if let index, (try? index.isEmpty()) == true {
                 let cues = (try? c.mainContext.fetch(FetchDescriptor<TranscriptCue>())) ?? []
@@ -79,6 +93,7 @@ struct OndaApp: App {
                 .environment(playback)
                 .environment(downloads)
                 .environment(transcripts)
+                .environment(chapterGen)
                 .environment(clips)
                 .environment(searchIndexBox)
                 .preferredColorScheme(theme.colorScheme)

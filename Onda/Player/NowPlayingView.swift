@@ -4,6 +4,7 @@ import SwiftUI
 struct NowPlayingView: View {
     @Environment(PlaybackManager.self) private var playback
     @Environment(AppTheme.self) private var theme
+    @Environment(ChapterGenerationService.self) private var chapterGen
     @Environment(\.dismiss) private var dismiss
     @State private var showQueue = false
     @State private var showSettings = false
@@ -166,6 +167,19 @@ struct NowPlayingView: View {
                             }.padding(.vertical, 10)
                         }.buttonStyle(.plain)
                         Divider().overlay(theme.color(.separator))
+                    }
+                }.frame(maxWidth: 280)
+            } else if chapterGen.canGenerate(ep) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        Task { _ = await chapterGen.generate(for: ep) }
+                    } label: {
+                        Text(chapterGen.isGenerating[ep.guid] == true ? "Generating…" : "Generate chapters")
+                            .font(.system(size: 13, weight: .bold)).foregroundStyle(theme.color(.accent))
+                    }
+                    .disabled(chapterGen.isGenerating[ep.guid] == true)
+                    if let failure = chapterGen.lastFailure[ep.guid] {
+                        Text(failure).font(.system(size: 12)).foregroundStyle(.red)
                     }
                 }.frame(maxWidth: 280)
             }
