@@ -59,8 +59,7 @@ struct ClipEditSheet: View {
 
     private func save() {
         if let existing {
-            existing.note = note.isEmpty ? nil : note
-            existing.needsReview = false
+            clips.updateNote(existing, note: note.isEmpty ? nil : note)
         } else if let episode {
             clips.makeClip(episode: episode, requestedStart: requestedStart,
                            requestedEnd: requestedEnd,

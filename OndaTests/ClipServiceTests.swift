@@ -49,4 +49,37 @@ final class ClipServiceTests: XCTestCase {
         XCTAssertEqual(svc.search("remember").count, 1)
         XCTAssertEqual(svc.search("zzz").count, 0)
     }
+
+    func test_makeClip_indexesTextAndNote() throws {
+        let (ctx, ep) = try env()
+        let index = try SearchIndex(path: ":memory:")
+        let svc = ClipService(modelContext: ctx, index: index)
+        let clip = svc.makeClip(episode: ep, requestedStart: 0, requestedEnd: 10,
+                                note: "remember this", needsReview: false)
+        let byText = try index.search("alpha")
+        let byNote = try index.search("remember")
+        XCTAssertEqual(byText.first?.startTime, clip.startTime)
+        XCTAssertEqual(byNote.count, 1)
+    }
+
+    func test_updateNote_reindexesWithNewNote() throws {
+        let (ctx, ep) = try env()
+        let index = try SearchIndex(path: ":memory:")
+        let svc = ClipService(modelContext: ctx, index: index)
+        let clip = svc.makeClip(episode: ep, requestedStart: 0, requestedEnd: 10, note: "old note", needsReview: true)
+        svc.updateNote(clip, note: "new note")
+        XCTAssertEqual(clip.note, "new note")
+        XCTAssertFalse(clip.needsReview)
+        XCTAssertTrue(try index.search("old").isEmpty)
+        XCTAssertEqual(try index.search("new note").count, 1)
+    }
+
+    func test_delete_removesFromIndex() throws {
+        let (ctx, ep) = try env()
+        let index = try SearchIndex(path: ":memory:")
+        let svc = ClipService(modelContext: ctx, index: index)
+        let clip = svc.makeClip(episode: ep, requestedStart: 0, requestedEnd: 10, note: "findable", needsReview: false)
+        svc.delete(clip)
+        XCTAssertTrue(try index.search("findable").isEmpty)
+    }
 }
