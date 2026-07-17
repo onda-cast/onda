@@ -1,11 +1,13 @@
 name: Onda
 options:
-  bundleIdPrefix: com.onda
+  bundleIdPrefix: com.chasegilliam
   deploymentTarget:
     iOS: "17.0"
 settings:
   base:
     SWIFT_VERSION: "6.0"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: Z3GNZJ5348
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_UILaunchScreen_Generation: YES
     INFOPLIST_KEY_UIBackgroundModes: audio

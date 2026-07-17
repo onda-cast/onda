@@ -552,7 +552,17 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					566F11F5899590F499C4A57B = {
+						DevelopmentTeam = Z3GNZJ5348;
+						ProvisioningStyle = Automatic;
 						TestTargetID = EF10DE9A791D5F09D76BB40D;
+					};
+					63AFADB6FB91A104458E6FB3 = {
+						DevelopmentTeam = Z3GNZJ5348;
+						ProvisioningStyle = Automatic;
+					};
+					EF10DE9A791D5F09D76BB40D = {
+						DevelopmentTeam = Z3GNZJ5348;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -738,7 +748,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.onda.Onda;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasegilliam.Onda;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -753,7 +763,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.onda.OndaUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasegilliam.OndaUITests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = Onda;
@@ -769,7 +779,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.onda.OndaTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasegilliam.OndaTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Onda.app/Onda";
@@ -785,7 +795,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.onda.OndaUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasegilliam.OndaUITests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = Onda;
@@ -825,9 +835,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = Z3GNZJ5348;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -869,7 +881,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.onda.OndaTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasegilliam.OndaTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Onda.app/Onda";
@@ -888,7 +900,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.onda.Onda;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasegilliam.Onda;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -927,9 +939,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = Z3GNZJ5348;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
