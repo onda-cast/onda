@@ -12,7 +12,13 @@ final class FakeURLSession: URLSessionProtocol {
 
 @MainActor
 final class DownloadManagerTests: XCTestCase {
-    private func makeEnv() throws -> (ModelContext, PersistenceActor, Episode) {
+    private struct TestEnv {
+        let context: ModelContext
+        let persistence: PersistenceActor
+        let episode: Episode
+    }
+
+    private func makeEnv() throws -> TestEnv {
         let container = try ModelContainer(for: Schema(ondaSchema),
                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(container)
@@ -23,37 +29,37 @@ final class DownloadManagerTests: XCTestCase {
         ep.podcast = pod; pod.episodes.append(ep)
         ctx.insert(pod); ctx.insert(ep); try ctx.save()
         let actor = PersistenceActor(modelContainer: container)
-        return (ctx, actor, ep)
+        return TestEnv(context: ctx, persistence: actor, episode: ep)
     }
 
     func test_download_setsDownloadingState() throws {
-        let (_, actor, ep) = try makeEnv()
-        let dm = DownloadManager(persistence: actor, session: FakeURLSession())
-        dm.download(ep)
-        if case .downloading = dm.state(for: ep) {} else { XCTFail("expected downloading") }
+        let env = try makeEnv()
+        let dm = DownloadManager(persistence: env.persistence, session: FakeURLSession())
+        dm.download(env.episode)
+        if case .downloading = dm.state(for: env.episode) {} else { XCTFail("expected downloading") }
     }
 
     func test_finished_writesFileAndMarksDownloaded() async throws {
-        let (ctx, actor, ep) = try makeEnv()
-        let dm = DownloadManager(persistence: actor, session: FakeURLSession())
-        dm.download(ep)
+        let env = try makeEnv()
+        let dm = DownloadManager(persistence: env.persistence, session: FakeURLSession())
+        dm.download(env.episode)
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("t.mp3")
         try Data([0, 1, 2, 3]).write(to: tmp)
         await dm.handleFinished(guid: "g1", tempURL: tmp, totalBytes: 4)
-        XCTAssertEqual(dm.state(for: ep), .downloaded)
+        XCTAssertEqual(dm.state(for: env.episode), .downloaded)
         // Persistence wrote a DownloadedFile (separate actor context → refetch)
         try await Task.sleep(for: .milliseconds(50))
-        let refreshed = try ctx.fetch(FetchDescriptor<Episode>()).first
+        let refreshed = try env.context.fetch(FetchDescriptor<Episode>()).first
         XCTAssertNotNil(refreshed?.downloadedFile)
     }
 
     func test_failure_retriesOnce_thenFails() throws {
-        let (_, actor, ep) = try makeEnv()
-        let dm = DownloadManager(persistence: actor, session: FakeURLSession())
-        dm.download(ep)
+        let env = try makeEnv()
+        let dm = DownloadManager(persistence: env.persistence, session: FakeURLSession())
+        dm.download(env.episode)
         dm.handleFailed(guid: "g1")     // first failure → retry
-        if case .downloading = dm.state(for: ep) {} else { XCTFail("expected retry (downloading)") }
+        if case .downloading = dm.state(for: env.episode) {} else { XCTFail("expected retry (downloading)") }
         dm.handleFailed(guid: "g1")     // second failure → failed
-        XCTAssertEqual(dm.state(for: ep), .failed)
+        XCTAssertEqual(dm.state(for: env.episode), .failed)
     }
 }

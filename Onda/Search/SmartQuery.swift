@@ -22,15 +22,14 @@ enum SmartQueryParser {
         "podcast", "episode", "mention", "say", "talk", "thing", "one", "way",
         // POS tagging is unreliable on dangling fragments (post show/speaker removal),
         // so common function words get a literal backstop too.
-        "in", "on", "of", "by", "from", "about", "at", "with", "for", "to", "the", "a", "an",
+        "in", "on", "of", "by", "from", "about", "at", "with", "for", "to", "the", "a", "an"
     ]
-    /// Lexical classes that never contribute search terms. (.verb intentionally kept:
-    /// fragments mis-tag content nouns as verbs; the stoplists catch true filler verbs.)
-    // .verb and .interjection intentionally kept: fragment tagging mislabels content
-    // nouns as both (e.g. trailing "quote" → Interjection). Stoplists catch real filler.
+    /// Lexical classes that never contribute search terms. .verb and .interjection are
+    /// intentionally NOT dropped: fragment tagging mislabels content nouns as both (e.g.
+    /// trailing "quote" → Interjection) — the stoplists above catch true filler instead.
     private static let droppedClasses: Set<NLTag> = [
         .determiner, .preposition, .pronoun, .conjunction, .particle,
-        .classifier, .idiom, .adverb,
+        .classifier, .idiom, .adverb
     ]
 
     static func parse(_ raw: String, knownShows: [String]) -> SmartQuery {

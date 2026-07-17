@@ -64,9 +64,15 @@ private func tapPrepare(_ tap: MTAudioProcessingTap, _ maxFrames: CMItemCount,
     let f = format.pointee
     storage.sampleRate = f.mSampleRate
     storage.isFloat = (f.mFormatFlags & kAudioFormatFlagIsFloat) != 0
-    tapLog.notice("tap prepared: sampleRate=\(f.mSampleRate) float=\(storage.isFloat) bits=\(f.mBitsPerChannel) channels=\(f.mChannelsPerFrame) flags=\(f.mFormatFlags)")
+    tapLog.notice("""
+        tap prepared: sampleRate=\(f.mSampleRate) float=\(storage.isFloat) \
+        bits=\(f.mBitsPerChannel) channels=\(f.mChannelsPerFrame) flags=\(f.mFormatFlags)
+        """)
 }
 
+// Signature is fixed by MTAudioProcessingTapCallbacks' `process` field (Core Media C API) —
+// cannot be reduced without breaking the tap callback contract.
+// swiftlint:disable:next function_parameter_count
 private func tapProcess(_ tap: MTAudioProcessingTap, _ numberFrames: CMItemCount,
                         _ flags: MTAudioProcessingTapFlags,
                         _ bufferListInOut: UnsafeMutablePointer<AudioBufferList>,

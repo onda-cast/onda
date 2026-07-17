@@ -19,7 +19,7 @@ final class ClipService {
                   note: String?, needsReview: Bool) -> Clip {
         let cues = (episode.transcript?.cues ?? [])
             .sorted { $0.startTime < $1.startTime }
-            .map { (start: $0.startTime, end: $0.endTime, text: $0.text) }
+            .map { CueSpan(start: $0.startTime, end: $0.endTime, text: $0.text) }
         let snapped = ClipTextSnapshot.snap(cues: cues, requestedStart: requestedStart,
                                             requestedEnd: requestedEnd)
         let clip = Clip(startTime: snapped.start, endTime: snapped.end, text: snapped.text,

@@ -95,9 +95,7 @@ struct TranscriptView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let t = transcript, !t.cues.isEmpty { transcriptList }
-                else if loading || transcribing { progressState }
-                else { emptyState }
+                if let t = transcript, !t.cues.isEmpty { transcriptList } else if loading || transcribing { progressState } else { emptyState }
             }
             .background(theme.color(.bg))
             .navigationTitle("Transcript")
@@ -125,13 +123,13 @@ struct TranscriptView: View {
                     .background(theme.color(.bg))
                 }
             }
-            .sheet(isPresented: $showClipSheet, onDismiss: { selecting = false; selStart = nil; selEnd = nil }) {
+            .sheet(isPresented: $showClipSheet, onDismiss: resetSelection, content: {
                 if let r = selectionRange {
                     ClipEditSheet(episode: episode,
                                   requestedStart: cueVMs[r.lowerBound].start,
                                   requestedEnd: cueVMs[r.upperBound].end)
                 }
-            }
+            })
         }
         .task { await load() }
     }
@@ -143,8 +141,11 @@ struct TranscriptView: View {
     }
 
     private func handleSelectionTap(_ i: Int) {
-        if let s = selStart, selEnd == nil, i != s { selEnd = i }
-        else { selStart = i; selEnd = nil }
+        if let s = selStart, selEnd == nil, i != s { selEnd = i } else { selStart = i; selEnd = nil }
+    }
+
+    private func resetSelection() {
+        selecting = false; selStart = nil; selEnd = nil
     }
 
     private var transcriptList: some View {
@@ -154,8 +155,7 @@ struct TranscriptView: View {
                     ForEach(cueVMs) { cue in
                         let i = cue.id
                         Button {
-                            if selecting { handleSelectionTap(i) }
-                            else { playback.seek(toFraction: cue.start / max(1, episode.duration)) }
+                            if selecting { handleSelectionTap(i) } else { playback.seek(toFraction: cue.start / max(1, episode.duration)) }
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 if let s = cue.speaker {

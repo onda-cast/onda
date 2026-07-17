@@ -39,7 +39,12 @@ final class PlaybackManager {
                 self.skip(by: skip.seconds)
             } else if CFAbsoluteTimeGetCurrent() - self.lastSilenceDiagAt > 10 {
                 self.lastSilenceDiagAt = CFAbsoluteTimeGetCurrent()
-                tapLog.notice("silence detector armed: longest quiet run so far \(self.silence.longestRunSeconds, format: .fixed(precision: 2))s (need \(self.silence.minSilenceSeconds, format: .fixed(precision: 1))s)")
+                let longest = self.silence.longestRunSeconds
+                let need = self.silence.minSilenceSeconds
+                tapLog.notice("""
+                    silence detector armed: longest quiet run so far \
+                    \(longest, format: .fixed(precision: 2))s (need \(need, format: .fixed(precision: 1))s)
+                    """)
             }
         }
         nowPlaying.configureRemoteCommands(
@@ -104,7 +109,10 @@ final class PlaybackManager {
         let boost = BoostLevel(clamping: settings?.voiceBoost ?? 0)
         engine.setBoostGain(boost.gain)
         if settings?.skipSilence != true { silence.reset() }
-        tapLog.notice("audio settings applied: speed=\(self.settings?.speed ?? 1.0) boost=\(boost.rawValue) skipSilence=\(self.settings?.skipSilence == true)")
+        tapLog.notice("""
+            audio settings applied: speed=\(self.settings?.speed ?? 1.0) \
+            boost=\(boost.rawValue) skipSilence=\(self.settings?.skipSilence == true)
+            """)
     }
 
     private func adWindow(for ep: Episode) -> AdWindow {
@@ -113,8 +121,7 @@ final class PlaybackManager {
 
     func togglePlayPause() {
         guard currentEpisode != nil else { return }
-        if isPlaying { engine.pause(); persistPosition() }
-        else { engine.play() }
+        if isPlaying { engine.pause(); persistPosition() } else { engine.play() }
         isPlaying.toggle()
     }
 

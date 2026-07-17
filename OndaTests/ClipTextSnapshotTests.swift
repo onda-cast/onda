@@ -4,8 +4,9 @@ import XCTest
 
 @MainActor
 final class ClipTextSnapshotTests: XCTestCase {
-    private let cues: [(start: TimeInterval, end: TimeInterval, text: String)] = [
-        (0, 10, "alpha"), (10, 20, "beta"), (20, 30, "gamma"), (30, 40, "delta"),
+    private let cues: [CueSpan] = [
+        CueSpan(start: 0, end: 10, text: "alpha"), CueSpan(start: 10, end: 20, text: "beta"),
+        CueSpan(start: 20, end: 30, text: "gamma"), CueSpan(start: 30, end: 40, text: "delta")
     ]
 
     func test_rangeSnapsOutwardToCueBoundaries() {

@@ -45,11 +45,15 @@ struct ITunesSearchClient: Searching {
 
     func topChartIds(limit: Int) async throws -> [Int] {
         let url = URL(string: "https://rss.marketingtools.apple.com/api/v2/us/podcasts/top/\(limit)/podcasts.json")!
-        struct Charts: Codable {
-            struct Feed: Codable { struct Result: Codable { let id: String }; let results: [Result] }
-            let feed: Feed
-        }
         let data = try await transport(url)
-        return try JSONDecoder().decode(Charts.self, from: data).feed.results.compactMap { Int($0.id) }
+        return try JSONDecoder().decode(TopChartsResponse.self, from: data).feed.results.compactMap { Int($0.id) }
     }
 }
+
+// Marketing Tools "top charts" response shape — kept file-private and flat (not nested inside
+// topChartIds) to stay within SwiftLint's nesting-depth rule.
+private struct TopChartsResponse: Codable {
+    struct Feed: Codable { let results: [ChartEntry] }
+    let feed: Feed
+}
+private struct ChartEntry: Codable { let id: String }
