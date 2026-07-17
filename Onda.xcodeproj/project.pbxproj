@@ -11,6 +11,7 @@
 		01A56AC5527E7BEA7773B980 /* SmartQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C2283DA18F5EA37D53EFBB /* SmartQuery.swift */; };
 		029DFFBB6A70763A48064350 /* RSSFeedParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E24483CC8707435EC6912901 /* RSSFeedParser.swift */; };
 		07D5638371C4F282BED2F0B2 /* TranscriptParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FA5F027F92CA348778CADB /* TranscriptParserTests.swift */; };
+		08C87F980E4A5740C6FB4DC8 /* SmartQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A988A4AC118620951E2E4927 /* SmartQueueTests.swift */; };
 		0EF858DBCF0C958D90B463D7 /* ModelSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4981733BFE82B20F4431CC7B /* ModelSchema.swift */; };
 		10138A2384197042E7DC9F1B /* EpisodeRowStyleProbeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A750A816A36A2FD3AAA2B3C2 /* EpisodeRowStyleProbeUITests.swift */; };
 		134B411898C677C4F030743D /* ShowSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730CD80EB3C38D6C119F2570 /* ShowSettingsSheet.swift */; };
@@ -78,6 +79,7 @@
 		A14688894AEC0AF65B2C3A50 /* SearchIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D8C5E96401FE883E704E99 /* SearchIndexTests.swift */; };
 		A3D9E187B81A340564863C46 /* ClipService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF6CA1083D18778F2ED1454A /* ClipService.swift */; };
 		A5094C87A231F37D330E5BE4 /* chapters.json in Resources */ = {isa = PBXBuildFile; fileRef = E60E9938DD85518ACBD94F9F /* chapters.json */; };
+		A57C889AA43F9F8DBCEBB651 /* SmartQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F195A2C7A6F56903489DE7F7 /* SmartQueue.swift */; };
 		A7BCE3FD3DFB5A83D604DA82 /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26BA9D1CEE05EAA5CDF381C /* ThemeTests.swift */; };
 		A88A2927E10B55F59D1EBE1A /* AudioTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E6E8386DBE4C5817B5ABEF2 /* AudioTap.swift */; };
 		AC8BFE08CC7BB14BB4BCEF06 /* PlayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF527AF76929ACA91A63D7 /* PlayerEngine.swift */; };
@@ -197,6 +199,7 @@
 		A314E30235A9437DD24EB94A /* RSSFeedParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSSFeedParserTests.swift; sourceTree = "<group>"; };
 		A438C9713DECE88526A93F4D /* FeedRefreshServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRefreshServiceTests.swift; sourceTree = "<group>"; };
 		A750A816A36A2FD3AAA2B3C2 /* EpisodeRowStyleProbeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeRowStyleProbeUITests.swift; sourceTree = "<group>"; };
+		A988A4AC118620951E2E4927 /* SmartQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueueTests.swift; sourceTree = "<group>"; };
 		A9E0512972681EB4C4F71DA9 /* QueueItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueItem.swift; sourceTree = "<group>"; };
 		AB38DA8A4E82A891E4D93ACD /* ITunesSearchClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ITunesSearchClientTests.swift; sourceTree = "<group>"; };
 		AE2BCDEF6F50433DB4E50086 /* OndaUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OndaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -237,6 +240,7 @@
 		E60E9938DD85518ACBD94F9F /* chapters.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = chapters.json; sourceTree = "<group>"; };
 		E805DE0D40D2B33E85D10F1F /* ActiveCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveCue.swift; sourceTree = "<group>"; };
 		F054A4C32FC6891BC6555A06 /* DownloadsStorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadsStorageView.swift; sourceTree = "<group>"; };
+		F195A2C7A6F56903489DE7F7 /* SmartQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueue.swift; sourceTree = "<group>"; };
 		F1BB122FF92D1CDA4252B4FE /* SmartQueryParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueryParserTests.swift; sourceTree = "<group>"; };
 		F26BA9D1CEE05EAA5CDF381C /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 		F573C2C6E8E24BCE2842308C /* ClipExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipExporter.swift; sourceTree = "<group>"; };
@@ -426,6 +430,7 @@
 				C792A2C9B971CE0D7699E235 /* EpisodeRow.swift */,
 				FCAFB31E4B154AAA6A16D48C /* LibrarySearchView.swift */,
 				421075011CD9ACC11AC9E688 /* ShowCard.swift */,
+				F195A2C7A6F56903489DE7F7 /* SmartQueue.swift */,
 			);
 			path = Library;
 			sourceTree = "<group>";
@@ -544,6 +549,7 @@
 				85D8C5E96401FE883E704E99 /* SearchIndexTests.swift */,
 				F75263D3463872DF06D72219 /* SilenceDetectorTests.swift */,
 				F1BB122FF92D1CDA4252B4FE /* SmartQueryParserTests.swift */,
+				A988A4AC118620951E2E4927 /* SmartQueueTests.swift */,
 				027D2498D259920B8FD7659E /* SpeechEngineReproTests.swift */,
 				469CC05685CD4AF03D586364 /* SubscriptionServiceTests.swift */,
 				F26BA9D1CEE05EAA5CDF381C /* ThemeTests.swift */,
@@ -771,6 +777,7 @@
 				67C5E5BABD29BF4D05855F20 /* SilenceDetector.swift in Sources */,
 				9C5DAB9D2100554F4F0465D8 /* SleepTimerMenu.swift in Sources */,
 				01A56AC5527E7BEA7773B980 /* SmartQuery.swift in Sources */,
+				A57C889AA43F9F8DBCEBB651 /* SmartQueue.swift in Sources */,
 				1C9E9551E5DC0567C6748E0E /* SubscriptionService.swift in Sources */,
 				AFCEA49459314178CF2BD336 /* Theme.swift in Sources */,
 				F8BF36096CD22B461C04864C /* Transcript.swift in Sources */,
@@ -806,6 +813,7 @@
 				A14688894AEC0AF65B2C3A50 /* SearchIndexTests.swift in Sources */,
 				8F4AD92E7C308E36054E4466 /* SilenceDetectorTests.swift in Sources */,
 				D7791C4397CD162889894DD5 /* SmartQueryParserTests.swift in Sources */,
+				08C87F980E4A5740C6FB4DC8 /* SmartQueueTests.swift in Sources */,
 				4202299A935C6A8B1C29A4D7 /* SpeechEngineReproTests.swift in Sources */,
 				9518DC32144DA86BF1115FCF /* SubscriptionServiceTests.swift in Sources */,
 				A7BCE3FD3DFB5A83D604DA82 /* ThemeTests.swift in Sources */,
