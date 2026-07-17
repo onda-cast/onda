@@ -132,10 +132,13 @@ struct NowPlayingView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // Compact enough that all three chips fit a 375pt screen at the longest labels
+    // ("1.25×", "Boost: High", "Silence On"); the scroller is a safety net, not the norm.
     private func chip(_ text: String, active: Bool) -> some View {
-        Text(text).font(.system(size: 15, weight: .semibold))
+        Text(text).font(.system(size: 13.5, weight: .semibold))
+            .lineLimit(1).fixedSize()
             .foregroundStyle(active ? theme.color(.accent) : theme.color(.text))
-            .padding(.horizontal, 20).padding(.vertical, 13)
+            .padding(.horizontal, 13).padding(.vertical, 11)
             .background(active ? theme.color(.accentWash) : theme.color(.bgElevated))
             .brutalBorder(width: 2)
     }

@@ -126,8 +126,36 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
     }
 
     private func stripHTML(_ s: String) -> String {
-        s.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-         .trimmingCharacters(in: .whitespacesAndNewlines)
+        decodeEntities(
+            s.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // Feeds commonly double-encode HTML entities; XMLParser only unwraps one layer,
+    // leaving literal "&mdash;" etc. in show notes.
+    private func decodeEntities(_ s: String) -> String {
+        guard s.contains("&") else { return s }
+        var out = s
+        let named: [String: String] = [
+            "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": "\"", "&apos;": "'",
+            "&nbsp;": "\u{00A0}", "&mdash;": "\u{2014}", "&ndash;": "\u{2013}",
+            "&hellip;": "\u{2026}", "&rsquo;": "\u{2019}", "&lsquo;": "\u{2018}",
+            "&rdquo;": "\u{201D}", "&ldquo;": "\u{201C}",
+        ]
+        for (entity, char) in named { out = out.replacingOccurrences(of: entity, with: char) }
+        // Numeric entities: &#8217; and &#x2019;
+        while let r = out.range(of: "&#x?[0-9a-fA-F]+;", options: .regularExpression) {
+            let body = out[r].dropFirst(2).dropLast()
+            let scalar = body.hasPrefix("x") || body.hasPrefix("X")
+                ? UInt32(body.dropFirst(), radix: 16)
+                : UInt32(body)
+            if let scalar, let u = Unicode.Scalar(scalar) {
+                out.replaceSubrange(r, with: String(Character(u)))
+            } else {
+                out.replaceSubrange(r, with: "")
+            }
+        }
+        return out
     }
 
     func buildFeed() -> ParsedFeed {
