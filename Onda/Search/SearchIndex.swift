@@ -40,7 +40,7 @@ final class SearchIndex {
     }
 
     nonisolated deinit {
-        if let db { sqlite3_close(db) }
+        if let db { sqlite3_close_v2(db) }
     }
 
     static func defaultFileURL() -> URL {
@@ -50,16 +50,23 @@ final class SearchIndex {
     }
 
     func upsert(_ doc: SearchDoc) throws {
-        try delete(kind: doc.kind, episodeGuid: doc.episodeGuid, startTime: doc.startTime)
-        let sql = "INSERT INTO search_index (kind, episode_guid, start_time, body) VALUES (?, ?, ?, ?);"
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { throw sqlError() }
-        defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, doc.kind, -1, SQLITE_TRANSIENT)
-        sqlite3_bind_text(stmt, 2, doc.episodeGuid, -1, SQLITE_TRANSIENT)
-        sqlite3_bind_double(stmt, 3, doc.startTime)
-        sqlite3_bind_text(stmt, 4, doc.body, -1, SQLITE_TRANSIENT)
-        guard sqlite3_step(stmt) == SQLITE_DONE else { throw sqlError() }
+        try exec("SAVEPOINT upsert;")
+        do {
+            try delete(kind: doc.kind, episodeGuid: doc.episodeGuid, startTime: doc.startTime)
+            let sql = "INSERT INTO search_index (kind, episode_guid, start_time, body) VALUES (?, ?, ?, ?);"
+            var stmt: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { throw sqlError() }
+            defer { sqlite3_finalize(stmt) }
+            sqlite3_bind_text(stmt, 1, doc.kind, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_text(stmt, 2, doc.episodeGuid, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_double(stmt, 3, doc.startTime)
+            sqlite3_bind_text(stmt, 4, doc.body, -1, SQLITE_TRANSIENT)
+            guard sqlite3_step(stmt) == SQLITE_DONE else { throw sqlError() }
+            try exec("RELEASE upsert;")
+        } catch {
+            try exec("ROLLBACK TO upsert; RELEASE upsert;")
+            throw error
+        }
     }
 
     func delete(kind: String, episodeGuid: String, startTime: TimeInterval) throws {
@@ -84,7 +91,7 @@ final class SearchIndex {
     }
 
     func search(_ query: String, limit: Int = 50) throws -> [SearchResult] {
-        let q = query.trimmingCharacters(in: .whitespaces)
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard q.count >= 2 else { return [] }
         let sql = """
             SELECT kind, episode_guid, start_time, snippet(search_index, 3, '', '', '…', 12)
