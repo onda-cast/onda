@@ -104,6 +104,7 @@
 		C8862665D462667A35E17445 /* NowPlayingCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB81669B0B7A51F6D9136B0E /* NowPlayingCenter.swift */; };
 		C8B4B77568FBA30D2A026F1C /* FeedRefreshService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1609FCC4157FDBE3595D980 /* FeedRefreshService.swift */; };
 		CB8C8558D840BEEF8924E26C /* ActiveCueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F66A85825297F08BFE4CB57 /* ActiveCueTests.swift */; };
+		CC5E39A0D0F6E2F94E0F4C7F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 426064A556A272F8A5D9AF12 /* Assets.xcassets */; };
 		CD818B7BA518B4A3191469DD /* SwipeActionsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F2BBC8D21AAB14096F73E4 /* SwipeActionsUITests.swift */; };
 		CEA0C709ED719C46D943F3E3 /* LibrarySearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCAFB31E4B154AAA6A16D48C /* LibrarySearchView.swift */; };
 		CEBC2508AAB5FE11728B86C3 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97A7272E5BB819B8F48386CA /* TranscriptView.swift */; };
@@ -173,6 +174,7 @@
 		3EE2B49FBD5405DE238541D8 /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
 		3F65138271FBACF93B441DAA /* uitest-audio.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = "uitest-audio.aiff"; sourceTree = "<group>"; };
 		421075011CD9ACC11AC9E688 /* ShowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowCard.swift; sourceTree = "<group>"; };
+		426064A556A272F8A5D9AF12 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		469CC05685CD4AF03D586364 /* SubscriptionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionServiceTests.swift; sourceTree = "<group>"; };
 		4981733BFE82B20F4431CC7B /* ModelSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelSchema.swift; sourceTree = "<group>"; };
 		4F66A85825297F08BFE4CB57 /* ActiveCueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveCueTests.swift; sourceTree = "<group>"; };
@@ -493,6 +495,7 @@
 		E1A4F456370C300061ABA755 /* Onda */ = {
 			isa = PBXGroup;
 			children = (
+				426064A556A272F8A5D9AF12 /* Assets.xcassets */,
 				C3F418D8F0B32743930B5D15 /* Info.plist */,
 				8C1426D72C602B5DCF50A4F7 /* OndaApp.swift */,
 				B2D0CE45EE71672F6AE047A7 /* UITestSeed.swift */,
@@ -689,6 +692,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC5E39A0D0F6E2F94E0F4C7F /* Assets.xcassets in Resources */,
 				EE0DD6B7A6CAB3E4DF728838 /* uitest-audio.aiff in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
