@@ -16,6 +16,7 @@ final class TranscriptService {
     private let localURL: (Episode) -> URL?
 
     var progress: [String: Double] = [:]
+    var lastFailure: [String: String] = [:]   // guid → human-readable reason
 
     init(modelContext: ModelContext, parser: TranscriptParser = .init(),
          engine: AudioTranscribing?,
@@ -45,12 +46,22 @@ final class TranscriptService {
         if let engine, let file = localURL(episode) {
             let guid = episode.guid
             do {
+                lastFailure[guid] = nil
                 let cues = try await engine.transcribe(fileURL: file) { p in
                     Task { @MainActor [weak self] in self?.progress[guid] = p }
                 }
                 progress[guid] = nil
                 if !cues.isEmpty { return persist(cues: cues, for: episode, source: "ondevice") }
-            } catch { progress[guid] = nil }
+                lastFailure[guid] = "Transcription produced no text for this audio."
+            } catch {
+                progress[guid] = nil
+                let ns = error as NSError
+                if ns.domain == "SFSpeechErrorDomain" {
+                    lastFailure[guid] = "Couldn't get Apple's on-device speech model. Check your connection — and note the iOS Simulator often can't download it (a real device can)."
+                } else {
+                    lastFailure[guid] = "Transcription failed: \(error.localizedDescription)"
+                }
+            }
         }
         return nil
     }
