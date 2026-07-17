@@ -28,6 +28,15 @@ targets:
       base:
         INFOPLIST_KEY_CFBundleDisplayName: Onda
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Onda transcribes downloaded episodes on your device so you can read and search them."
+    preBuildScripts:
+      - name: SwiftLint
+        script: |
+          if which swiftlint > /dev/null; then
+            swiftlint
+          else
+            echo "warning: SwiftLint not installed, download from https://github.com/realm/swiftlint"
+          fi
+        basedOnDependencyAnalysis: false
   OndaTests:
     type: bundle.unit-test
     platform: iOS

@@ -1,0 +1,22 @@
+included:
+  - Onda
+  - OndaTests
+  - OndaUITests
+
+excluded:
+  - build
+  - DerivedData
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - contains_over_first_not_nil
+  - redundant_nil_coalescing
+  - toggle_bool
+
+disabled_rules:
+  - identifier_name
+
+line_length:
+  warning: 150
+  ignores_urls: true
