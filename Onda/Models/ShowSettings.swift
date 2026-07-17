@@ -12,6 +12,11 @@ final class ShowSettings {
     var introTrimSec: Int
     var outroTrimSec: Int
     var notifMode: String       // "all" | "important" | "none"
+    // Retention overrides — nil inherits the AppSettings global default.
+    var maxDownloadsKeptOverride: Int?              // 0 = explicitly unlimited
+    var autoDeleteListenedAfterDaysOverride: Int?   // -1 = explicitly off, 0 = immediately
+    var autoTranscribeOnDownloadOverride: Bool?
+    var keepTranscriptsOverride: Bool?
     var podcast: Podcast?
 
     init(speed: Double, voiceBoost: Int, skipSilence: Bool, adSkipMode: String,

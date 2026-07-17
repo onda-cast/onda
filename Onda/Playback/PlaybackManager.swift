@@ -179,7 +179,7 @@ final class PlaybackManager {
 
         if t - lastPersistedAt >= 5 { persistPosition() }
         if ep.duration > 0, t >= ep.duration * 0.95, !ep.played {
-            ep.played = true; try? modelContext.save()
+            ep.played = true; ep.playedDate = .now; try? modelContext.save()
         }
         nowPlaying.update(title: ep.title, show: ep.podcast?.title ?? "",
                           position: positionSeconds, duration: durationSeconds,
@@ -194,7 +194,7 @@ final class PlaybackManager {
     }
 
     func handleEndOfItem() {
-        if let ep = currentEpisode { ep.played = true; ep.playbackPosition = 0 }
+        if let ep = currentEpisode { ep.played = true; ep.playedDate = .now; ep.playbackPosition = 0 }
         try? modelContext.save()
         if sleepMode == .endOfEpisode {
             isPlaying = false

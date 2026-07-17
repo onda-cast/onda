@@ -316,3 +316,55 @@ Chapter.source: "feed" | "generated" — generated chapters always have isAd == 
   transcripts) keep today's whole-cue highlight; this is a real, visible inconsistency across
   episodes in the same library, not a bug, and should be treated as an accepted tradeoff rather
   than "fixed" later by interpolating fake word timing for published cues.
+
+## Settings & Retention Addendum (added 2026-07-17)
+
+**Goal:** a real settings system — download/retention rules with global defaults and per-podcast
+overrides, plus a per-podcast settings screen reachable from general settings, not only from
+inside a show.
+
+**Scope model — global default + per-podcast override.** Every new setting has an app-wide
+default in `AppSettings` (UserDefaults-backed, like `keepTranscriptsOnDelete`); `ShowSettings`
+gains optional override fields where `nil` means "inherit the global default":
+
+| Setting | Global default | Override field | Sentinels |
+| --- | --- | --- | --- |
+| Max downloads kept per show | `defaultMaxDownloadsKept` = 0 (no limit) | `maxDownloadsKeptOverride: Int?` | 0 = explicitly unlimited |
+| Auto-delete listened episodes | `defaultAutoDeleteListenedAfterDays` = -1 (off) | `autoDeleteListenedAfterDaysOverride: Int?` | -1 = explicitly off, 0 = immediately |
+| Auto-transcribe on download | `defaultAutoTranscribeOnDownload` = false | `autoTranscribeOnDownloadOverride: Bool?` | — |
+| Keep transcripts after delete | `keepTranscriptsOnDelete` = true (existing) | `keepTranscriptsOverride: Bool?` | — |
+
+`Episode` gains `playedDate: Date?`, stamped when marked played (cleared when un-played) — the
+day-based rule has nothing to key off otherwise.
+
+**Retention semantics (user decisions):**
+- "How many to download/keep" = a cap on TOTAL downloaded episodes per show. The cap only ever
+  evicts **played** episodes (oldest publish date first); unplayed downloads are never auto-deleted
+  even if that means exceeding the cap.
+- "Delete listened" + "after X days" are ONE setting: auto-delete listened episodes after N days
+  (0 = immediately on marking played, -1/off = never).
+- Auto-delete means the same thing as today's manual episode delete: audio file freed, transcript
+  kept or purged per the resolved keep-transcripts setting, clips always survive, subscription
+  untouched.
+- **Unsubscribe becomes the delete action** for a show: it now also deletes all the show's
+  downloaded audio and (per resolved keep-transcripts) its transcripts. No separate "delete
+  podcast" action.
+- Auto-transcribe on download = auto-start on-device transcription after a download completes,
+  only when there is no published transcript, the engine exists (iOS 26+), and Speech
+  authorization is ALREADY granted — never prompt from a background context.
+
+**`EpisodeRetentionService`** (new, `@Observable`, mirrors TranscriptService's shape): pure
+`resolvedX(for podcast:)` helpers (override ?? global) + `evictEligibleEpisodes(for:)` sweep
+applying the two rules above through `DownloadManager.delete` and the transcript-keep logic.
+Triggers: reactively from `setPlayed(_:true)` (makes N=0 feel instant) and periodically from
+`FeedRefreshService.refreshAll()`'s existing 15-minute-throttled cycle (catches day-based expiry).
+
+**UI:** ProfileView gains a "Downloads & Retention" section (limit-downloads toggle+stepper,
+auto-delete toggle+stepper with "Immediately" at 0, auto-transcribe toggle, and the relocated
+keep-transcripts toggle) plus a "Podcasts" row → new `PodcastSettingsListView` (list of subscribed
+shows → existing `ShowSettingsSheet`). ShowSettingsSheet gains a mirrored "Downloads & Retention"
+section where each control defaults to "Use default" and reveals the override control when
+customized.
+
+**Out of scope:** storage-size-based caps (bytes), per-episode retention pins ("never delete this
+one"), and auto-archive of un-downloaded old episodes.

@@ -10,6 +10,9 @@ final class FeedRefreshService {
     private let modelContext: ModelContext
     private let subscriptions: SubscriptionService
     private let downloads: DownloadManager
+    // Wired post-init in OndaApp; the refresh cycle doubles as the periodic retention sweep
+    // (catches day-based expiry, which has no event of its own).
+    var retention: EpisodeRetentionService?
     private var lastRefresh: Date = .distantPast
     static let minRefreshInterval: TimeInterval = 15 * 60
 
@@ -39,6 +42,7 @@ final class FeedRefreshService {
                     }
                 }
             } catch { continue }
+            retention?.evictEligibleEpisodes(for: podcast)
         }
     }
 

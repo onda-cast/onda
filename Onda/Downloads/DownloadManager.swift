@@ -15,6 +15,10 @@ final class DownloadManager: NSObject {
     private var urlByGuid: [String: URL] = [:]
     private var guidByTaskURL: [URL: String] = [:]
 
+    /// Fired (with the episode guid) after a download lands on disk and is recorded.
+    /// Wired in OndaApp to kick off auto-transcription when the resolved setting is on.
+    var onDownloadCompleted: ((String) -> Void)?
+
     nonisolated static let downloadsSubdir = "Downloads"
 
     init(persistence: PersistenceActor, session: URLSessionProtocol? = nil) {
@@ -64,6 +68,7 @@ final class DownloadManager: NSObject {
         retries[guid] = nil
         try? await persistence.recordDownload(episodeGuid: guid,
                                               fileName: Self.fileName(for: guid), sizeBytes: totalBytes)
+        onDownloadCompleted?(guid)
     }
 
     func handleFailed(guid: String) {

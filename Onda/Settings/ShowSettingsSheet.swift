@@ -47,6 +47,37 @@ struct ShowSettingsSheet: View {
                         stepperRow("Skip Intro", value: Binding(get: { s.introTrimSec }, set: { s.introTrimSec = $0 }))
                         stepperRow("Skip Outro", value: Binding(get: { s.outroTrimSec }, set: { s.outroTrimSec = $0 }))
                     }
+                    section("Downloads & Retention") {
+                        overridePicker("Keep Downloads",
+                                       state: overrideState(s.maxDownloadsKeptOverride, offValue: 0),
+                                       offLabel: "No limit") { mode in
+                            s.maxDownloadsKeptOverride = [nil, 0, 10][mode]
+                        }
+                        if let cap = s.maxDownloadsKeptOverride, cap > 0 {
+                            countStepper("Keep per show",
+                                         value: Binding(get: { cap },
+                                                        set: { s.maxDownloadsKeptOverride = $0 }),
+                                         range: 1...50, label: { "\($0)" })
+                        }
+                        overridePicker("Auto-Delete Listened",
+                                       state: overrideState(s.autoDeleteListenedAfterDaysOverride, offValue: -1),
+                                       offLabel: "Off") { mode in
+                            s.autoDeleteListenedAfterDaysOverride = [nil, -1, 7][mode]
+                        }
+                        if let days = s.autoDeleteListenedAfterDaysOverride, days >= 0 {
+                            countStepper("After",
+                                         value: Binding(get: { days },
+                                                        set: { s.autoDeleteListenedAfterDaysOverride = $0 }),
+                                         range: 0...30,
+                                         label: { $0 == 0 ? "Immediately" : "\($0) day\($0 == 1 ? "" : "s")" })
+                        }
+                        boolOverridePicker("Auto-Transcribe Downloads",
+                                           value: Binding(get: { s.autoTranscribeOnDownloadOverride },
+                                                          set: { s.autoTranscribeOnDownloadOverride = $0 }))
+                        boolOverridePicker("Keep Transcripts After Delete",
+                                           value: Binding(get: { s.keepTranscriptsOverride },
+                                                          set: { s.keepTranscriptsOverride = $0 }))
+                    }
                     section("Notifications") {
                         SegmentedRow(options: [("All", "all"), ("Important", "important"), ("None", "none")],
                                      selection: s.notifMode) { s.notifMode = $0 }
@@ -70,6 +101,45 @@ struct ShowSettingsSheet: View {
         let i = speedSteps.firstIndex(of: s.speed) ?? 1
         s.speed = speedSteps[(i + 1) % speedSteps.count]
         playback.applyAudioSettings()
+    }
+
+    /// nil → 0 (inherit default), the sentinel offValue → 1 (explicit off), anything else → 2 (custom).
+    private func overrideState(_ value: Int?, offValue: Int) -> Int {
+        guard let value else { return 0 }
+        return value == offValue ? 1 : 2
+    }
+
+    /// Three-way override control: 0 = inherit default, 1 = explicit off/unlimited, 2 = custom.
+    @ViewBuilder private func overridePicker(_ title: String, state: Int, offLabel: String,
+                                             onChange: @escaping (Int) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text))
+            SegmentedRow(options: [("Default", 0), (offLabel, 1), ("Custom", 2)],
+                         selection: state, onChange: onChange)
+        }
+    }
+
+    @ViewBuilder private func boolOverridePicker(_ title: String, value: Binding<Bool?>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text))
+            SegmentedRow(options: [("Default", 0), ("Off", 1), ("On", 2)],
+                         selection: value.wrappedValue == nil ? 0 : (value.wrappedValue == false ? 1 : 2)) {
+                value.wrappedValue = [nil, false, true][$0]
+            }
+        }
+    }
+
+    private func countStepper(_ title: String, value: Binding<Int>, range: ClosedRange<Int>,
+                              label: (Int) -> String) -> some View {
+        HStack {
+            Text(title).font(.system(size: 14)).foregroundStyle(theme.color(.textSecondary))
+            Spacer()
+            Button("−") { value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1) }
+            Text(label(value.wrappedValue)).monospacedDigit().frame(minWidth: 88)
+                .font(.system(size: 14, weight: .semibold)).foregroundStyle(theme.color(.text))
+            Button("+") { value.wrappedValue = min(range.upperBound, value.wrappedValue + 1) }
+        }
+        .foregroundStyle(theme.color(.accent)).font(.system(size: 17, weight: .semibold))
     }
 
     @ViewBuilder private func section(_ title: String, @ViewBuilder _ content: () -> some View) -> some View {
