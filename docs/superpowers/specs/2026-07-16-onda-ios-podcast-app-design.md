@@ -392,3 +392,41 @@ Seven small UX fixes, one branch:
   matched snippet), tapping opens the existing `TranscriptView`.
 - **Clips discoverability** — the Library entry keeps its bookmark but is labelled "CLIPS" (accessibility
   label preserved as "Clips" for existing UI tests), and Profile gains a "Saved Clips" row.
+
+## Recommendations Addendum (added 2026-07-17)
+
+On-device, content-based **new-show** recommender. No backend and single-user, so no collaborative
+filtering — everything is computed from the user's own signals and iTunes as the only candidate
+source. Classic **retrieve → re-rank** funnel.
+
+**TasteProfile** (pure value): a weighted term vector (topics/keywords/entities) + category weights
++ author weights. Signals contribute with different weights — a clip's text far outweighs a
+subscribed show's genre: clips (strong) > search terms > transcript cues > played-episode
+titles/notes > subscribed-show title > category/author tallies. Built by `TasteProfileBuilder`
+from SwiftData (subs, played episodes, clips, transcript cues) plus a `SearchTermLog` (UserDefaults
+ring buffer of the last ~50 Discover searches). Term extraction reuses the NLTagger lemma/POS
+approach from SmartQuery.
+
+**Retrieve** (`CandidateRetriever`): turn the profile into iTunes queries (top terms, categories,
+authors) + top charts; dedupe; drop already-subscribed and dismissed shows → a broad `PodcastDTO`
+pool. Cold start (empty profile) falls back to charts filtered by followed categories.
+
+**Re-rank** (`CandidateReranker`): cheap pre-score on the metadata iTunes returns (name/author/genre
+keyword overlap) picks the top ~15; those feeds are fetched (`RSSFeedClient`) for description +
+recent episode titles/notes; content similarity is scored by a **hybrid** of TF-IDF cosine (IDF
+computed over the ~15 candidate docs) and on-device `NLEmbedding` cosine, blended `α·keyword +
+(1−α)·embedding`, degrading to keyword-only when the embedding model is unavailable. Produces
+`Recommendation { show, score, reasons }` where reasons come from top overlapping terms + provenance
+("Because you clip a lot about espresso", "Similar to <a show you follow>").
+
+**RecommendationService** (`@Observable`): orchestrates, caches with a ~6h TTL, exposes
+`recommendations`. A "For You" section at the top of Discover renders them with the existing
+`TrendingRow` + a subtle reason line; a "Not interested" action adds the show to a dismissed set
+(UserDefaults). Recomputes on Discover appear when stale or on pull-to-refresh; never blocks the tab.
+
+**Testing:** pure units with injected fakes — builder weighting/ordering, TF-IDF cosine, hybrid
+blend + embedding-unavailable fallback, retriever query construction + exclusions, reranker ranking
+with a fake feed fetcher, and service cold-start/dismiss/TTL.
+
+**Out of scope:** cross-user CF, ML training, any on-device model beyond Apple's bundled NLEmbedding,
+episode-level recommendations.

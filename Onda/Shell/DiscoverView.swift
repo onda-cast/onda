@@ -6,6 +6,7 @@ struct DiscoverView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(SubscriptionService.self) private var subscriptions
     @Environment(ITunesSearchClientBox.self) private var clientBox
+    @Environment(RecommendationService.self) private var recs
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }) private var subs: [Podcast]
 
     @State private var query = ""
@@ -30,6 +31,39 @@ struct DiscoverView: View {
 
     private let categories = ["Technology", "Comedy", "News", "Business", "Health", "Science"]
     private var subscribedFeeds: Set<URL> { Set(subs.map(\.feedURL)) }
+    private var followedCategories: [String] {
+        Array(Set(subs.map(\.category))).sorted()
+    }
+
+    @ViewBuilder private var forYouSection: some View {
+        if recs.isLoading && recs.recommendations.isEmpty {
+            HStack(spacing: 8) {
+                ProgressView().tint(theme.color(.accent))
+                Text("Finding shows for you…").font(.system(size: 13))
+                    .foregroundStyle(theme.color(.textTertiary))
+            }
+        } else if !recs.recommendations.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("For You").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
+                ForEach(recs.recommendations.prefix(6)) { rec in
+                    VStack(alignment: .leading, spacing: 4) {
+                        TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) {
+                            Task { [subscriptions] in _ = try? await subscriptions.subscribe(to: rec.dto) }
+                        }
+                        if let reason = rec.reasonLine {
+                            Text(reason).font(.system(size: 11.5)).foregroundStyle(theme.color(.textTertiary))
+                                .padding(.leading, 2)
+                        }
+                    }
+                    .contextMenu {
+                        Button(role: .destructive) { recs.dismiss(rec) } label: {
+                            Label("Not interested", systemImage: "hand.thumbsdown")
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     private func isSubscribed(_ dto: PodcastDTO) -> Bool {
         dto.feedUrl.map(subscribedFeeds.contains) ?? false
@@ -43,6 +77,8 @@ struct DiscoverView: View {
 
                 searchField
                 categoryChips
+
+                if query.isEmpty, shake == nil { forYouSection }
 
                 listHeader
 
@@ -72,6 +108,7 @@ struct DiscoverView: View {
         .scrollDismissesKeyboard(.immediately)
         .background(theme.color(.bg))
         .task { await loadTrending() }
+        .task { await recs.refreshIfStale(followedCategories: followedCategories) }
         .onChange(of: query) { _, new in
             if !new.trimmingCharacters(in: .whitespaces).isEmpty { shake = nil }
             Task { await runSearch(new) }
@@ -184,5 +221,6 @@ struct DiscoverView: View {
         try? await Task.sleep(for: .milliseconds(300))   // debounce
         guard t == query.trimmingCharacters(in: .whitespaces) else { return }
         results = (try? await clientBox.client.search(term: t)) ?? []
+        if !results.isEmpty { recs.recordSearch(t) }   // an interest signal for future recs
     }
 }
