@@ -53,17 +53,18 @@ struct EpisodeListView: View {
                     Button {
                         subscriptions.setPlayed(ep, !ep.played)
                     } label: {
-                        Label(ep.played ? "Unplayed" : "Played",
-                              systemImage: ep.played ? "circle" : "checkmark.circle")
+                        Label(ep.played ? "UNPLAYED" : "PLAYED",
+                              systemImage: ep.played ? "arrow.uturn.backward" : "checkmark")
                     }
                     .tint(theme.color(.accent))
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        deleteEpisode(ep)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                    // Flat black over system red: matches the brutal palette. Trash icon +
+                    // placement keep the destructive meaning unambiguous.
+                    Button { deleteEpisode(ep) } label: {
+                        Label("DELETE", systemImage: "trash.fill")
                     }
+                    .tint(.black)
                 }
                 .contextMenu {
                     Button {
