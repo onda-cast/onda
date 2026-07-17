@@ -95,6 +95,7 @@ final class PlaybackManager {
         clipEndBound = nil
         currentEpisode = episode
         durationSeconds = episode.duration
+        nowPlaying.prepareArtwork(url: episode.podcast?.artworkURL)
         let intro = TimeInterval(settings?.introTrimSec ?? 0)
         let start = max(episode.playbackPosition, intro)
         let local = localURL(for: episode)
