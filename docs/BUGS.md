@@ -55,3 +55,29 @@ in `TranscriptView.emptyState` — re-enable when fixed.
 `--batch -o 'process continue' -k 'thread backtrace -c 40' -k quit`, reproduce, read OUR frame.
 Or: extend `SpeechEngineReproTests` to also call `TranscriptService.requestSpeechAuthorization()`
 first, matching the app flow exactly.
+
+## #2 — SmartQueryParserTests NLTagger flake in simulators (MITIGATED 2026-07-17, XCTSkip guard)
+
+**Symptom:** 6 of 9 `SmartQueryParserTests` fail intermittently on the same machine/simulator
+(passed and failed on the same day at commit `5386e8a` with no code change): lemmas come back
+as surface forms (`"books"`/`"mentioned"`), `.nameType` finds no `.personalName` for
+"Tracy Alloway", and `.lexicalClass` tags everything `OtherWord` so function words like
+"was"/"very" survive POS filtering.
+
+**Root cause (environmental, not a regression):** the NaturalLanguage English models are
+on-demand MobileAsset downloads; in a simulator they can be unloadable. Diagnostic probe run
+while the flake was active showed: language ID fine (`en`), but lemma nil / POS `OtherWord` /
+nameType `Other` **even with explicit `setLanguage(.english)`**, `[Query] Error for
+queryMetaDataSync: 2` logged at first tagger use, and `NLTagger.requestAssets(for: .english,
+tagScheme: .lemma)` never invoking its completion within 30s. So `setLanguage` hardening in
+`SmartQueryParser` would not help — the models simply aren't there, and the parser already
+degrades gracefully (surface-form terms, nil speaker) by design.
+
+**Mitigation:** `skipUnlessNLAssetsAvailable()` in `SmartQueryParserTests` probes both schemes
+the parser relies on (a lemma for "books", `.personalName` for "Tim Cook") and `XCTSkip`s the
+5 NL-dependent tests when the models aren't loaded — same pattern as the speech-asset skips in
+`SpeechEngineReproTests`. The regex/stopword tier tests still always run. If the skips show up
+constantly (not just flakily), reboot the simulator or check network — the assets normally
+recover on their own. Observed 2026-07-17: wedged at 09:57 (6 failures), fully recovered by
+10:01 on the same booted simulator with zero code change — a `NLTagger.requestAssets` call in
+a diagnostic run in between may have triggered the re-fetch.
