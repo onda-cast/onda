@@ -36,6 +36,23 @@ final class SubscriptionService {
         return podcast
     }
 
+    func setPlayed(_ episode: Episode, _ played: Bool) {
+        episode.played = played
+        episode.playbackPosition = 0
+        try? modelContext.save()
+    }
+
+    /// Soft delete. Audio/download removal is the caller's job (DownloadManager owns files);
+    /// clips always survive; the transcript survives only when `keepTranscript`.
+    func archiveEpisode(_ episode: Episode, keepTranscript: Bool) {
+        episode.isArchived = true
+        if !keepTranscript, let tr = episode.transcript {
+            episode.transcript = nil
+            modelContext.delete(tr)   // cascades cues
+        }
+        try? modelContext.save()
+    }
+
     func unsubscribe(_ podcast: Podcast) {
         podcast.isSubscribed = false
         try? modelContext.save()

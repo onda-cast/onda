@@ -12,6 +12,7 @@ final class Episode {
     var notes: String
     var playbackPosition: TimeInterval
     var played: Bool
+    var isArchived: Bool = false   // soft-deleted: hidden everywhere, clips/transcript may remain
     var chaptersURL: URL?
     var transcriptURL: URL?
     var transcriptType: String?

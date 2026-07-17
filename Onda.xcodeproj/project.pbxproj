@@ -102,6 +102,7 @@
 		EBF3D546A8A34C903BA08430 /* TrendingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724742E0E1635727F2999811 /* TrendingRow.swift */; };
 		EE0DD6B7A6CAB3E4DF728838 /* uitest-audio.aiff in Resources */ = {isa = PBXBuildFile; fileRef = 3F65138271FBACF93B441DAA /* uitest-audio.aiff */; };
 		F339BE46425621A1A28C19E7 /* AdWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1167AF2050B72699C1A53695 /* AdWindow.swift */; };
+		F62F7E968FAA1FB666FE6430 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 323028D4CD592C6D201924EF /* AppSettings.swift */; };
 		F7CF1015743F959F1007190D /* MarkdownExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2C9426A2C0D555EDB039598 /* MarkdownExportTests.swift */; };
 		F8112CCD4BFC192E00FC7B69 /* SegmentedRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81E6C698734C534FA80E44B /* SegmentedRow.swift */; };
 		F8BF36096CD22B461C04864C /* Transcript.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9F3DA6972693D50DE7CDD1 /* Transcript.swift */; };
@@ -143,6 +144,7 @@
 		2DEF527AF76929ACA91A63D7 /* PlayerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerEngine.swift; sourceTree = "<group>"; };
 		2E6E8386DBE4C5817B5ABEF2 /* AudioTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTap.swift; sourceTree = "<group>"; };
 		2FBD6DA4529DE65939254E12 /* ClipServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipServiceTests.swift; sourceTree = "<group>"; };
+		323028D4CD592C6D201924EF /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		325070FC3907EFEC82D6435F /* Episode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Episode.swift; sourceTree = "<group>"; };
 		34C33A334266DCF78E6FF739 /* itunes_search.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = itunes_search.json; sourceTree = "<group>"; };
 		3755FD31224D33A231E6B9D4 /* FeedFetching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedFetching.swift; sourceTree = "<group>"; };
@@ -463,6 +465,7 @@
 		F1C5650808D1EAF4F1F0F936 /* Theme */ = {
 			isa = PBXGroup;
 			children = (
+				323028D4CD592C6D201924EF /* AppSettings.swift */,
 				7D11CA7EC934C9F4DA99381A /* BrutalStyle.swift */,
 				C56597246CCC6EC9FC34A3C6 /* Palette.swift */,
 				3D08E840362422D0CB05A96C /* Theme.swift */,
@@ -637,6 +640,7 @@
 			files = (
 				28497CC078C08533CF32F0BD /* ActiveCue.swift in Sources */,
 				F339BE46425621A1A28C19E7 /* AdWindow.swift in Sources */,
+				F62F7E968FAA1FB666FE6430 /* AppSettings.swift in Sources */,
 				1AF0D83674AD7053FD7645B7 /* ArtworkView.swift in Sources */,
 				A88A2927E10B55F59D1EBE1A /* AudioTap.swift in Sources */,
 				83FD313D2C17026BAE890110 /* AudioTranscribing.swift in Sources */,

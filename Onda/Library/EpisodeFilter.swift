@@ -14,7 +14,8 @@ enum EpisodeFilter: String, CaseIterable, Sendable {
 
     @MainActor
     func apply(to episodes: [Episode]) -> [Episode] {
-        let sorted = episodes.sorted { $0.publishDate > $1.publishDate }
+        let sorted = episodes.filter { !$0.isArchived }
+            .sorted { $0.publishDate > $1.publishDate }
         switch self {
         case .downloaded: return sorted.filter { $0.downloadedFile != nil }
         case .all: return sorted
