@@ -88,6 +88,7 @@ final class PlaybackManager {
     }
 
     func applyAudioSettings() {
+        engine.rate = Float(settings?.speed ?? 1.0)
         let boost = BoostLevel(clamping: settings?.voiceBoost ?? 0)
         engine.setBoostGain(boost.gain)
         if settings?.skipSilence != true { silence.reset() }

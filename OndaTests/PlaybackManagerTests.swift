@@ -143,6 +143,18 @@ final class PlaybackManagerTests: XCTestCase {
         engine.emitTime(900); XCTAssertFalse(pm.adActive)
     }
 
+    func test_applyAudioSettings_pushesSpeedChangeToEngine_midPlayback() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let ep = makeEpisode(in: ctx, speed: 1.0)
+        pm.play(ep)
+        XCTAssertEqual(engine.rate, 1.0)
+        ep.podcast?.settings?.speed = 1.5
+        pm.applyAudioSettings()
+        XCTAssertEqual(engine.rate, 1.5, "speed changes must reach the engine without restarting playback")
+    }
+
     func test_playApplyingBoost_setsEngineGain() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
