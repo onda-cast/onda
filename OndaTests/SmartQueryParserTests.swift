@@ -36,4 +36,35 @@ final class SmartQueryParserTests: XCTestCase {
         let q = SmartQuery(terms: ["gold", "standard"], speaker: nil, show: nil)
         XCTAssertEqual(q.ftsQueryText, "gold standard")
     }
+
+    // MARK: NLP tier (NLTagger)
+
+    func test_multiWordSpeakerName_afterBy() {
+        let q = SmartQueryParser.parse("gold standard by Tracy Alloway", knownShows: shows)
+        XCTAssertEqual(q.speaker, "Tracy Alloway")
+        XCTAssertEqual(q.terms, ["gold", "standard"])
+    }
+
+    func test_personName_recognizedWithoutByPhrase() {
+        let q = SmartQueryParser.parse("what did Tracy Alloway say about inflation",
+                                       knownShows: shows)
+        XCTAssertEqual(q.speaker, "Tracy Alloway")
+        XCTAssertTrue(q.terms.contains("inflation"))
+        XCTAssertFalse(q.terms.contains("tracy"), "speaker name must not leak into terms")
+    }
+
+    func test_lemmatization_normalizesPlurals() {
+        let q = SmartQueryParser.parse("books mentioned in Odd Lots", knownShows: shows)
+        XCTAssertEqual(q.show, "Odd Lots")
+        XCTAssertEqual(q.terms, ["book"], "plural should lemmatize to singular")
+    }
+
+    func test_posFiltering_dropsFunctionWords_keepsContent() {
+        let q = SmartQueryParser.parse("the very volatile trading strategies", knownShows: shows)
+        XCTAssertFalse(q.terms.contains("the"))
+        XCTAssertFalse(q.terms.contains("very"))
+        XCTAssertTrue(q.terms.contains("volatile"))
+        XCTAssertTrue(q.terms.contains("strategy") || q.terms.contains("trading"),
+                      "content words survive with lemmas")
+    }
 }
