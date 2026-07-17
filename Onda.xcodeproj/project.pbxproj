@@ -73,6 +73,7 @@
 		98E1394BA431566B56E0A974 /* ClipRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9EB09CF6995D64F1C2C2D63 /* ClipRow.swift */; };
 		9984B175F6497AFC38E0BF2F /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C56597246CCC6EC9FC34A3C6 /* Palette.swift */; };
 		99DBAB55F788DBE13FE89810 /* Podcast.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCF6C8AE0E3030E7AE86BC20 /* Podcast.swift */; };
+		9ABDE2818FED2062D2726C71 /* ChapterGenerating.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A3E4D37A3BFC845DD61B2DA /* ChapterGenerating.swift */; };
 		9B150D1A32D02071F56B63BC /* ClipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F0F6CBEC00A58EB34271DA5 /* ClipsView.swift */; };
 		9C5DAB9D2100554F4F0465D8 /* SleepTimerMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1B8CC9352D4C349C29E8D2 /* SleepTimerMenu.swift */; };
 		A0501988B8A5207D9C6919F2 /* ClipExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F573C2C6E8E24BCE2842308C /* ClipExporter.swift */; };
@@ -188,6 +189,7 @@
 		85D8C5E96401FE883E704E99 /* SearchIndexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchIndexTests.swift; sourceTree = "<group>"; };
 		88DE1D860B7C28D399461926 /* TranscriptSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptSearchTests.swift; sourceTree = "<group>"; };
 		896263AC9AF1023FCDCA7F1A /* EpisodeFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeFilterTests.swift; sourceTree = "<group>"; };
+		8A3E4D37A3BFC845DD61B2DA /* ChapterGenerating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterGenerating.swift; sourceTree = "<group>"; };
 		8C1426D72C602B5DCF50A4F7 /* OndaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OndaApp.swift; sourceTree = "<group>"; };
 		93942D719E2A7F24435D23FB /* ClipEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEditSheet.swift; sourceTree = "<group>"; };
 		93E1B51E3A6C164EC3CC2A61 /* transcript_pc20.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = transcript_pc20.json; sourceTree = "<group>"; };
@@ -336,6 +338,7 @@
 				2E6E8386DBE4C5817B5ABEF2 /* AudioTap.swift */,
 				DAEF393589BFDADE7CF562DE /* BoostLevel.swift */,
 				73EDE887722F9B111D8D3594 /* ChapterFetcher.swift */,
+				8A3E4D37A3BFC845DD61B2DA /* ChapterGenerating.swift */,
 				CB81669B0B7A51F6D9136B0E /* NowPlayingCenter.swift */,
 				CE17DF4802CE3FAEFCCA9B2C /* PlaybackManager.swift */,
 				2DEF527AF76929ACA91A63D7 /* PlayerEngine.swift */,
@@ -729,6 +732,7 @@
 				27584798B97AA15CE864F386 /* BrutalStyle.swift in Sources */,
 				E10FE48367E1073EB58FC0D9 /* Chapter.swift in Sources */,
 				30C1A58FEB8B7BF7EA77947D /* ChapterFetcher.swift in Sources */,
+				9ABDE2818FED2062D2726C71 /* ChapterGenerating.swift in Sources */,
 				5E54B29DADA01079A6DF1B18 /* Clip.swift in Sources */,
 				42F19E0B54AC90908C12D1C7 /* ClipEditSheet.swift in Sources */,
 				A0501988B8A5207D9C6919F2 /* ClipExporter.swift in Sources */,
