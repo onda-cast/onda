@@ -44,6 +44,9 @@ struct ClipsView: View {
                                     onShare: { share(clip) })
                                 .onTapGesture { editing = clip }
                                 .contextMenu {
+                                    Button {
+                                        UIPasteboard.general.string = MarkdownExport.clipMarkdown(clip)
+                                    } label: { Label("Copy as Markdown", systemImage: "doc.on.doc") }
                                     Button(role: .destructive) {
                                         clips.delete(clip); refreshKey += 1
                                     } label: { Label("Delete", systemImage: "trash") }
@@ -56,6 +59,16 @@ struct ClipsView: View {
             .background(theme.color(.bg))
             .navigationTitle("Clips")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if let url = try? MarkdownExport.writeDocument(clips: clips.allClips()) {
+                            shareItems = ShareItems(fileURL: url, text: "Onda clips export")
+                        }
+                    } label: { Image(systemName: "square.and.arrow.up.on.square").accessibilityLabel("Export All") }
+                    .disabled(clips.allClips().isEmpty)
+                }
+            }
             .sheet(item: $editing) { ClipEditSheet(clip: $0) }
             .sheet(item: $shareItems) { items in
                 ActivityShareSheet(items: [items.fileURL, items.text])

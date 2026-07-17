@@ -29,4 +29,24 @@ final class ClipShareUITests: XCTestCase {
             || app.buttons["Close"].waitForExistence(timeout: 5)
         XCTAssertTrue(appeared, "share sheet did not appear after export")
     }
+
+    @MainActor
+    func test_exportAllMarkdown_presentsShareSheet() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
+        app.launch()
+
+        let clipsButton = app.buttons["Clips"]
+        XCTAssertTrue(clipsButton.waitForExistence(timeout: 10))
+        clipsButton.tap()
+
+        let exportAll = app.buttons["Export All"]
+        XCTAssertTrue(exportAll.waitForExistence(timeout: 10), "Export All button missing")
+        exportAll.tap()
+
+        let appeared = app.otherElements["ActivityListView"].waitForExistence(timeout: 15)
+            || app.cells["Copy"].waitForExistence(timeout: 5)
+            || app.buttons["Close"].waitForExistence(timeout: 5)
+        XCTAssertTrue(appeared, "share sheet did not appear for markdown export")
+    }
 }
