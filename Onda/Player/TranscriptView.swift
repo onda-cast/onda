@@ -148,6 +148,22 @@ struct TranscriptView: View {
         selecting = false; selStart = nil; selEnd = nil
     }
 
+    // Seek 1s before the cue so playback resumes at the very start of that line, not mid-word.
+    // If this transcript is for an episode that isn't the one loaded, start it first so we
+    // jump into the right episode rather than scrubbing whatever is currently playing.
+    private func jump(to start: TimeInterval) {
+        let target = max(0, start - 1)
+        if !isCurrentEpisode { playback.play(episode) }
+        playback.seek(toFraction: target / max(1, episode.duration))
+    }
+
+    private func timeStr(_ s: TimeInterval) -> String {
+        let t = Int(max(0, s))
+        return t >= 3600
+            ? String(format: "%d:%02d:%02d", t / 3600, (t % 3600) / 60, t % 60)
+            : String(format: "%d:%02d", t / 60, t % 60)
+    }
+
     private var transcriptList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -155,12 +171,21 @@ struct TranscriptView: View {
                     ForEach(cueVMs) { cue in
                         let i = cue.id
                         Button {
-                            if selecting { handleSelectionTap(i) } else { playback.seek(toFraction: cue.start / max(1, episode.duration)) }
+                            if selecting { handleSelectionTap(i) } else { jump(to: cue.start) }
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 if let s = cue.speaker {
                                     Text(s).font(.system(size: 12, weight: .bold)).textCase(.uppercase)
                                         .foregroundStyle(theme.color(.accent))
+                                }
+                                if !selecting {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "play.fill").font(.system(size: 8))
+                                        Text(timeStr(cue.start)).font(.system(size: 11, weight: .medium))
+                                            .monospacedDigit()
+                                    }
+                                    .foregroundStyle(theme.color(.textTertiary))
+                                    .accessibilityLabel("Jump to \(timeStr(cue.start))")
                                 }
                                 styledCueText(cue, isActiveCue: i == activeIndex)
                                     .font(.system(size: 16))
