@@ -27,6 +27,9 @@ enum UITestSeed {
         let pod = Podcast(feedURL: URL(string: "https://uitest.local/feed.xml")!,
                           title: "UITest Show", author: "UITest", artworkURL: nil,
                           category: "Testing", itunesId: nil, isSubscribed: true)
+        let settings = ShowSettings.makeDefault()
+        settings.skipSilence = true       // exercise the silence detector in UI tests
+        settings.podcast = pod; pod.settings = settings
         let ep = Episode(guid: "uitest-ep-1", title: "UITest Episode", publishDate: .now,
                          duration: 6, audioURL: URL(string: "https://uitest.local/e.mp3")!,
                          notes: "seeded")
@@ -37,7 +40,7 @@ enum UITestSeed {
                         note: nil, createdAt: .now, needsReview: false)
         clip.episode = ep; ep.clips.append(clip)
         for m in [pod, ep] as [any PersistentModel] { context.insert(m) }
-        context.insert(file); context.insert(clip)
+        context.insert(settings); context.insert(file); context.insert(clip)
         try? context.save()
     }
 }

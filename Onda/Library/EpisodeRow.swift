@@ -23,6 +23,7 @@ struct EpisodeRow: View {
                     .font(.system(size: 26))
                     .foregroundStyle(episode.played ? theme.color(.textTertiary) : theme.color(.accent))
             }.buttonStyle(.plain)
+            .accessibilityIdentifier("play-episode")
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(episode.title).font(.system(size: 15, weight: .semibold))

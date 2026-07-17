@@ -64,7 +64,7 @@ private func tapPrepare(_ tap: MTAudioProcessingTap, _ maxFrames: CMItemCount,
     let f = format.pointee
     storage.sampleRate = f.mSampleRate
     storage.isFloat = (f.mFormatFlags & kAudioFormatFlagIsFloat) != 0
-    tapLog.info("tap prepared: sampleRate=\(f.mSampleRate) float=\(storage.isFloat) bits=\(f.mBitsPerChannel) channels=\(f.mChannelsPerFrame) flags=\(f.mFormatFlags)")
+    tapLog.notice("tap prepared: sampleRate=\(f.mSampleRate) float=\(storage.isFloat) bits=\(f.mBitsPerChannel) channels=\(f.mChannelsPerFrame) flags=\(f.mFormatFlags)")
 }
 
 private func tapProcess(_ tap: MTAudioProcessingTap, _ numberFrames: CMItemCount,
@@ -83,7 +83,7 @@ private func tapProcess(_ tap: MTAudioProcessingTap, _ numberFrames: CMItemCount
         // Non-float pipeline: our vDSP math would read garbage. Log once per second so
         // device diagnostics reveal it, and pass audio through untouched.
         let now = CFAbsoluteTimeGetCurrent()
-        if now - storage.lastRMSLog > 1 { storage.lastRMSLog = now; tapLog.error("tap: non-float format, DSP bypassed") }
+        if now - storage.lastRMSLog > 1 { storage.lastRMSLog = now; tapLog.fault("tap: non-float format, DSP bypassed") }
         return
     }
 
@@ -102,7 +102,7 @@ private func tapProcess(_ tap: MTAudioProcessingTap, _ numberFrames: CMItemCount
     let now = CFAbsoluteTimeGetCurrent()
     if now - storage.lastRMSLog > 1 {
         storage.lastRMSLog = now
-        tapLog.info("tap rms=\(avgRMS, format: .fixed(precision: 5)) gain=\(gain)")
+        tapLog.notice("tap rms=\(avgRMS, format: .fixed(precision: 5)) gain=\(gain)")
     }
     if let cb = storage.onRMS {
         DispatchQueue.main.async { cb(avgRMS, seconds) }
