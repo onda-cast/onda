@@ -9,10 +9,11 @@ enum UITestSeed {
 
     static func seed(context: ModelContext) {
         guard isActive else { return }
-        // Idempotent: skip if already seeded.
+        // Wipe-and-reseed: stale seeds from earlier app versions must not leak into tests.
         let existing = (try? context.fetch(FetchDescriptor<Podcast>(
             predicate: #Predicate { $0.title == "UITest Show" }))) ?? []
-        guard existing.isEmpty else { return }
+        for stale in existing { context.delete(stale) }   // cascades episodes/transcript/clips
+        try? context.save()
 
         // Copy bundled audio into the Downloads dir so the clip has a local source.
         let fileName = "uitest_audio.m4a.aiff"
@@ -39,6 +40,21 @@ enum UITestSeed {
         let clip = Clip(startTime: 1, endTime: 3, text: "hello world this is a short test",
                         note: nil, createdAt: .now, needsReview: false)
         clip.episode = ep; ep.clips.append(clip)
+
+        // Transcript cues roughly matching the fixture audio, so follow-along is testable.
+        let tr = Transcript(source: "published", language: "en")
+        tr.episode = ep; ep.transcript = tr
+        let lines = ["Hello world.", "This is a test of skip silence.",
+                     "The quiet parts should be jumped.", "And now we are done."]
+        var cues: [TranscriptCue] = []
+        for (i, line) in lines.enumerated() {
+            let cue = TranscriptCue(startTime: Double(i) * 2.5, endTime: Double(i + 1) * 2.5,
+                                    text: line, speaker: nil)
+            cue.transcript = tr; cues.append(cue)
+        }
+        tr.cues = cues
+        context.insert(tr)
+        for c in cues { context.insert(c) }
         for m in [pod, ep] as [any PersistentModel] { context.insert(m) }
         context.insert(settings); context.insert(file); context.insert(clip)
         try? context.save()
