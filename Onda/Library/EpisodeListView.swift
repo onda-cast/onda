@@ -8,6 +8,7 @@ struct EpisodeListView: View {
     @Environment(SubscriptionService.self) private var subscriptions
     @Environment(PlaybackManager.self) private var playback
     @Environment(DownloadManager.self) private var downloads
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.dismiss) private var dismiss
     let podcast: Podcast
     @State private var showSettings = false
@@ -41,6 +42,21 @@ struct EpisodeListView: View {
                                    case .none:       downloads.download(ep)
                                    }
                                })
+                    .contextMenu {
+                        Button {
+                            subscriptions.setPlayed(ep, !ep.played)
+                        } label: {
+                            Label(ep.played ? "Mark as Unplayed" : "Mark as Played",
+                                  systemImage: ep.played ? "circle" : "checkmark.circle")
+                        }
+                        Button(role: .destructive) {
+                            downloads.delete(ep)   // audio file + download record
+                            subscriptions.archiveEpisode(
+                                ep, keepTranscript: appSettings.keepTranscriptsOnDelete)
+                        } label: {
+                            Label("Delete Episode", systemImage: "trash")
+                        }
+                    }
                     Divider().overlay(theme.color(.separator))
                 }
             }

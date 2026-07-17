@@ -6,6 +6,7 @@ import SwiftData
 struct OndaApp: App {
     let container: ModelContainer
     @State private var theme = AppTheme()
+    @State private var appSettings = AppSettings()
     @State private var subscriptions: SubscriptionService
     @State private var clientBox = ITunesSearchClientBox(client: ITunesSearchClient())
     @State private var playback: PlaybackManager
@@ -52,6 +53,7 @@ struct OndaApp: App {
         WindowGroup {
             RootView()
                 .environment(theme)
+                .environment(appSettings)
                 .environment(subscriptions)
                 .environment(clientBox)
                 .environment(playback)

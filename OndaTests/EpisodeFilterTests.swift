@@ -38,6 +38,16 @@ final class EpisodeFilterTests: XCTestCase {
         XCTAssertEqual(out.first?.guid, "g24")
     }
 
+    func test_archivedEpisodes_excludedFromAllFilters() throws {
+        let eps = try makeEpisodes()
+        eps[24].isArchived = true          // newest, would otherwise lead every list
+        eps[20].isArchived = true          // a downloaded one
+        XCTAssertEqual(EpisodeFilter.all.apply(to: eps).count, 23)
+        XCTAssertEqual(EpisodeFilter.all.apply(to: eps).first?.guid, "g23")
+        XCTAssertFalse(EpisodeFilter.downloaded.apply(to: eps).contains { $0.guid == "g20" })
+        XCTAssertFalse(EpisodeFilter.newest10.apply(to: eps).contains { $0.isArchived })
+    }
+
     func test_newest10_capsAtTen() throws {
         let eps = try makeEpisodes()
         let out = EpisodeFilter.newest10.apply(to: eps)
