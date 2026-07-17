@@ -95,7 +95,7 @@ final class TranscriptService {
         built.reserveCapacity(cues.count)
         for pc in cues {
             let cue = TranscriptCue(startTime: pc.startTime, endTime: pc.endTime,
-                                    text: pc.text, speaker: pc.speaker)
+                                    text: pc.text, speaker: pc.speaker, words: pc.words)
             modelContext.insert(cue)
             built.append(cue)
         }

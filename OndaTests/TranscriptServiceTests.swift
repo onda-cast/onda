@@ -109,4 +109,26 @@ final class TranscriptServiceTests: XCTestCase {
         XCTAssertTrue(try index.search("first").isEmpty)
         XCTAssertEqual(try index.search("second").count, 1)
     }
+
+    func test_persist_carriesWordTimingThrough_whenPresent() throws {
+        let ctx = try makeContext()
+        let ep = episode(in: ctx, transcriptURL: nil)
+        let svc = TranscriptService(modelContext: ctx, engine: nil,
+                                    fetch: { _ in Data() }, localURL: { _ in nil })
+        let words = [WordTiming(text: "on", startTime: 0, endTime: 0.3),
+                     WordTiming(text: "device", startTime: 0.3, endTime: 0.9)]
+        let cues = [ParsedCue(startTime: 0, endTime: 0.9, text: "on device", speaker: nil, words: words)]
+        let tr = svc.persist(cues: cues, for: ep, source: "ondevice")
+        XCTAssertEqual(tr.cues.first?.words, words)
+    }
+
+    func test_persist_wordsNil_whenSourceIsPublished() throws {
+        let ctx = try makeContext()
+        let ep = episode(in: ctx, transcriptURL: nil)
+        let svc = TranscriptService(modelContext: ctx, engine: nil,
+                                    fetch: { _ in Data() }, localURL: { _ in nil })
+        let cues = [ParsedCue(startTime: 0, endTime: 3, text: "Hello there.", speaker: nil)]
+        let tr = svc.persist(cues: cues, for: ep, source: "published")
+        XCTAssertNil(tr.cues.first?.words)
+    }
 }

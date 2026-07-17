@@ -24,9 +24,14 @@ struct TranscriptView: View {
         let end: TimeInterval
         let text: String
         let speaker: String?
+        let words: [WordTiming]?
     }
     @State private var cueVMs: [CueVM] = []
     @State private var timeRanges: [(start: TimeInterval, end: TimeInterval)] = []
+    // Parallel to cueVMs: per-cue word start/end tuples, precomputed once so activeWordIndex
+    // never allocates on a playback tick. Tuples aren't Equatable, so this lives outside CueVM
+    // (same idiom as `timeRanges` above).
+    @State private var wordRanges: [[(start: TimeInterval, end: TimeInterval)]] = []
     @State private var lastUserScrollAt: Date = .distantPast
 
     // Highlight only applies when THIS episode is the one loaded in the player.
@@ -39,12 +44,52 @@ struct TranscriptView: View {
         return ActiveCue.index(at: playback.positionSeconds, cues: timeRanges)
     }
 
+    // Collapses runs of whitespace/newlines to single spaces so word-token reconstruction can be
+    // compared against the cue's plain text regardless of incidental spacing differences.
+    private func normalizedWhitespace(_ s: String) -> String {
+        s.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+    }
+
     private func snapshotCues() {
         let sorted = (transcript?.cues ?? []).sorted { $0.startTime < $1.startTime }
         cueVMs = sorted.enumerated().map { i, c in
-            CueVM(id: i, start: c.startTime, end: c.endTime, text: c.text, speaker: c.speaker)
+            // Word tokens come from SpeechAnalyzer runs; runs without audioTimeRange are dropped,
+            // which can make the joined tokens diverge from the cue's plain text (missing words,
+            // detached punctuation). Only use word-level rendering when it reconstructs the text —
+            // otherwise fall back to whole-cue highlighting.
+            var words = c.words
+            if let w = words, !w.isEmpty {
+                let reconstructed = normalizedWhitespace(w.map(\.text).joined(separator: " "))
+                let expected = normalizedWhitespace(c.text)
+                if reconstructed != expected { words = nil }
+            }
+            return CueVM(id: i, start: c.startTime, end: c.endTime, text: c.text, speaker: c.speaker, words: words)
         }
         timeRanges = cueVMs.map { ($0.start, $0.end) }
+        wordRanges = cueVMs.map { vm in
+            (vm.words ?? []).map { ($0.startTime, $0.endTime) }
+        }
+    }
+
+    private func activeWordIndex(for cue: CueVM) -> Int? {
+        guard let words = cue.words, !words.isEmpty else { return nil }
+        guard cue.id >= 0, cue.id < wordRanges.count else {
+            return ActiveCue.index(at: playback.positionSeconds, cues: words.map { ($0.startTime, $0.endTime) })
+        }
+        return ActiveCue.index(at: playback.positionSeconds, cues: wordRanges[cue.id])
+    }
+
+    private func styledCueText(_ cue: CueVM, isActiveCue: Bool) -> Text {
+        guard isActiveCue, let words = cue.words, !words.isEmpty else {
+            return Text(cue.text)
+        }
+        let activeWord = activeWordIndex(for: cue)
+        return words.enumerated().reduce(Text("")) { acc, pair in
+            let (i, w) = pair
+            let color = i == activeWord ? theme.color(.text) : theme.color(.textTertiary)
+            let sep = i == 0 ? "" : " "
+            return acc + Text(sep + w.text).foregroundStyle(color)
+        }
     }
 
     var body: some View {
@@ -117,7 +162,8 @@ struct TranscriptView: View {
                                     Text(s).font(.system(size: 12, weight: .bold)).textCase(.uppercase)
                                         .foregroundStyle(theme.color(.accent))
                                 }
-                                Text(cue.text).font(.system(size: 16))
+                                styledCueText(cue, isActiveCue: i == activeIndex)
+                                    .font(.system(size: 16))
                                     .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
