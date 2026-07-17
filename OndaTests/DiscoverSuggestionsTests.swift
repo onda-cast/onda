@@ -39,7 +39,7 @@ final class DiscoverSuggestionsTests: XCTestCase {
     func test_usesFollowedCategories_whenPresent() async {
         let client = StubSearch(byTerm: [
             "Technology": [dto("Tech Show", feed: "https://ex.com/tech.xml")],
-            "Comedy": [dto("Funny Show", feed: "https://ex.com/comedy.xml")],
+            "Comedy": [dto("Funny Show", feed: "https://ex.com/comedy.xml")]
         ])
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
@@ -53,7 +53,7 @@ final class DiscoverSuggestionsTests: XCTestCase {
 
     func test_fallsBackToBuiltInCategories_whenNoFollows() async {
         let client = StubSearch(byTerm: [
-            "Comedy": [dto("Funny Show", feed: "https://ex.com/comedy.xml")],
+            "Comedy": [dto("Funny Show", feed: "https://ex.com/comedy.xml")]
         ])
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
@@ -69,7 +69,7 @@ final class DiscoverSuggestionsTests: XCTestCase {
         let followedFeed = "https://ex.com/tech-a.xml"
         let client = StubSearch(byTerm: [
             "Technology": [dto("Tech A", feed: followedFeed),
-                           dto("Tech B", feed: "https://ex.com/tech-b.xml")],
+                           dto("Tech B", feed: "https://ex.com/tech-b.xml")]
         ])
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
@@ -83,7 +83,7 @@ final class DiscoverSuggestionsTests: XCTestCase {
         let shared = dto("Shared Show", feed: "https://ex.com/shared.xml")
         let client = StubSearch(byTerm: [
             "Technology": [shared],
-            "Comedy": [shared, dto("Comedy Only", feed: "https://ex.com/co.xml")],
+            "Comedy": [shared, dto("Comedy Only", feed: "https://ex.com/co.xml")]
         ])
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
