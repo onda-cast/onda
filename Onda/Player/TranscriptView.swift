@@ -5,6 +5,7 @@ struct TranscriptView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(PlaybackManager.self) private var playback
     @Environment(TranscriptService.self) private var transcripts
+    @Environment(\.dismiss) private var dismiss
     let episode: Episode
 
     @State private var transcript: Transcript?
@@ -132,6 +133,8 @@ struct TranscriptView: View {
             })
         }
         .task { await load() }
+        // A jump surfaces the player; close this transcript sheet so the player is visible.
+        .onChange(of: playback.transcriptJumpNonce) { _, _ in dismiss() }
     }
 
     private var selectionRange: ClosedRange<Int>? {
@@ -148,15 +151,6 @@ struct TranscriptView: View {
         selecting = false; selStart = nil; selEnd = nil
     }
 
-    // Seek 1s before the cue so playback resumes at the very start of that line, not mid-word.
-    // If this transcript is for an episode that isn't the one loaded, start it first so we
-    // jump into the right episode rather than scrubbing whatever is currently playing.
-    private func jump(to start: TimeInterval) {
-        let target = max(0, start - 1)
-        if !isCurrentEpisode { playback.play(episode) }
-        playback.seek(toFraction: target / max(1, episode.duration))
-    }
-
     private func timeStr(_ s: TimeInterval) -> String {
         let t = Int(max(0, s))
         return t >= 3600
@@ -164,42 +158,50 @@ struct TranscriptView: View {
             : String(format: "%d:%02d", t / 60, t % 60)
     }
 
+    // Cue text/speaker/timestamp on the left; the jump-to-player control sits off to the right so
+    // it never competes with tapping lines to select a clip.
+    @ViewBuilder private func cueRow(_ cue: CueVM) -> some View {
+        let i = cue.id
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                if let s = cue.speaker {
+                    Text(s).font(.system(size: 12, weight: .bold)).textCase(.uppercase)
+                        .foregroundStyle(theme.color(.accent))
+                }
+                Text(timeStr(cue.start)).font(.system(size: 11, weight: .medium)).monospacedDigit()
+                    .foregroundStyle(theme.color(.textTertiary))
+                styledCueText(cue, isActiveCue: i == activeIndex)
+                    .font(.system(size: 16))
+                    .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
+            if !selecting {
+                Button { playback.jumpFromTranscript(episode: episode, to: cue.start) } label: {
+                    Image(systemName: "play.fill").font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(theme.color(.accent))
+                        .frame(width: 40, height: 40)
+                        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Play from \(timeStr(cue.start))")
+            }
+        }
+        .padding(10)
+        .background(
+            (selecting && (selectionRange?.contains(i) ?? false))
+                ? theme.color(.accentWash)
+                : (i == activeIndex && !selecting ? theme.color(.accentWash) : .clear))
+        .contentShape(Rectangle())
+        .onTapGesture { if selecting { handleSelectionTap(i) } }
+        .id(i)
+    }
+
     private var transcriptList: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
-                    ForEach(cueVMs) { cue in
-                        let i = cue.id
-                        Button {
-                            if selecting { handleSelectionTap(i) } else { jump(to: cue.start) }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                if let s = cue.speaker {
-                                    Text(s).font(.system(size: 12, weight: .bold)).textCase(.uppercase)
-                                        .foregroundStyle(theme.color(.accent))
-                                }
-                                if !selecting {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "play.fill").font(.system(size: 8))
-                                        Text(timeStr(cue.start)).font(.system(size: 11, weight: .medium))
-                                            .monospacedDigit()
-                                    }
-                                    .foregroundStyle(theme.color(.textTertiary))
-                                    .accessibilityLabel("Jump to \(timeStr(cue.start))")
-                                }
-                                styledCueText(cue, isActiveCue: i == activeIndex)
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(10)
-                            .background(
-                                (selecting && (selectionRange?.contains(i) ?? false))
-                                    ? theme.color(.accentWash)
-                                    : (i == activeIndex && !selecting ? theme.color(.accentWash) : .clear))
-                        }
-                        .buttonStyle(.plain).id(i)
-                    }
+                    ForEach(cueVMs) { cue in cueRow(cue) }
                 }.padding(20)
             }
             .simultaneousGesture(

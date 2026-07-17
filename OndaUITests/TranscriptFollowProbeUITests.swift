@@ -21,7 +21,7 @@ final class TranscriptFollowProbeUITests: XCTestCase {
         XCTAssertTrue(transcriptButton.waitForExistence(timeout: 5))
         transcriptButton.tap()
 
-        let firstCue = app.buttons.matching(
+        let firstCue = app.staticTexts.matching(
             NSPredicate(format: "label CONTAINS 'Hello world'")).firstMatch
         XCTAssertTrue(firstCue.waitForExistence(timeout: 5), "transcript cues not shown")
         try? XCUIScreen.main.screenshot().pngRepresentation.write(

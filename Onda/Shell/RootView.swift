@@ -5,8 +5,8 @@ enum Tab: Hashable { case library, discover, profile }
 
 struct RootView: View {
     @Environment(AppTheme.self) private var theme
+    @Environment(PlaybackManager.self) private var playback
     @State private var tab: Tab = .library
-    @State private var nowPlayingOpen = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -21,12 +21,13 @@ struct RootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             VStack(spacing: 0) {
-                MiniPlayerView { nowPlayingOpen = true }
+                MiniPlayerView { playback.showNowPlaying = true }
                     .padding(.horizontal, 10).padding(.bottom, 10)
                 tabBar
             }
         }
-        .sheet(isPresented: $nowPlayingOpen) {
+        .sheet(isPresented: Binding(get: { playback.showNowPlaying },
+                                    set: { playback.showNowPlaying = $0 })) {
             NowPlayingView()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.hidden)   // swipe-down works; the ⌄ button stays the visual affordance

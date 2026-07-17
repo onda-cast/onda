@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ShowTranscriptsView: View {
     @Environment(AppTheme.self) private var theme
+    @Environment(PlaybackManager.self) private var playback
     @Environment(\.dismiss) private var dismiss
     let podcast: Podcast
 
@@ -52,6 +53,8 @@ struct ShowTranscriptsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
             .sheet(item: $reading) { TranscriptView(episode: $0) }
+            // A transcript jump opens the player; close this browser too so it can present.
+            .onChange(of: playback.transcriptJumpNonce) { _, _ in dismiss() }
         }
     }
 

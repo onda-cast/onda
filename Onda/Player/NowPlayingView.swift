@@ -58,7 +58,16 @@ struct NowPlayingView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .overlay(alignment: .top) {
+            if playback.returnToTranscriptEpisode != nil {
+                BackToTranscriptButton {
+                    playback.clearTranscriptReturn()
+                    showTranscript = true
+                }
+            }
+        }
         .animation(.easeOut(duration: 0.2), value: playback.captureToast)
+        .animation(.easeOut(duration: 0.2), value: playback.returnToTranscriptEpisode?.guid)
         .sheet(isPresented: $showQueue) { QueueView() }
         .sheet(isPresented: $showSettings) {
             if let pod = ep?.podcast { ShowSettingsSheet(podcast: pod) }
@@ -261,5 +270,26 @@ struct NowPlayingView: View {
 
     private func timeStr(_ s: TimeInterval) -> String {
         let t = Int(max(0, s)); return String(format: "%d:%02d", t / 60, t % 60)
+    }
+}
+
+/// Floating affordance shown briefly in the player after a transcript jump, to hop back.
+private struct BackToTranscriptButton: View {
+    @Environment(AppTheme.self) private var theme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.uturn.backward").font(.system(size: 13, weight: .bold))
+                Text("Back to transcript").font(.system(size: 13.5, weight: .bold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16).padding(.vertical, 10)
+            .background(theme.color(.accent)).brutalBorder(width: 2).hardShadow(offset: 3)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 64)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 }

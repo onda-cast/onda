@@ -75,6 +75,38 @@ final class PlaybackManager {
     private func resumeExternally() { guard !isPlaying, currentEpisode != nil else { return }; togglePlayPause() }
     private func pauseExternally() { guard isPlaying else { return }; togglePlayPause() }
 
+    // MARK: Jump-from-transcript coordination
+    // Bound to RootView's Now Playing sheet, so a transcript jump can surface the player.
+    var showNowPlaying = false
+    // Bumped on a jump; TranscriptView and ShowTranscriptsView dismiss themselves when it changes.
+    private(set) var transcriptJumpNonce = 0
+    // Non-nil for ~5s after a jump → the floating "Back to transcript" button shows in the player.
+    var returnToTranscriptEpisode: Episode?
+    private var transcriptReturnTask: Task<Void, Never>?
+
+    /// Jump to a transcript line and land in the player: seek 1s before the line, dismiss the
+    /// transcript sheet(s), open Now Playing, and offer a 5s "back to transcript" affordance.
+    func jumpFromTranscript(episode: Episode, to start: TimeInterval) {
+        let target = max(0, start - 1)
+        if currentEpisode?.guid != episode.guid { play(episode) }
+        seek(toFraction: target / max(1, episode.duration))
+        transcriptJumpNonce += 1
+        returnToTranscriptEpisode = episode
+        transcriptReturnTask?.cancel()
+        transcriptReturnTask = Task { @MainActor [weak self] in
+            // Let the transcript sheet(s) dismiss before presenting the player (podcast-screen path).
+            try? await Task.sleep(for: .milliseconds(400))
+            self?.showNowPlaying = true
+            try? await Task.sleep(for: .seconds(5))
+            self?.returnToTranscriptEpisode = nil
+        }
+    }
+
+    func clearTranscriptReturn() {
+        transcriptReturnTask?.cancel()
+        returnToTranscriptEpisode = nil
+    }
+
     private var settings: ShowSettings? { currentEpisode?.podcast?.settings }
     var progressFraction: Double {
         guard durationSeconds > 0 else { return 0 }
@@ -214,6 +246,14 @@ final class PlaybackManager {
     // MARK: Queue
     private(set) var queue: [Episode] = []
 
+    // MARK: Sleep timer
+    enum SleepMode: Equatable { case off, duration(TimeInterval), endOfEpisode }
+    var sleepMode: SleepMode = .off
+    fileprivate var sleepTimer: Timer?
+}
+
+// MARK: - Queue + sleep timer
+extension PlaybackManager {
     func enqueue(_ episode: Episode) {
         guard !queue.contains(where: { $0.guid == episode.guid }) else { return }
         let item = QueueItem(episode: episode, position: queue.count)
@@ -243,7 +283,7 @@ final class PlaybackManager {
         try? modelContext.save()
     }
 
-    private func playNextInQueue() {
+    func playNextInQueue() {
         if !queue.isEmpty {
             let next = queue[0]
             removeFromQueue(next)
@@ -277,11 +317,6 @@ final class PlaybackManager {
         for it in items { modelContext.delete(it) }
         queue.removeAll()
     }
-
-    // MARK: Sleep timer
-    enum SleepMode: Equatable { case off, duration(TimeInterval), endOfEpisode }
-    var sleepMode: SleepMode = .off
-    private var sleepTimer: Timer?
 
     func setSleepTimer(_ mode: SleepMode) {
         sleepMode = mode
