@@ -17,6 +17,10 @@ actor PersistenceActor {
     func deleteDownload(episodeGuid: String) throws {
         let d = FetchDescriptor<Episode>(predicate: #Predicate { $0.guid == episodeGuid })
         guard let ep = try modelContext.fetch(d).first, let file = ep.downloadedFile else { return }
+        // File I/O happens here, off the main actor: a retention sweep evicting many
+        // episodes calls DownloadManager.delete in a tight synchronous loop, and that
+        // loop must stay main-thread-cheap even for a show with a lot of episodes.
+        try? FileManager.default.removeItem(at: DownloadManager.fileURL(named: file.localFileName))
         modelContext.delete(file)
         ep.downloadedFile = nil
         try modelContext.save()

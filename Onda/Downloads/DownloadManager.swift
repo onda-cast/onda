@@ -50,10 +50,11 @@ final class DownloadManager: NSObject {
     }
 
     func delete(_ episode: Episode) {
-        let url = Self.fileURL(named: Self.fileName(for: episode.guid))
-        try? FileManager.default.removeItem(at: url)
         states[episode.guid] = DownloadState.none
         let guid = episode.guid
+        // The actual file removal happens inside PersistenceActor (off the main actor) —
+        // a retention sweep can call this once per evicted episode in a tight loop, and
+        // that loop must not block on synchronous disk I/O.
         Task { [persistence] in try? await persistence.deleteDownload(episodeGuid: guid) }
     }
 
