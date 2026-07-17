@@ -207,4 +207,35 @@ final class PlaybackManagerTests: XCTestCase {
         pm.skip(by: -15)
         XCTAssertEqual(engine.currentTimeSeconds, 115, accuracy: 0.5)
     }
+
+    func test_startSmartQueue_playsFirst_queuesRest_replacesExistingQueue() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let stale = makeEpisode(in: ctx, guid: "stale")
+        pm.enqueue(stale)
+        XCTAssertEqual(pm.queue.count, 1)
+
+        let a = makeEpisode(in: ctx, guid: "a")
+        let b = makeEpisode(in: ctx, guid: "b")
+        let d = makeEpisode(in: ctx, guid: "d")
+        pm.startSmartQueue([a, b, d])
+
+        XCTAssertEqual(engine.loadedURL, a.audioURL, "plays the first entry")
+        XCTAssertTrue(pm.isPlaying)
+        XCTAssertEqual(pm.queue.map(\.guid), ["b", "d"], "rest materialized into the queue, stale entry gone")
+
+        let items = try ctx.fetch(FetchDescriptor<QueueItem>())
+        XCTAssertEqual(items.count, 2)
+        XCTAssertEqual(Set(items.compactMap { $0.episode?.guid }), ["b", "d"])
+    }
+
+    func test_startSmartQueue_emptyList_isNoOp() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        pm.startSmartQueue([])
+        XCTAssertNil(engine.loadedURL)
+        XCTAssertFalse(pm.isPlaying)
+    }
 }
