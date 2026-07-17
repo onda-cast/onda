@@ -40,12 +40,20 @@ final class SpeechTranscriberEngine: AudioTranscribing {
         let resultsTask = Task { () -> [ParsedCue] in
             var cues: [ParsedCue] = []
             for try await result in transcriber.results {
+                let runs = Array(result.text.runs)
+                guard !runs.isEmpty else { continue }
+                let words: [WordTiming] = runs.compactMap { run in
+                    guard let range = run.audioTimeRange else { return nil }
+                    let text = String(result.text[run.range].characters)
+                    guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+                    return WordTiming(text: text, startTime: range.start.seconds, endTime: range.end.seconds)
+                }
                 let text = String(result.text.characters)
-                let range = result.text.runs.first?.audioTimeRange
-                let start = range?.start.seconds ?? 0
-                let end = range?.end.seconds ?? start
+                let start = words.first?.startTime ?? 0
+                let end = words.last?.endTime ?? start
                 if !text.trimmingCharacters(in: .whitespaces).isEmpty {
-                    cues.append(ParsedCue(startTime: start, endTime: end, text: text, speaker: nil))
+                    cues.append(ParsedCue(startTime: start, endTime: end, text: text, speaker: nil,
+                                          words: words.isEmpty ? nil : words))
                     if total > 0 { progress(min(1, end / total)) }
                 }
             }
