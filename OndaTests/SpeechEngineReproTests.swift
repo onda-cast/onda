@@ -17,8 +17,21 @@ final class SpeechEngineReproTests: XCTestCase {
         let url = Bundle(for: Self.self).url(forResource: "spoken", withExtension: "aiff")!
         let engine = SpeechTranscriberEngine()
         do {
-            let cues = try await engine.transcribe(fileURL: url) { _ in }
+            // Timeout guard: on simulators the model-asset fetch can stall for many minutes
+            // before failing (macOS <26 hosts can't supply speech assets). Cap it at 60s.
+            let cues = try await withThrowingTaskGroup(of: [ParsedCue]?.self) { group in
+                group.addTask { try await engine.transcribe(fileURL: url) { _ in } }
+                group.addTask { try? await Task.sleep(for: .seconds(60)); return nil }
+                let first = try await group.next()!
+                group.cancelAll()
+                return first
+            }
+            guard let cues else {
+                throw XCTSkip("speech asset fetch timed out — no model in this environment")
+            }
             XCTAssertFalse(cues.isEmpty, "expected at least one cue from spoken fixture")
+        } catch let skip as XCTSkip {
+            throw skip
         } catch {
             // Simulators without the downloadable speech model can't run this end-to-end.
             throw XCTSkip("speech assets unavailable in this environment: \(error)")
