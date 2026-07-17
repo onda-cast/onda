@@ -7,6 +7,10 @@ import SwiftData
 final class SubscriptionService {
     private let modelContext: ModelContext
     private let feeds: FeedFetching
+    // Wired post-init in OndaApp (same style as PlaybackManager.onCaptureRequested) — the
+    // retention sweep runs reactively on mark-played, and unsubscribe frees downloads.
+    var retention: EpisodeRetentionService?
+    var deleteDownload: ((Episode) -> Void)?
 
     init(modelContext: ModelContext, feeds: FeedFetching) {
         self.modelContext = modelContext
@@ -38,8 +42,13 @@ final class SubscriptionService {
 
     func setPlayed(_ episode: Episode, _ played: Bool) {
         episode.played = played
+        episode.playedDate = played ? .now : nil
         episode.playbackPosition = 0
         try? modelContext.save()
+        // Reactive sweep so "auto-delete immediately" doesn't wait for the next feed refresh.
+        if played, let podcast = episode.podcast {
+            retention?.evictEligibleEpisodes(for: podcast)
+        }
     }
 
     /// Soft delete. Audio/download removal is the caller's job (DownloadManager owns files);
@@ -53,8 +62,18 @@ final class SubscriptionService {
         try? modelContext.save()
     }
 
+    /// Unsubscribe IS the delete action for a show: downloaded audio is always freed, and
+    /// transcripts are purged unless the resolved keep-transcripts setting says otherwise.
     func unsubscribe(_ podcast: Podcast) {
         podcast.isSubscribed = false
+        let keepTranscripts = retention?.resolvedKeepTranscripts(for: podcast) ?? true
+        for ep in podcast.episodes {
+            if ep.downloadedFile != nil { deleteDownload?(ep) }
+            if !keepTranscripts, let tr = ep.transcript {
+                ep.transcript = nil
+                modelContext.delete(tr)   // cascades cues
+            }
+        }
         try? modelContext.save()
     }
 

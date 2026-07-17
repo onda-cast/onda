@@ -6,13 +6,14 @@ import SwiftData
 struct OndaApp: App {
     let container: ModelContainer
     @State private var theme = AppTheme()
-    @State private var appSettings = AppSettings()
+    @State private var appSettings: AppSettings
     @State private var subscriptions: SubscriptionService
     @State private var clientBox = ITunesSearchClientBox(client: ITunesSearchClient())
     @State private var playback: PlaybackManager
     @State private var downloads: DownloadManager
     @State private var refresh: FeedRefreshService
     @State private var transcripts: TranscriptService
+    @State private var retention: EpisodeRetentionService
     @State private var chapterGen: ChapterGenerationService
     @State private var clips: ClipService
     @State private var searchIndexBox: SearchIndexBox
@@ -23,6 +24,8 @@ struct OndaApp: App {
             let c = try ModelContainer(for: Schema(ondaSchema))
             container = c
             AudioSession.activate()
+            let settings = AppSettings()
+            _appSettings = State(initialValue: settings)
             let subs = SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient())
             let dm = DownloadManager(persistence: PersistenceActor(modelContainer: c))
             _subscriptions = State(initialValue: subs)
@@ -33,42 +36,20 @@ struct OndaApp: App {
                 if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }
             }()
             let index = try? SearchIndex(path: SearchIndex.defaultFileURL().path)
-            let searchBox = SearchIndexBox(index: index)
-            _searchIndexBox = State(initialValue: searchBox)
-            _transcripts = State(initialValue: TranscriptService(
+            _searchIndexBox = State(initialValue: SearchIndexBox(index: index))
+            let ts = TranscriptService(
                 modelContext: c.mainContext, engine: engine,
                 localURL: { pm.localURL(for: $0) },
-                index: index))
-            let chapterGenerator: ChapterGenerating? = {
-                if #available(iOS 26, *), FoundationModelsChapterGenerator.isAvailable {
-                    return FoundationModelsChapterGenerator()
-                }
-                return nil
-            }()
-            _chapterGen = State(initialValue: ChapterGenerationService(
-                modelContext: c.mainContext, generator: chapterGenerator,
-                hasTranscript: { ep in !(ep.transcript?.cues.isEmpty ?? true) },
-                transcriptText: { ep in
-                    let cues = ep.transcript?.cues.sorted { $0.startTime < $1.startTime } ?? []
-                    let joined = cues.map(\.text).joined(separator: " ")
-                    return joined.isEmpty ? nil : joined
-                }))
+                index: index)
+            _transcripts = State(initialValue: ts)
+            let ret = EpisodeRetentionService(
+                modelContext: c.mainContext, appSettings: settings,
+                deleteDownload: { [weak dm] in dm?.delete($0) })
+            _retention = State(initialValue: ret)
+            OndaApp.wireRetention(subs: subs, dm: dm, ret: ret, ts: ts, context: c.mainContext)
+            _chapterGen = State(initialValue: OndaApp.makeChapterService(context: c.mainContext))
             UITestSeed.seed(context: c.mainContext)
-            if let index, (try? index.isEmpty()) == true {
-                let cues = (try? c.mainContext.fetch(FetchDescriptor<TranscriptCue>())) ?? []
-                for cue in cues {
-                    guard let guid = cue.transcript?.episode?.guid else { continue }
-                    try? index.upsert(SearchDoc(kind: "cue", episodeGuid: guid,
-                                                startTime: cue.startTime, body: cue.text))
-                }
-                let clips = (try? c.mainContext.fetch(FetchDescriptor<Clip>())) ?? []
-                for clip in clips {
-                    guard let guid = clip.episode?.guid else { continue }
-                    let body = [clip.text, clip.note].compactMap { $0 }.joined(separator: " ")
-                    try? index.upsert(SearchDoc(kind: "clip", episodeGuid: guid,
-                                                startTime: clip.startTime, body: body))
-                }
-            }
+            OndaApp.seedSearchIndexIfEmpty(index, context: c.mainContext)
             let cs = ClipService(modelContext: c.mainContext, index: index)
             _clips = State(initialValue: cs)
             pm.onCaptureRequested = { [weak pm] in
@@ -77,10 +58,74 @@ struct OndaApp: App {
                 pm.showCaptureToast("Clipped last \(Int(ClipService.quickClipWindow))s")
             }
             let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs, downloads: dm)
+            rs.retention = ret
             rs.registerBackgroundTask()
             _refresh = State(initialValue: rs)
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
+        }
+    }
+
+    private static func wireRetention(subs: SubscriptionService, dm: DownloadManager,
+                                      ret: EpisodeRetentionService, ts: TranscriptService,
+                                      context: ModelContext) {
+        subs.retention = ret
+        subs.deleteDownload = { [weak dm] in dm?.delete($0) }
+        dm.onDownloadCompleted = { guid in
+            OndaApp.autoTranscribeIfEnabled(guid: guid, context: context,
+                                            retention: ret, transcripts: ts)
+        }
+    }
+
+    private static func makeChapterGenerator() -> ChapterGenerating? {
+        if #available(iOS 26, *), FoundationModelsChapterGenerator.isAvailable {
+            return FoundationModelsChapterGenerator()
+        }
+        return nil
+    }
+
+    private static func makeChapterService(context: ModelContext) -> ChapterGenerationService {
+        ChapterGenerationService(
+            modelContext: context, generator: makeChapterGenerator(),
+            hasTranscript: { ep in !(ep.transcript?.cues.isEmpty ?? true) },
+            transcriptText: { ep in
+                let cues = ep.transcript?.cues.sorted { $0.startTime < $1.startTime } ?? []
+                let joined = cues.map(\.text).joined(separator: " ")
+                return joined.isEmpty ? nil : joined
+            })
+    }
+
+    /// Auto-transcription after a download completes: only for episodes with no published
+    /// transcript, only when the on-device engine exists, and only when Speech authorization
+    /// was ALREADY granted — never prompt from a background context.
+    private static func autoTranscribeIfEnabled(guid: String, context: ModelContext,
+                                                retention: EpisodeRetentionService,
+                                                transcripts: TranscriptService) {
+        let d = FetchDescriptor<Episode>(predicate: #Predicate { $0.guid == guid })
+        guard let ep = try? context.fetch(d).first, let podcast = ep.podcast,
+              retention.resolvedAutoTranscribe(for: podcast),
+              ep.transcript == nil, ep.transcriptURL == nil,
+              transcripts.hasEngine, TranscriptService.speechAuthorizationGranted else { return }
+        Task { _ = await transcripts.transcript(for: ep) }
+    }
+
+    /// Populates FTS5 from existing SwiftData rows on first launch after adding search —
+    /// a no-op once the index has any documents (kept out of init to keep it under the
+    /// function-body-length lint budget).
+    private static func seedSearchIndexIfEmpty(_ index: SearchIndex?, context: ModelContext) {
+        guard let index, (try? index.isEmpty()) == true else { return }
+        let cues = (try? context.fetch(FetchDescriptor<TranscriptCue>())) ?? []
+        for cue in cues {
+            guard let guid = cue.transcript?.episode?.guid else { continue }
+            try? index.upsert(SearchDoc(kind: "cue", episodeGuid: guid,
+                                        startTime: cue.startTime, body: cue.text))
+        }
+        let clips = (try? context.fetch(FetchDescriptor<Clip>())) ?? []
+        for clip in clips {
+            guard let guid = clip.episode?.guid else { continue }
+            let body = [clip.text, clip.note].compactMap { $0 }.joined(separator: " ")
+            try? index.upsert(SearchDoc(kind: "clip", episodeGuid: guid,
+                                        startTime: clip.startTime, body: body))
         }
     }
 
@@ -94,6 +139,7 @@ struct OndaApp: App {
                 .environment(playback)
                 .environment(downloads)
                 .environment(transcripts)
+                .environment(retention)
                 .environment(chapterGen)
                 .environment(clips)
                 .environment(searchIndexBox)

@@ -114,6 +114,15 @@ final class TranscriptService {
         return tr
     }
 
+    /// Non-prompting check — auto-transcription must never trigger the permission dialog.
+    nonisolated static var speechAuthorizationGranted: Bool {
+        #if canImport(Speech)
+        SFSpeechRecognizer.authorizationStatus() == .authorized
+        #else
+        false
+        #endif
+    }
+
     // nonisolated: TCC delivers the completion on a background queue, so the closure must
     // not inherit this class's MainActor isolation (docs/BUGS.md #1 — dispatch_assert_queue trap).
     nonisolated static func requestSpeechAuthorization() async -> Bool {
