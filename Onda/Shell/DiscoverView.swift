@@ -14,6 +14,7 @@ struct DiscoverView: View {
     @State private var loading = false
     @State private var shake: ShakeState?
     @State private var shakeCount = 0
+    @State private var dealID = 0   // bumps when shake results land; replays the deal-in animation
 
     private static let shakeTitles = [
         "Shaken for you", "Look what rolled in", "New podcasts drifting in"
@@ -44,14 +45,27 @@ struct DiscoverView: View {
 
                 listHeader
 
-                ForEach(listItems, id: \.collectionId) { dto in
-                    TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) {
-                        Task { [subscriptions] in _ = try? await subscriptions.subscribe(to: dto) }
+                Group {
+                    ForEach(Array(listItems.enumerated()), id: \.element.collectionId) { i, dto in
+                        let row = TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) {
+                            Task { [subscriptions] in _ = try? await subscriptions.subscribe(to: dto) }
+                        }
+                        if shake != nil {
+                            DealtCard(index: i) { row }
+                        } else {
+                            row
+                        }
                     }
                 }
+                .id(dealID)   // new identity per shake so every deal replays from the top
             }
             .padding(.horizontal, 20).padding(.bottom, 120)
         }
+        // Dice-cup wobble the moment a shake registers — feedback that the roll is happening,
+        // before the network round-trip lands the results.
+        .phaseAnimator([0, -1.6, 1.9, -1.2, 0.8, 0], trigger: shakeCount) { view, angle in
+            view.rotationEffect(.degrees(angle), anchor: .center)
+        } animation: { _ in .spring(duration: 0.07, bounce: 0.5) }
         .background(theme.color(.bg))
         .task { await loadTrending() }
         .onChange(of: query) { _, new in
@@ -63,6 +77,7 @@ struct DiscoverView: View {
             Task { await runShake() }
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: shakeCount)
+        .sensoryFeedback(.success, trigger: dealID)
     }
 
     private var searchField: some View {
@@ -95,25 +110,33 @@ struct DiscoverView: View {
 
     @ViewBuilder private var listHeader: some View {
         if let shake {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(shake.title).brutalHeader(size: 13)
-                        .foregroundStyle(theme.color(.textTertiary))
-                    Spacer()
-                    Button { withAnimation { self.shake = nil } } label: {
-                        Text("Back to Trending")
-                            .font(.system(size: 11, weight: .bold)).textCase(.uppercase)
-                            .foregroundStyle(theme.color(.textSecondary))
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                    }.buttonStyle(.plain)
-                }
-                Text(subtitle(for: shake)).font(.system(size: 12))
-                    .foregroundStyle(theme.color(.textTertiary))
-            }
+            shakeHeader(shake)
+                .id(dealID)
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 1.35, anchor: .leading).combined(with: .opacity),
+                    removal: .opacity))
         } else {
             Text(results.isEmpty ? "Trending Today" : "Results")
                 .brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
+        }
+    }
+
+    private func shakeHeader(_ shake: ShakeState) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(shake.title).brutalHeader(size: 13)
+                    .foregroundStyle(theme.color(.textTertiary))
+                Spacer()
+                Button { withAnimation { self.shake = nil } } label: {
+                    Text("Back to Trending")
+                        .font(.system(size: 11, weight: .bold)).textCase(.uppercase)
+                        .foregroundStyle(theme.color(.textSecondary))
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                }.buttonStyle(.plain)
+            }
+            Text(subtitle(for: shake)).font(.system(size: 12))
+                .foregroundStyle(theme.color(.textTertiary))
         }
     }
 
@@ -134,9 +157,10 @@ struct DiscoverView: View {
             using: clientBox.client,
             rng: &rng)
         let title = Self.shakeTitles.randomElement() ?? "Shaken for you"
-        withAnimation(.easeInOut) {
+        withAnimation(.spring(duration: 0.35, bounce: 0.35)) {
             shake = ShakeState(picks: result.picks, categories: result.categories,
                                usedFallback: result.usedFallback, title: title)
+            dealID += 1   // re-deals the cards and fires the landing haptic
         }
     }
 

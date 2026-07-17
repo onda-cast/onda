@@ -15,6 +15,7 @@
 		0EF858DBCF0C958D90B463D7 /* ModelSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4981733BFE82B20F4431CC7B /* ModelSchema.swift */; };
 		10138A2384197042E7DC9F1B /* EpisodeRowStyleProbeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A750A816A36A2FD3AAA2B3C2 /* EpisodeRowStyleProbeUITests.swift */; };
 		134B411898C677C4F030743D /* ShowSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730CD80EB3C38D6C119F2570 /* ShowSettingsSheet.swift */; };
+		1A6A37DC116D09F8F5E8A99A /* DealtCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785F5307E3C823FEC78A931B /* DealtCard.swift */; };
 		1AF0D83674AD7053FD7645B7 /* ArtworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17DE2A261EF9700BB2D4FA5 /* ArtworkView.swift */; };
 		1C9E9551E5DC0567C6748E0E /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BB7141944B4292CB54376C /* SubscriptionService.swift */; };
 		1E538B298E30CE4E89A8033C /* TranscriptService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154B53D75F0E31F37EEBAA9B /* TranscriptService.swift */; };
@@ -199,6 +200,7 @@
 		73EDE887722F9B111D8D3594 /* ChapterFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterFetcher.swift; sourceTree = "<group>"; };
 		7497474B31AACE66670EF63C /* PodcastEpisodeSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastEpisodeSearchTests.swift; sourceTree = "<group>"; };
 		77AF3DDF85B5AD296D700FB0 /* PersistenceActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceActor.swift; sourceTree = "<group>"; };
+		785F5307E3C823FEC78A931B /* DealtCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealtCard.swift; sourceTree = "<group>"; };
 		79C2283DA18F5EA37D53EFBB /* SmartQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQuery.swift; sourceTree = "<group>"; };
 		7B9EF093482D7A3CB1420F55 /* transcript.vtt */ = {isa = PBXFileReference; path = transcript.vtt; sourceTree = "<group>"; };
 		7BE71BDDBD112ADDEA676983 /* DiscoverSuggestionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverSuggestionsTests.swift; sourceTree = "<group>"; };
@@ -379,6 +381,7 @@
 			isa = PBXGroup;
 			children = (
 				E17DE2A261EF9700BB2D4FA5 /* ArtworkView.swift */,
+				785F5307E3C823FEC78A931B /* DealtCard.swift */,
 				F24D279FF00ABC8C8E030FBF /* DiscoverSuggestions.swift */,
 				A6D6D5D1903CED676E1E2D66 /* ShakeDetector.swift */,
 				724742E0E1635727F2999811 /* TrendingRow.swift */,
@@ -781,6 +784,7 @@
 				A3D9E187B81A340564863C46 /* ClipService.swift in Sources */,
 				E46FC800AB3C3970E7ABFF1A /* ClipTextSnapshot.swift in Sources */,
 				9B150D1A32D02071F56B63BC /* ClipsView.swift in Sources */,
+				1A6A37DC116D09F8F5E8A99A /* DealtCard.swift in Sources */,
 				C111740E70F00B2CE8771EC8 /* DiscoverSuggestions.swift in Sources */,
 				BEFEE44A6A7727F4F9C86D5E /* DiscoverView.swift in Sources */,
 				722AF450B80687A094B08684 /* DownloadManager.swift in Sources */,
