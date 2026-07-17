@@ -38,7 +38,12 @@ final class TranscriptService {
         if let url = episode.transcriptURL {
             do {
                 let data = try await fetch(url)
-                let cues = parser.parse(data, type: episode.transcriptType ?? "")
+                let type = episode.transcriptType ?? ""
+                // Parse off the main actor — hour-long transcripts are hundreds of KB.
+                let p = parser
+                let cues = await Task.detached(priority: .userInitiated) {
+                    p.parse(data, type: type)
+                }.value
                 if !cues.isEmpty { return persist(cues: cues, for: episode, source: "published") }
             } catch { /* fall through to on-device */ }
         }
@@ -73,12 +78,18 @@ final class TranscriptService {
         tr.episode = episode
         episode.transcript = tr
         modelContext.insert(tr)
+        // Build all cues first and assign the relationship ONCE — appending one-by-one to a
+        // SwiftData relationship array is quadratic and hung the main thread on long episodes
+        // (thousands of cues → watchdog kill).
+        var built: [TranscriptCue] = []
+        built.reserveCapacity(cues.count)
         for pc in cues {
             let cue = TranscriptCue(startTime: pc.startTime, endTime: pc.endTime,
                                     text: pc.text, speaker: pc.speaker)
-            cue.transcript = tr; tr.cues.append(cue)
             modelContext.insert(cue)
+            built.append(cue)
         }
+        tr.cues = built
         try? modelContext.save()
         return tr
     }
