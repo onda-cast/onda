@@ -4,6 +4,7 @@ import SwiftUI
 struct NowPlayingView: View {
     @Environment(PlaybackManager.self) private var playback
     @Environment(AppTheme.self) private var theme
+    @Environment(DownloadManager.self) private var downloads
     @Environment(ChapterGenerationService.self) private var chapterGen
     @Environment(\.dismiss) private var dismiss
     @State private var showQueue = false
@@ -80,20 +81,47 @@ struct NowPlayingView: View {
         .foregroundStyle(theme.color(.textSecondary))
     }
 
+    // Download progress of the current episode, while it's actively downloading.
+    private var downloadFraction: Double? {
+        guard let ep, case .downloading(let p) = downloads.state(for: ep) else { return nil }
+        return p
+    }
+
     private var scrubber: some View {
         VStack(spacing: 2) {
             Slider(value: Binding(
                 get: { playback.progressFraction },
                 set: { playback.seek(toFraction: $0) }), in: 0...1)
             .tint(theme.color(.accent))
+            if let frac = downloadFraction {
+                downloadTrack(frac)
+            }
             HStack {
                 Text(timeStr(playback.positionSeconds))
                 Spacer()
+                if let frac = downloadFraction {
+                    Text("Saving \(Int(frac * 100))%").foregroundStyle(theme.color(.accent))
+                    Spacer()
+                }
                 Text("-" + timeStr(max(0, playback.durationSeconds - playback.positionSeconds)))
             }
             .font(.system(size: 12.5)).monospacedDigit().foregroundStyle(theme.color(.textTertiary))
         }
         .frame(maxWidth: 280)
+        .animation(.easeInOut(duration: 0.2), value: downloadFraction == nil)
+    }
+
+    // Buffered-style track under the scrubber: fills as the offline copy downloads, then vanishes.
+    private func downloadTrack(_ fraction: Double) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(theme.color(.separator))
+                Capsule().fill(theme.color(.accent).opacity(0.55))
+                    .frame(width: geo.size.width * CGFloat(max(0, min(1, fraction))))
+            }
+        }
+        .frame(height: 3)
+        .padding(.top, 2)
     }
 
     // Sized for the smallest supported screens (375pt wide): 60 + 96 + 60 + spacing + padding.

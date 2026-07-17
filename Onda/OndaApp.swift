@@ -31,6 +31,7 @@ struct OndaApp: App {
             _subscriptions = State(initialValue: subs)
             _downloads = State(initialValue: dm)
             let pm = PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext)
+            pm.ensureDownloaded = { [weak dm] in dm?.download($0) }
             _playback = State(initialValue: pm)
             let engine: AudioTranscribing? = {
                 if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }

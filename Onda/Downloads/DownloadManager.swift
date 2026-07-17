@@ -39,6 +39,9 @@ final class DownloadManager: NSObject {
 
     func download(_ episode: Episode) {
         let guid = episode.guid
+        // Idempotent: play-triggered downloads can race the download button and each other.
+        if episode.downloadedFile != nil { return }
+        if case .downloading = states[guid] { return }
         states[guid] = .downloading(progress: 0)
         urlByGuid[guid] = episode.audioURL
         guidByTaskURL[episode.audioURL] = guid

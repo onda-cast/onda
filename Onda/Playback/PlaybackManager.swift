@@ -55,6 +55,9 @@ final class PlaybackManager {
         nowPlaying.configureBookmarkCommand { [weak self] in self?.onCaptureRequested?() }
     }
 
+    // Wired in OndaApp: streaming an un-downloaded episode also saves it for offline (idempotent).
+    var ensureDownloaded: ((Episode) -> Void)?
+
     // MARK: Capture (lock-screen quick clip)
     var onCaptureRequested: (() -> Void)?
     var captureToast: String?
@@ -82,19 +85,20 @@ final class PlaybackManager {
 
     func playClip(_ clip: Clip) {
         guard let ep = clip.episode else { return }
-        play(ep)                          // clears any prior bound
+        play(ep, autoDownload: false)     // clears any prior bound; a clip tap shouldn't pull the whole file
         engine.seek(to: clip.startTime)
         positionSeconds = clip.startTime
         clipEndBound = clip.endTime
     }
 
-    func play(_ episode: Episode) {
+    func play(_ episode: Episode, autoDownload: Bool = true) {
         clipEndBound = nil
         currentEpisode = episode
         durationSeconds = episode.duration
         let intro = TimeInterval(settings?.introTrimSec ?? 0)
         let start = max(episode.playbackPosition, intro)
-        let url = localURL(for: episode) ?? episode.audioURL
+        let local = localURL(for: episode)
+        let url = local ?? episode.audioURL
         engine.load(url: url, startAt: start)
         engine.rate = Float(settings?.speed ?? 1.0)
         positionSeconds = start
@@ -102,6 +106,8 @@ final class PlaybackManager {
         silence.reset()
         engine.play()
         isPlaying = true
+        // Streaming a remote episode: save it for offline in the background (idempotent).
+        if autoDownload, local == nil { ensureDownloaded?(episode) }
     }
 
     func applyAudioSettings() {

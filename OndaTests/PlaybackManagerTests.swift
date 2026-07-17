@@ -57,6 +57,29 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertTrue(pm.isPlaying)
     }
 
+    func test_play_streamingEpisode_triggersBackgroundDownload() throws {
+        let ctx = try makeContext()
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        var downloaded: [String] = []
+        pm.ensureDownloaded = { downloaded.append($0.guid) }
+        let ep = makeEpisode(in: ctx, guid: "stream-me")
+        pm.play(ep)   // no local file in tests → streaming path
+        XCTAssertEqual(downloaded, ["stream-me"], "streaming an un-downloaded episode saves it offline")
+    }
+
+    func test_playClip_doesNotTriggerDownload() throws {
+        let ctx = try makeContext()
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        var downloaded: [String] = []
+        pm.ensureDownloaded = { downloaded.append($0.guid) }
+        let ep = makeEpisode(in: ctx, guid: "clip-src", duration: 1000)
+        let clip = Clip(startTime: 100, endTime: 160, text: "", note: nil,
+                        createdAt: .now, needsReview: false)
+        clip.episode = ep; ep.clips.append(clip); ctx.insert(clip)
+        pm.playClip(clip)
+        XCTAssertTrue(downloaded.isEmpty, "tapping a clip must not pull the whole episode")
+    }
+
     func test_play_resumesFromSavedPositionWhenPastIntro() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
