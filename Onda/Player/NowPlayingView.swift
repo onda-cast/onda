@@ -14,28 +14,36 @@ struct NowPlayingView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 22) {
+            VStack(spacing: 20) {
                 header
                 if let ep {
                     ArtworkView(url: ep.podcast?.artworkURL, seed: ep.podcast?.title ?? ep.title)
-                        .frame(maxWidth: 280).aspectRatio(1, contentMode: .fit)
+                        .frame(maxWidth: 240).aspectRatio(1, contentMode: .fit)
                         .hardShadow(offset: 8)
-                    Text(ep.title).brutalHeader(size: 19).multilineTextAlignment(.center)
+                    Text(ep.title).brutalHeader(size: 18).multilineTextAlignment(.center)
                         .foregroundStyle(theme.color(.text))
                     Text(ep.podcast?.title ?? "").font(.system(size: 15, weight: .bold))
                         .textCase(.uppercase).foregroundStyle(theme.color(.accent))
-                    scrubber
                     if playback.adActive {
                         adBanner(ep)
                     }
-                    transport
                     chips
                     chapterList(ep)
                     about(ep)
                 }
             }
-            .padding(.horizontal, 32).padding(.top, 60).padding(.bottom, 40)
+            .padding(.horizontal, 24).padding(.top, 60).padding(.bottom, 20)
             .frame(maxWidth: .infinity)
+        }
+        // Scrubber + transport pinned: always on screen regardless of device height.
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 14) {
+                scrubber
+                transport
+            }
+            .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 8)
+            .frame(maxWidth: .infinity)
+            .background(theme.color(.bg))
         }
         .background(theme.color(.bg).ignoresSafeArea())
         .overlay(alignment: .bottom) {
@@ -86,36 +94,42 @@ struct NowPlayingView: View {
         .frame(maxWidth: 280)
     }
 
+    // Sized for the smallest supported screens (375pt wide): 60 + 96 + 60 + spacing + padding.
     private var transport: some View {
-        HStack(spacing: 26) {
+        HStack(spacing: 20) {
             Button { playback.skip(by: -15) } label: { skipLabel("gobackward.15") }
             Button { playback.togglePlayPause() } label: {
                 Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 44)).foregroundStyle(.white)
-                    .frame(width: 120, height: 120).background(theme.color(.accent))
-                    .brutalBorder(width: 3).hardShadow(offset: 6)
+                    .font(.system(size: 36)).foregroundStyle(.white)
+                    .frame(width: 96, height: 96).background(theme.color(.accent))
+                    .brutalBorder(width: 3).hardShadow(offset: 5)
             }
             Button { playback.skip(by: 30) } label: { skipLabel("goforward.30") }
         }.buttonStyle(.plain)
     }
 
     private func skipLabel(_ symbol: String) -> some View {
-        Image(systemName: symbol).font(.system(size: 30)).foregroundStyle(theme.color(.text))
-            .frame(width: 76, height: 76).background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
+        Image(systemName: symbol).font(.system(size: 24)).foregroundStyle(theme.color(.text))
+            .frame(width: 60, height: 60).background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
     }
 
     // Speed cycles; Boost/Skip-Silence toggle ShowSettings (audio effect wired in Plan 4).
+    // Horizontal scroller: label widths change ("1×" → "1.25×") and must never squish neighbors.
     private var chips: some View {
-        HStack(spacing: 10) {
-            Button { cycleSpeed() } label: { chip(speedLabel, active: false) }
-            Button { toggleBoost() } label: {
-                chip("Boost: \(boostLabel)", active: (settings?.voiceBoost ?? 0) > 0)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                Button { cycleSpeed() } label: { chip(speedLabel, active: false) }
+                Button { toggleBoost() } label: {
+                    chip("Boost: \(boostLabel)", active: (settings?.voiceBoost ?? 0) > 0)
+                }
+                Button { toggleSilence() } label: {
+                    chip(settings?.skipSilence == true ? "No Silence" : "Silence On",
+                         active: settings?.skipSilence == true)
+                }
             }
-            Button { toggleSilence() } label: {
-                chip(settings?.skipSilence == true ? "No Silence" : "Silence On",
-                     active: settings?.skipSilence == true)
-            }
+            .padding(.horizontal, 2)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func chip(_ text: String, active: Bool) -> some View {
@@ -188,6 +202,7 @@ struct NowPlayingView: View {
         guard let s = settings else { return }
         let i = steps.firstIndex(of: s.speed) ?? 1
         s.speed = steps[(i + 1) % steps.count]
+        playback.applyAudioSettings()
     }
     private func toggleBoost() {
         settings.map { $0.voiceBoost = ($0.voiceBoost + 1) % 3 }
