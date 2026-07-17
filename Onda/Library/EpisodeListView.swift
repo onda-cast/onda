@@ -125,6 +125,7 @@ struct EpisodeListView: View {
             Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
             TextField("Search episodes & transcripts", text: $query)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .accessibilityIdentifier("episode-search")
             if isSearching {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(theme.color(.textTertiary))
