@@ -214,8 +214,15 @@ screen. No servers, no subscription, exports are the user's data.
               needsReview: Bool (true for lock-screen quick clips until edited)
 ```
 
-**Deferred (v0.4 candidates):** Markdown export via share sheet; audio-snippet rendering/sharing
-(AVAssetExportSession); Readwise/Obsidian-style bulk export.
+**v0.4 — Audio-snippet sharing (scoped 2026-07-16):** sharing a clip exports its audio range as
+an **.m4a** (`AVAssetExportSession`, local file preferred, streaming asset fallback) and presents
+the system share sheet with the file plus share text: quoted transcript excerpt (truncated
+~300 chars) + `— Episode, Show @ m:ss`. The user's private note is **never** included. Service:
+`ClipExporter` (async `export(clip:) -> URL`, pure `shareText(for:)`). Entry point: share button
+on `ClipRow`. Video cards with waveform/captions remain deferred.
+
+**Deferred (v0.5 candidates):** Markdown export via share sheet; video share cards;
+Readwise/Obsidian-style bulk export.
 
 **Constraints carried forward:** feed-seconds canonical timeline; no cloud services; clip text is
 a *snapshot* (later transcript improvements don't rewrite existing clips); prototype visual
