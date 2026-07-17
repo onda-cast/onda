@@ -21,6 +21,33 @@ struct TranscriptSearch {
         self.index = index
     }
 
+    /// Natural-language search: SmartQueryParser extracts terms/speaker/show, FTS5 retrieves
+    /// by terms, then hits are post-filtered by show title and (for cues) the speaker
+    /// recorded on the matching transcript cue.
+    func smartSearch(_ raw: String, knownShows: [String]) -> [TranscriptHit] {
+        let q = SmartQueryParser.parse(raw, knownShows: knownShows)
+        // If parsing strips everything (filter-only queries), fall back to the raw text.
+        let ftsText = q.terms.isEmpty ? raw : q.ftsQueryText
+        var hits = search(ftsText)
+        if let show = q.show {
+            hits = hits.filter { $0.showTitle.caseInsensitiveCompare(show) == .orderedSame }
+        }
+        if let speaker = q.speaker {
+            hits = hits.filter { hit in
+                guard hit.kind == "cue" else { return true }   // clips carry no speaker
+                return cueSpeaker(episodeGuid: hit.episodeGuid, startTime: hit.startTime)?
+                    .localizedCaseInsensitiveContains(speaker) ?? false
+            }
+        }
+        return hits
+    }
+
+    private func cueSpeaker(episodeGuid: String, startTime: TimeInterval) -> String? {
+        let d = FetchDescriptor<Episode>(predicate: #Predicate { $0.guid == episodeGuid })
+        guard let ep = try? modelContext.fetch(d).first else { return nil }
+        return ep.transcript?.cues.first { abs($0.startTime - startTime) < 0.01 }?.speaker
+    }
+
     func search(_ query: String) -> [TranscriptHit] {
         let results = (try? index.search(query)) ?? []
         let guids = Array(Set(results.map { $0.episodeGuid }))
