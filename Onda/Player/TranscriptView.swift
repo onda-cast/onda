@@ -28,6 +28,10 @@ struct TranscriptView: View {
     }
     @State private var cueVMs: [CueVM] = []
     @State private var timeRanges: [(start: TimeInterval, end: TimeInterval)] = []
+    // Parallel to cueVMs: per-cue word start/end tuples, precomputed once so activeWordIndex
+    // never allocates on a playback tick. Tuples aren't Equatable, so this lives outside CueVM
+    // (same idiom as `timeRanges` above).
+    @State private var wordRanges: [[(start: TimeInterval, end: TimeInterval)]] = []
     @State private var lastUserScrollAt: Date = .distantPast
 
     // Highlight only applies when THIS episode is the one loaded in the player.
@@ -40,17 +44,39 @@ struct TranscriptView: View {
         return ActiveCue.index(at: playback.positionSeconds, cues: timeRanges)
     }
 
+    // Collapses runs of whitespace/newlines to single spaces so word-token reconstruction can be
+    // compared against the cue's plain text regardless of incidental spacing differences.
+    private func normalizedWhitespace(_ s: String) -> String {
+        s.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+    }
+
     private func snapshotCues() {
         let sorted = (transcript?.cues ?? []).sorted { $0.startTime < $1.startTime }
         cueVMs = sorted.enumerated().map { i, c in
-            CueVM(id: i, start: c.startTime, end: c.endTime, text: c.text, speaker: c.speaker, words: c.words)
+            // Word tokens come from SpeechAnalyzer runs; runs without audioTimeRange are dropped,
+            // which can make the joined tokens diverge from the cue's plain text (missing words,
+            // detached punctuation). Only use word-level rendering when it reconstructs the text —
+            // otherwise fall back to whole-cue highlighting.
+            var words = c.words
+            if let w = words, !w.isEmpty {
+                let reconstructed = normalizedWhitespace(w.map(\.text).joined(separator: " "))
+                let expected = normalizedWhitespace(c.text)
+                if reconstructed != expected { words = nil }
+            }
+            return CueVM(id: i, start: c.startTime, end: c.endTime, text: c.text, speaker: c.speaker, words: words)
         }
         timeRanges = cueVMs.map { ($0.start, $0.end) }
+        wordRanges = cueVMs.map { vm in
+            (vm.words ?? []).map { ($0.startTime, $0.endTime) }
+        }
     }
 
     private func activeWordIndex(for cue: CueVM) -> Int? {
         guard let words = cue.words, !words.isEmpty else { return nil }
-        return ActiveCue.index(at: playback.positionSeconds, cues: words.map { ($0.startTime, $0.endTime) })
+        guard cue.id >= 0, cue.id < wordRanges.count else {
+            return ActiveCue.index(at: playback.positionSeconds, cues: words.map { ($0.startTime, $0.endTime) })
+        }
+        return ActiveCue.index(at: playback.positionSeconds, cues: wordRanges[cue.id])
     }
 
     private func styledCueText(_ cue: CueVM, isActiveCue: Bool) -> Text {

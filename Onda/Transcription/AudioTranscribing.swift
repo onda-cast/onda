@@ -44,8 +44,8 @@ final class SpeechTranscriberEngine: AudioTranscribing {
                 guard !runs.isEmpty else { continue }
                 let words: [WordTiming] = runs.compactMap { run in
                     guard let range = run.audioTimeRange else { return nil }
-                    let text = String(result.text[run.range].characters)
-                    guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+                    let text = String(result.text[run.range].characters).trimmingCharacters(in: .whitespaces)
+                    guard !text.isEmpty else { return nil }
                     return WordTiming(text: text, startTime: range.start.seconds, endTime: range.end.seconds)
                 }
                 let text = String(result.text.characters)
