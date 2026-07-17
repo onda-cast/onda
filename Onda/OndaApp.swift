@@ -30,7 +30,7 @@ struct OndaApp: App {
             let engine: AudioTranscribing? = {
                 if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }
             }()
-            let index = try SearchIndex(path: SearchIndex.defaultFileURL().path)
+            let index = try? SearchIndex(path: SearchIndex.defaultFileURL().path)
             let searchBox = SearchIndexBox(index: index)
             _searchIndexBox = State(initialValue: searchBox)
             _transcripts = State(initialValue: TranscriptService(
@@ -38,7 +38,7 @@ struct OndaApp: App {
                 localURL: { pm.localURL(for: $0) },
                 index: index))
             UITestSeed.seed(context: c.mainContext)
-            if (try? index.isEmpty()) == true {
+            if let index, (try? index.isEmpty()) == true {
                 let cues = (try? c.mainContext.fetch(FetchDescriptor<TranscriptCue>())) ?? []
                 for cue in cues {
                     guard let guid = cue.transcript?.episode?.guid else { continue }

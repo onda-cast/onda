@@ -41,7 +41,11 @@ struct LibrarySearchView: View {
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: query) { _, q in
-                hits = TranscriptSearch(modelContext: modelContext, index: searchIndexBox.index).search(q)
+                guard let index = searchIndexBox.index else {
+                    hits = []
+                    return
+                }
+                hits = TranscriptSearch(modelContext: modelContext, index: index).search(q)
             }
         }
     }
