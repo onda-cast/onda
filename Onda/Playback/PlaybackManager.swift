@@ -18,6 +18,7 @@ final class PlaybackManager {
     private let nowPlaying = NowPlayingCenter()
     var adActive: Bool = false
     private var silence = SilenceDetector()
+    private var lastSilenceDiagAt: Double = 0
 
     init(engine: PlayerEngine, modelContext: ModelContext) {
         self.engine = engine
@@ -25,10 +26,20 @@ final class PlaybackManager {
         engine.onTimeUpdate = { [weak self] t in self?.handleTimeUpdate(t) }
         engine.onEndOfItem = { [weak self] in self?.handleEndOfItem() }
         engine.onRMS = { [weak self] rms, secs in
-            guard let self, self.settings?.skipSilence == true else { return }
+            guard let self else { return }
+            guard self.settings?.skipSilence == true else {
+                if CFAbsoluteTimeGetCurrent() - self.lastSilenceDiagAt > 10 {
+                    self.lastSilenceDiagAt = CFAbsoluteTimeGetCurrent()
+                    tapLog.notice("silence detector idle: skipSilence setting is OFF for this show")
+                }
+                return
+            }
             if let skip = self.silence.consume(rms: rms, bufferSeconds: secs) {
                 tapLog.notice("skip-silence triggered: jumping \(skip.seconds, format: .fixed(precision: 2))s")
                 self.skip(by: skip.seconds)
+            } else if CFAbsoluteTimeGetCurrent() - self.lastSilenceDiagAt > 10 {
+                self.lastSilenceDiagAt = CFAbsoluteTimeGetCurrent()
+                tapLog.notice("silence detector armed: longest quiet run so far \(self.silence.longestRunSeconds, format: .fixed(precision: 2))s (need \(self.silence.minSilenceSeconds, format: .fixed(precision: 1))s)")
             }
         }
         nowPlaying.configureRemoteCommands(
@@ -93,6 +104,7 @@ final class PlaybackManager {
         let boost = BoostLevel(clamping: settings?.voiceBoost ?? 0)
         engine.setBoostGain(boost.gain)
         if settings?.skipSilence != true { silence.reset() }
+        tapLog.notice("audio settings applied: speed=\(self.settings?.speed ?? 1.0) boost=\(boost.rawValue) skipSilence=\(self.settings?.skipSilence == true)")
     }
 
     private func adWindow(for ep: Episode) -> AdWindow {
