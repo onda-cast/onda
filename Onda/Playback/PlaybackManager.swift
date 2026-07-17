@@ -253,6 +253,24 @@ final class PlaybackManager {
         isPlaying = false
     }
 
+    func startSmartQueue(_ episodes: [Episode]) {
+        guard let first = episodes.first else { return }
+        clearQueue()
+        for ep in episodes.dropFirst() {
+            let item = QueueItem(episode: ep, position: queue.count)
+            modelContext.insert(item)
+            queue.append(ep)
+        }
+        try? modelContext.save()
+        play(first)
+    }
+
+    private func clearQueue() {
+        let items = (try? modelContext.fetch(FetchDescriptor<QueueItem>())) ?? []
+        for it in items { modelContext.delete(it) }
+        queue.removeAll()
+    }
+
     // MARK: Sleep timer
     enum SleepMode: Equatable { case off, duration(TimeInterval), endOfEpisode }
     var sleepMode: SleepMode = .off

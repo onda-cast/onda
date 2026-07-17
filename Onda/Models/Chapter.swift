@@ -10,9 +10,10 @@ final class Chapter {
     var source: String = "feed"   // "feed" | "generated"
     var episode: Episode?
 
-    init(title: String, startTime: TimeInterval, isAd: Bool = false) {
+    init(title: String, startTime: TimeInterval, isAd: Bool = false, source: String = "feed") {
         self.title = title
         self.startTime = startTime
         self.isAd = isAd
+        self.source = source
     }
 }

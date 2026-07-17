@@ -4,6 +4,7 @@ import SwiftData
 
 struct LibraryView: View {
     @Environment(AppTheme.self) private var theme
+    @Environment(PlaybackManager.self) private var playback
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed },
            sort: \Podcast.title) private var shows: [Podcast]
 
@@ -35,6 +36,30 @@ struct LibraryView: View {
                         }.buttonStyle(.plain)
                     }
                     .padding(.horizontal, 20).padding(.top, 56)
+
+                    if !shows.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            let allEpisodes = shows.flatMap(\.episodes)
+                            HStack(spacing: 10) {
+                                ForEach(SmartQueue.allCases, id: \.self) { sq in
+                                    let isEmpty = !sq.hasMatches(in: allEpisodes)
+                                    Button {
+                                        playback.startSmartQueue(sq.apply(to: allEpisodes))
+                                    } label: {
+                                        Text(sq.label.uppercased())
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundStyle(theme.color(.textSecondary))
+                                            .padding(.horizontal, 12).padding(.vertical, 8)
+                                            .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(isEmpty)
+                                    .opacity(isEmpty ? 0.4 : 1)
+                                }
+                            }.padding(.horizontal, 20)
+                        }
+                        .padding(.top, 16)
+                    }
 
                     if shows.isEmpty {
                         Text("No shows yet — find some in Discover")
