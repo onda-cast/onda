@@ -18,9 +18,11 @@ struct EpisodeListView: View {
         filter.apply(to: podcast.episodes)
     }
 
+    // List (not ScrollView) so rows get native HIG swipe actions; context menu stays as
+    // the redundant secondary access per Apple's guidance.
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+        List {
+            Group {
                 header
                 SegmentedRow(options: EpisodeFilter.allCases.map { ($0.label, $0) },
                              selection: filter) { filter = $0 }
@@ -29,39 +31,57 @@ struct EpisodeListView: View {
                         .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
                         .frame(maxWidth: .infinity).padding(.top, 24)
                 }
-                Divider().overlay(theme.color(.separator))
-                ForEach(episodes) { ep in
-                    EpisodeRow(episode: ep,
-                               downloadState: downloads.state(for: ep),
-                               onPlay: { playback.play(ep) },
-                               onDownload: {
-                                   switch downloads.state(for: ep) {
-                                   case .downloaded: downloads.delete(ep)
-                                   case .failed:     downloads.retryManually(guid: ep.guid)
-                                   case .downloading: break
-                                   case .none:       downloads.download(ep)
-                                   }
-                               })
-                    .contextMenu {
-                        Button {
-                            subscriptions.setPlayed(ep, !ep.played)
-                        } label: {
-                            Label(ep.played ? "Mark as Unplayed" : "Mark as Played",
-                                  systemImage: ep.played ? "circle" : "checkmark.circle")
-                        }
-                        Button(role: .destructive) {
-                            downloads.delete(ep)   // audio file + download record
-                            subscriptions.archiveEpisode(
-                                ep, keepTranscript: appSettings.keepTranscriptsOnDelete)
-                        } label: {
-                            Label("Delete Episode", systemImage: "trash")
-                        }
+            }
+            .listRowBackground(theme.color(.bg))
+            .listRowSeparator(.hidden)
+
+            ForEach(episodes) { ep in
+                EpisodeRow(episode: ep,
+                           downloadState: downloads.state(for: ep),
+                           onPlay: { playback.play(ep) },
+                           onDownload: {
+                               switch downloads.state(for: ep) {
+                               case .downloaded: downloads.delete(ep)
+                               case .failed:     downloads.retryManually(guid: ep.guid)
+                               case .downloading: break
+                               case .none:       downloads.download(ep)
+                               }
+                           })
+                .listRowBackground(theme.color(.bg))
+                .listRowSeparatorTint(theme.color(.separator))
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button {
+                        subscriptions.setPlayed(ep, !ep.played)
+                    } label: {
+                        Label(ep.played ? "Unplayed" : "Played",
+                              systemImage: ep.played ? "circle" : "checkmark.circle")
                     }
-                    Divider().overlay(theme.color(.separator))
+                    .tint(theme.color(.accent))
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        deleteEpisode(ep)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                .contextMenu {
+                    Button {
+                        subscriptions.setPlayed(ep, !ep.played)
+                    } label: {
+                        Label(ep.played ? "Mark as Unplayed" : "Mark as Played",
+                              systemImage: ep.played ? "circle" : "checkmark.circle")
+                    }
+                    Button(role: .destructive) {
+                        deleteEpisode(ep)
+                    } label: {
+                        Label("Delete Episode", systemImage: "trash")
+                    }
                 }
             }
-            .padding(.horizontal, 20).padding(.bottom, 120)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .background(theme.color(.bg))
         .refreshable { await refresh() }
         .navigationTitle(podcast.title)
@@ -72,6 +92,11 @@ struct EpisodeListView: View {
             }
         }
         .sheet(isPresented: $showSettings) { ShowSettingsSheet(podcast: podcast) }
+    }
+
+    private func deleteEpisode(_ ep: Episode) {
+        downloads.delete(ep)   // audio file + download record
+        subscriptions.archiveEpisode(ep, keepTranscript: appSettings.keepTranscriptsOnDelete)
     }
 
     private func refresh() async {
