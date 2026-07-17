@@ -5,6 +5,7 @@ struct EpisodeRow: View {
     @Environment(AppTheme.self) private var theme
     let episode: Episode
     var downloadState: DownloadState = .none
+    var snippet: String?
     var onPlay: () -> Void = {}
     var onDownload: () -> Void = {}
 
@@ -38,6 +39,10 @@ struct EpisodeRow: View {
                     }
                 }
                 .font(.system(size: 12.5)).foregroundStyle(theme.color(.textTertiary))
+                if let snippet {
+                    Text("“\(snippet)”").font(.system(size: 12.5)).italic()
+                        .foregroundStyle(theme.color(.textSecondary)).lineLimit(2)
+                }
             }
             Spacer(minLength: 8)
             Button(action: onDownload) {

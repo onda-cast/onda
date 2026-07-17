@@ -66,6 +66,7 @@
 		823EE68AB440D457D02413F5 /* transcript.vtt in Resources */ = {isa = PBXBuildFile; fileRef = 7B9EF093482D7A3CB1420F55 /* transcript.vtt */; };
 		83FD313D2C17026BAE890110 /* AudioTranscribing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D8FD0B68F0BA4837E28DBCD /* AudioTranscribing.swift */; };
 		8749A1ED18DCA2188C4CB47E /* ClipServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FBD6DA4529DE65939254E12 /* ClipServiceTests.swift */; };
+		889D0D426FACDAB562C39601 /* PodcastEpisodeSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5CFAF270CB840561A8A523 /* PodcastEpisodeSearch.swift */; };
 		8F4AD92E7C308E36054E4466 /* SilenceDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75263D3463872DF06D72219 /* SilenceDetectorTests.swift */; };
 		944A32C1C59CBBF030DF1EA6 /* DownloadStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706BE42C701B0693B6E11502 /* DownloadStateTests.swift */; };
 		9518DC32144DA86BF1115FCF /* SubscriptionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 469CC05685CD4AF03D586364 /* SubscriptionServiceTests.swift */; };
@@ -90,6 +91,7 @@
 		B55EAF0466798DD45EC1BFD1 /* ClipShareUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 614D7FDBFE03DB9BE928110D /* ClipShareUITests.swift */; };
 		B76FE3AFC6105791CB1F8EE7 /* AdWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB76E9F921E83B4F3D008312 /* AdWindowTests.swift */; };
 		B8A8966E10D6A300EDCD78B3 /* RSSFeedParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A314E30235A9437DD24EB94A /* RSSFeedParserTests.swift */; };
+		B947C29B40BE0F373F155E8F /* PodcastEpisodeSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7497474B31AACE66670EF63C /* PodcastEpisodeSearchTests.swift */; };
 		BA5A213ABE3A407DB6C4B4E8 /* ITunesSearchClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E11F07C519566716B0038C8 /* ITunesSearchClient.swift */; };
 		BA80B4F0B1027B8ED127FFBB /* TranscriptSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DE1D860B7C28D399461926 /* TranscriptSearchTests.swift */; };
 		BDDE61D7C5F26A0326671EE6 /* BoostLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAEF393589BFDADE7CF562DE /* BoostLevel.swift */; };
@@ -184,6 +186,7 @@
 		724742E0E1635727F2999811 /* TrendingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendingRow.swift; sourceTree = "<group>"; };
 		730CD80EB3C38D6C119F2570 /* ShowSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowSettingsSheet.swift; sourceTree = "<group>"; };
 		73EDE887722F9B111D8D3594 /* ChapterFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterFetcher.swift; sourceTree = "<group>"; };
+		7497474B31AACE66670EF63C /* PodcastEpisodeSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastEpisodeSearchTests.swift; sourceTree = "<group>"; };
 		77AF3DDF85B5AD296D700FB0 /* PersistenceActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceActor.swift; sourceTree = "<group>"; };
 		79C2283DA18F5EA37D53EFBB /* SmartQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQuery.swift; sourceTree = "<group>"; };
 		7B9EF093482D7A3CB1420F55 /* transcript.vtt */ = {isa = PBXFileReference; path = transcript.vtt; sourceTree = "<group>"; };
@@ -245,6 +248,7 @@
 		E5BB7141944B4292CB54376C /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
 		E60E9938DD85518ACBD94F9F /* chapters.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = chapters.json; sourceTree = "<group>"; };
 		E805DE0D40D2B33E85D10F1F /* ActiveCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveCue.swift; sourceTree = "<group>"; };
+		EA5CFAF270CB840561A8A523 /* PodcastEpisodeSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastEpisodeSearch.swift; sourceTree = "<group>"; };
 		F054A4C32FC6891BC6555A06 /* DownloadsStorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadsStorageView.swift; sourceTree = "<group>"; };
 		F195A2C7A6F56903489DE7F7 /* SmartQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueue.swift; sourceTree = "<group>"; };
 		F1BB122FF92D1CDA4252B4FE /* SmartQueryParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueryParserTests.swift; sourceTree = "<group>"; };
@@ -467,6 +471,7 @@
 		D4CAA2CEF7E7ED36F5CECC52 /* Search */ = {
 			isa = PBXGroup;
 			children = (
+				EA5CFAF270CB840561A8A523 /* PodcastEpisodeSearch.swift */,
 				1CAB8D3C346E8233D34F96B4 /* SearchIndex.swift */,
 				368C79C69446D4484367A9AD /* SearchIndexBox.swift */,
 				79C2283DA18F5EA37D53EFBB /* SmartQuery.swift */,
@@ -554,6 +559,7 @@
 				E2C9426A2C0D555EDB039598 /* MarkdownExportTests.swift */,
 				CB7D89A90138AEE75E6CA063 /* ModelTests.swift */,
 				A2AC269F8B3F5991E1C14136 /* PlaybackManagerTests.swift */,
+				7497474B31AACE66670EF63C /* PodcastEpisodeSearchTests.swift */,
 				A314E30235A9437DD24EB94A /* RSSFeedParserTests.swift */,
 				85D8C5E96401FE883E704E99 /* SearchIndexTests.swift */,
 				F75263D3463872DF06D72219 /* SilenceDetectorTests.swift */,
@@ -774,6 +780,7 @@
 				50F2A63B66880427543240D1 /* PlaybackManager.swift in Sources */,
 				AC8BFE08CC7BB14BB4BCEF06 /* PlayerEngine.swift in Sources */,
 				99DBAB55F788DBE13FE89810 /* Podcast.swift in Sources */,
+				889D0D426FACDAB562C39601 /* PodcastEpisodeSearch.swift in Sources */,
 				AF097E07975F74F4EA8226D5 /* ProfileView.swift in Sources */,
 				9593E05ACDBDF1828267053F /* QueueItem.swift in Sources */,
 				4E84B4456ABA3BD4CA4FAC24 /* QueueView.swift in Sources */,
@@ -821,6 +828,7 @@
 				F7CF1015743F959F1007190D /* MarkdownExportTests.swift in Sources */,
 				7A6EAA5D11DC0D5777865B37 /* ModelTests.swift in Sources */,
 				FE6348117ECF5D6A5DC58060 /* PlaybackManagerTests.swift in Sources */,
+				B947C29B40BE0F373F155E8F /* PodcastEpisodeSearchTests.swift in Sources */,
 				B8A8966E10D6A300EDCD78B3 /* RSSFeedParserTests.swift in Sources */,
 				A14688894AEC0AF65B2C3A50 /* SearchIndexTests.swift in Sources */,
 				8F4AD92E7C308E36054E4466 /* SilenceDetectorTests.swift in Sources */,
