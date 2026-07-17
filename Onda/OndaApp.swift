@@ -17,6 +17,7 @@ struct OndaApp: App {
     @State private var chapterGen: ChapterGenerationService
     @State private var clips: ClipService
     @State private var searchIndexBox: SearchIndexBox
+    @State private var recommendations: RecommendationService
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -62,6 +63,8 @@ struct OndaApp: App {
             rs.retention = ret
             rs.registerBackgroundTask()
             _refresh = State(initialValue: rs)
+            _recommendations = State(initialValue: RecommendationService(
+                modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient()))
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
         }
@@ -145,6 +148,7 @@ struct OndaApp: App {
                 .environment(chapterGen)
                 .environment(clips)
                 .environment(searchIndexBox)
+                .environment(recommendations)
                 .preferredColorScheme(theme.colorScheme)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
