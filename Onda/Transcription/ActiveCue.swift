@@ -10,8 +10,7 @@ enum ActiveCue {
         var lo = 0, hi = cues.count - 1, result = 0
         while lo <= hi {
             let mid = (lo + hi) / 2
-            if cues[mid].start <= seconds { result = mid; lo = mid + 1 }
-            else { hi = mid - 1 }
+            if cues[mid].start <= seconds { result = mid; lo = mid + 1 } else { hi = mid - 1 }
         }
         return result
     }

@@ -27,7 +27,7 @@ struct ClipEditSheet: View {
         if let existing { return existing.text }
         guard let episode else { return "" }
         let cues = (episode.transcript?.cues ?? []).sorted { $0.startTime < $1.startTime }
-            .map { (start: $0.startTime, end: $0.endTime, text: $0.text) }
+            .map { CueSpan(start: $0.startTime, end: $0.endTime, text: $0.text) }
         return ClipTextSnapshot.snap(cues: cues, requestedStart: requestedStart,
                                      requestedEnd: requestedEnd).text
     }

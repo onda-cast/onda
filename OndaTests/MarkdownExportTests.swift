@@ -5,7 +5,13 @@ import SwiftData
 
 @MainActor
 final class MarkdownExportTests: XCTestCase {
-    private func makeEnv() throws -> (ModelContext, Episode, Episode) {
+    private struct TestEnv {
+        let context: ModelContext
+        let episode1: Episode
+        let episode2: Episode
+    }
+
+    private func makeEnv() throws -> TestEnv {
         let c = try ModelContainer(for: Schema(ondaSchema),
                                    configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(c)
@@ -17,7 +23,7 @@ final class MarkdownExportTests: XCTestCase {
                           audioURL: URL(string: "https://ex.com/2.mp3")!, notes: "")
         ep1.podcast = pod; ep2.podcast = pod
         ctx.insert(pod); ctx.insert(ep1); ctx.insert(ep2)
-        return (ctx, ep1, ep2)
+        return TestEnv(context: ctx, episode1: ep1, episode2: ep2)
     }
 
     private func clip(_ ep: Episode, start: TimeInterval, text: String, note: String?) -> Clip {
@@ -28,7 +34,7 @@ final class MarkdownExportTests: XCTestCase {
     }
 
     func test_clipMarkdown_quoteAttributionAndNote() throws {
-        let (_, ep, _) = try makeEnv()
+        let ep = try makeEnv().episode1
         let c = clip(ep, start: 754, text: "the homepage is dead", note: "use in essay")
         let md = MarkdownExport.clipMarkdown(c)
         XCTAssertTrue(md.contains("> the homepage is dead"))
@@ -40,7 +46,7 @@ final class MarkdownExportTests: XCTestCase {
     }
 
     func test_clipMarkdown_noTranscript_noQuoteBlock() throws {
-        let (_, ep, _) = try makeEnv()
+        let ep = try makeEnv().episode1
         let c = clip(ep, start: 60, text: "", note: nil)
         let md = MarkdownExport.clipMarkdown(c)
         XCTAssertFalse(md.contains(">"))
@@ -48,7 +54,8 @@ final class MarkdownExportTests: XCTestCase {
     }
 
     func test_document_groupsByShowThenEpisode() throws {
-        let (_, ep1, ep2) = try makeEnv()
+        let env = try makeEnv()
+        let ep1 = env.episode1, ep2 = env.episode2
         let c1 = clip(ep1, start: 10, text: "one", note: nil)
         let c2 = clip(ep2, start: 20, text: "two", note: nil)
         let c3 = clip(ep1, start: 30, text: "three", note: nil)

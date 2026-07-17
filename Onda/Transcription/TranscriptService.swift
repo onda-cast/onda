@@ -65,7 +65,10 @@ final class TranscriptService {
                 progress[guid] = nil
                 let ns = error as NSError
                 if ns.domain == "SFSpeechErrorDomain" {
-                    lastFailure[guid] = "Couldn't get Apple's on-device speech model. Check your connection — and note the iOS Simulator often can't download it (a real device can)."
+                    lastFailure[guid] = """
+                        Couldn't get Apple's on-device speech model. Check your connection — \
+                        and note the iOS Simulator often can't download it (a real device can).
+                        """
                 } else {
                     lastFailure[guid] = "Transcription failed: \(error.localizedDescription)"
                 }

@@ -39,7 +39,7 @@ final class NowPlayingCenter {
             MPMediaItemPropertyArtist: show,
             MPMediaItemPropertyPlaybackDuration: duration,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: position,
-            MPNowPlayingInfoPropertyPlaybackRate: rate,
+            MPNowPlayingInfoPropertyPlaybackRate: rate
         ]
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }

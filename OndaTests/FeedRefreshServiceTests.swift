@@ -10,7 +10,13 @@ private struct StubFeeds: FeedFetching {
 
 @MainActor
 final class FeedRefreshServiceTests: XCTestCase {
-    private func env(feedGuids: [String]) throws -> (ModelContext, SubscriptionService, DownloadManager) {
+    private struct TestEnv {
+        let context: ModelContext
+        let subscriptions: SubscriptionService
+        let downloads: DownloadManager
+    }
+
+    private func env(feedGuids: [String]) throws -> TestEnv {
         let container = try ModelContainer(for: Schema(ondaSchema),
                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(container)
@@ -22,33 +28,35 @@ final class FeedRefreshServiceTests: XCTestCase {
         let subs = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed))
         let dm = DownloadManager(persistence: PersistenceActor(modelContainer: container),
                                  session: FakeURLSession())
-        return (ctx, subs, dm)
+        return TestEnv(context: ctx, subscriptions: subs, downloads: dm)
     }
 
     func test_newEpisodesAfterRefresh_returnsOnlyNewGuids() throws {
-        let (ctx, subs, dm) = try env(feedGuids: ["a", "b"])
-        let svc = FeedRefreshService(modelContext: ctx, subscriptions: subs, downloads: dm)
+        let testEnv = try env(feedGuids: ["a", "b"])
+        let svc = FeedRefreshService(modelContext: testEnv.context,
+                                     subscriptions: testEnv.subscriptions, downloads: testEnv.downloads)
         let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!, title: "S", author: "A",
                           artworkURL: nil, category: "Tech", itunesId: 1)
         for g in ["a", "b"] {
-            let e = Episode(guid: g, title: g, publishDate: .now, duration: 100,
-                            audioURL: URL(string: "https://ex.com/\(g).mp3")!, notes: "")
-            e.podcast = pod; pod.episodes.append(e)
+            let ep = Episode(guid: g, title: g, publishDate: .now, duration: 100,
+                             audioURL: URL(string: "https://ex.com/\(g).mp3")!, notes: "")
+            ep.podcast = pod; pod.episodes.append(ep)
         }
         let newOnes = svc.newEpisodesAfterRefresh(for: pod, knownGuids: ["a"])
         XCTAssertEqual(newOnes.map(\.guid), ["b"])
     }
 
     func test_refreshAll_noNewEpisodes_downloadsNothing() async throws {
-        let (ctx, subs, dm) = try env(feedGuids: ["a", "b"])
+        let testEnv = try env(feedGuids: ["a", "b"])
         let dto = PodcastDTO(collectionId: 1, collectionName: "S", artistName: "A",
                              feedUrl: URL(string: "https://ex.com/f.xml"),
                              artworkUrl600: nil, primaryGenreName: "Tech")
-        let pod = try await subs.subscribe(to: dto)     // starts with a,b
+        let pod = try await testEnv.subscriptions.subscribe(to: dto)     // starts with a,b
         pod.settings?.autoDownload = true
-        try ctx.save()
-        let svc = FeedRefreshService(modelContext: ctx, subscriptions: subs, downloads: dm)
+        try testEnv.context.save()
+        let svc = FeedRefreshService(modelContext: testEnv.context,
+                                     subscriptions: testEnv.subscriptions, downloads: testEnv.downloads)
         await svc.refreshAll()   // no new episodes → nothing downloads
-        XCTAssertEqual(dm.state(for: pod.episodes.first!), DownloadState.none)
+        XCTAssertEqual(testEnv.downloads.state(for: pod.episodes.first!), DownloadState.none)
     }
 }

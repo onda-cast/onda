@@ -9,8 +9,8 @@ struct ParsedEpisode {
     let audioURL: URL
     let notes: String
     let chaptersURL: URL?
-    var transcriptURL: URL? = nil
-    var transcriptType: String? = nil
+    var transcriptURL: URL?
+    var transcriptType: String?
 }
 
 struct ParsedFeed {
@@ -75,24 +75,43 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
         switch el {
         case "channel": sawChannel = true
         case "item": inItem = true; current = Item()
-        case "itunes:image": if !inItem, let h = attrs["href"] { channelArtwork = URL(string: h) }
-        case "itunes:category": if !inItem, let t = attrs["text"], channelCategory.isEmpty { channelCategory = t }
-        case "enclosure": if inItem, let u = attrs["url"] { current?.audioURL = URL(string: u) }
-        case "podcast:chapters": if inItem, let u = attrs["url"] { current?.chaptersURL = URL(string: u) }
-        case "podcast:transcript":
-            if inItem, let u = attrs["url"] {
-                // Prefer JSON over VTT over SRT when a feed offers multiple formats.
-                let type = attrs["type"] ?? ""
-                let rank: (String) -> Int = { t in
-                    t.contains("json") ? 3 : (t.contains("vtt") ? 2 : (t.contains("srt") || t.contains("subrip") ? 1 : 0))
-                }
-                if current?.transcriptURL == nil || rank(type) > rank(current?.transcriptType ?? "") {
-                    current?.transcriptURL = URL(string: u)
-                    current?.transcriptType = type
-                }
-            }
+        default:
+            if inItem { handleItemStartElement(el, attrs: attrs) } else { handleChannelStartElement(el, attrs: attrs) }
+        }
+    }
+
+    private func handleChannelStartElement(_ el: String, attrs: [String: String]) {
+        switch el {
+        case "itunes:image": if let h = attrs["href"] { channelArtwork = URL(string: h) }
+        case "itunes:category": if let t = attrs["text"], channelCategory.isEmpty { channelCategory = t }
         default: break
         }
+    }
+
+    private func handleItemStartElement(_ el: String, attrs: [String: String]) {
+        switch el {
+        case "enclosure": if let u = attrs["url"] { current?.audioURL = URL(string: u) }
+        case "podcast:chapters": if let u = attrs["url"] { current?.chaptersURL = URL(string: u) }
+        case "podcast:transcript": handlePodcastTranscript(attrs: attrs)
+        default: break
+        }
+    }
+
+    private func handlePodcastTranscript(attrs: [String: String]) {
+        guard let u = attrs["url"] else { return }
+        // Prefer JSON over VTT over SRT when a feed offers multiple formats.
+        let type = attrs["type"] ?? ""
+        if current?.transcriptURL == nil || transcriptRank(type) > transcriptRank(current?.transcriptType ?? "") {
+            current?.transcriptURL = URL(string: u)
+            current?.transcriptType = type
+        }
+    }
+
+    private func transcriptRank(_ type: String) -> Int {
+        if type.contains("json") { return 3 }
+        if type.contains("vtt") { return 2 }
+        if type.contains("srt") || type.contains("subrip") { return 1 }
+        return 0
     }
 
     func parser(_ p: XMLParser, foundCharacters s: String) { text += s }
@@ -102,27 +121,31 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
 
     func parser(_ p: XMLParser, didEndElement el: String, namespaceURI: String?, qualifiedName qn: String?) {
         let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if inItem {
-            switch el {
-            case "title": current?.title = value
-            case "guid": current?.guid = value
-            case "description", "itunes:summary":
-                if current?.notes.isEmpty ?? true { current?.notes = stripHTML(value) }
-            case "pubDate": current?.pubDate = FeedDelegate.rfc822.date(from: value) ?? .distantPast
-            case "itunes:duration": current?.duration = RSSFeedParser.parseDuration(value)
-            case "item":
-                if let c = current { items.append(c) }
-                current = nil; inItem = false
-            default: break
-            }
-        } else {
-            switch el {
-            case "title": if channelTitle.isEmpty { channelTitle = value }
-            case "itunes:author": channelAuthor = value
-            default: break
-            }
-        }
+        if inItem { handleItemEndElement(el, value: value) } else { handleChannelEndElement(el, value: value) }
         text = ""
+    }
+
+    private func handleItemEndElement(_ el: String, value: String) {
+        switch el {
+        case "title": current?.title = value
+        case "guid": current?.guid = value
+        case "description", "itunes:summary":
+            if current?.notes.isEmpty ?? true { current?.notes = stripHTML(value) }
+        case "pubDate": current?.pubDate = FeedDelegate.rfc822.date(from: value) ?? .distantPast
+        case "itunes:duration": current?.duration = RSSFeedParser.parseDuration(value)
+        case "item":
+            if let c = current { items.append(c) }
+            current = nil; inItem = false
+        default: break
+        }
+    }
+
+    private func handleChannelEndElement(_ el: String, value: String) {
+        switch el {
+        case "title": if channelTitle.isEmpty { channelTitle = value }
+        case "itunes:author": channelAuthor = value
+        default: break
+        }
     }
 
     private func stripHTML(_ s: String) -> String {
@@ -140,7 +163,7 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
             "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": "\"", "&apos;": "'",
             "&nbsp;": "\u{00A0}", "&mdash;": "\u{2014}", "&ndash;": "\u{2013}",
             "&hellip;": "\u{2026}", "&rsquo;": "\u{2019}", "&lsquo;": "\u{2018}",
-            "&rdquo;": "\u{201D}", "&ldquo;": "\u{201C}",
+            "&rdquo;": "\u{201D}", "&ldquo;": "\u{201C}"
         ]
         for (entity, char) in named { out = out.replacingOccurrences(of: entity, with: char) }
         // Numeric entities: &#8217; and &#x2019;

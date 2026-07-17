@@ -19,11 +19,7 @@ struct TranscriptParser: Sendable {
     }
 
     private func parseJSON(_ data: Data) -> [ParsedCue] {
-        struct Doc: Codable {
-            struct Seg: Codable { let startTime: Double?; let endTime: Double?; let speaker: String?; let body: String? }
-            let segments: [Seg]
-        }
-        guard let doc = try? JSONDecoder().decode(Doc.self, from: data) else { return [] }
+        guard let doc = try? JSONDecoder().decode(TranscriptDoc.self, from: data) else { return [] }
         return doc.segments.compactMap { seg in
             guard let body = seg.body, !body.isEmpty else { return nil }
             return ParsedCue(startTime: seg.startTime ?? 0, endTime: seg.endTime ?? (seg.startTime ?? 0),
@@ -48,7 +44,7 @@ struct TranscriptParser: Sendable {
                 .components(separatedBy: " ").first ?? ends[1])
             let bodyLines = lines.drop { $0 != timing }.dropFirst()
             var body = bodyLines.joined(separator: " ")
-            var speaker: String? = nil
+            var speaker: String?
             if let r = body.range(of: "^<v ([^>]+)>", options: .regularExpression) {
                 speaker = String(body[r]).replacingOccurrences(of: "<v ", with: "")
                     .replacingOccurrences(of: ">", with: "")
@@ -61,4 +57,14 @@ struct TranscriptParser: Sendable {
         }
         return cues
     }
+}
+
+// Podcasting 2.0 JSON transcript shape — kept file-private and flat (not nested inside
+// parseJSON) to stay within SwiftLint's nesting-depth rule.
+private struct TranscriptDoc: Codable { let segments: [TranscriptSegment] }
+private struct TranscriptSegment: Codable {
+    let startTime: Double?
+    let endTime: Double?
+    let speaker: String?
+    let body: String?
 }

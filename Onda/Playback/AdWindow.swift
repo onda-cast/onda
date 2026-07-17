@@ -12,7 +12,7 @@ struct AdWindow: Sendable {
 
     private func index(at seconds: TimeInterval) -> Int? {
         guard !sorted.isEmpty else { return nil }
-        var idx: Int? = nil
+        var idx: Int?
         for (i, c) in sorted.enumerated() where c.start <= seconds { idx = i }
         return idx
     }

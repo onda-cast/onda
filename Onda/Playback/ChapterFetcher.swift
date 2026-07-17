@@ -11,18 +11,21 @@ struct ChapterFetcher: Sendable {
     }
 
     func decode(_ data: Data) -> [ParsedChapter] {
-        struct Doc: Codable {
-            struct Ch: Codable { let startTime: Double?; let title: String?; let toc: Bool? }
-            let chapters: [Ch]
-        }
-        guard let doc = try? JSONDecoder().decode(Doc.self, from: data) else { return [] }
-        return doc.chapters.map { c in
-            let title = c.title ?? "Chapter"
+        guard let doc = try? JSONDecoder().decode(ChaptersDoc.self, from: data) else { return [] }
+        return doc.chapters.map { entry in
+            let title = entry.title ?? "Chapter"
             let adByTitle = ["ad", "sponsor"].contains { title.lowercased().contains($0) }
-            let adByToc = (c.toc == false)
-            return ParsedChapter(title: title, startTime: c.startTime ?? 0, isAd: adByTitle || adByToc)
+            let adByToc = (entry.toc == false)
+            return ParsedChapter(title: title, startTime: entry.startTime ?? 0, isAd: adByTitle || adByToc)
         }
     }
 
     func fetch(_ url: URL) async throws -> [ParsedChapter] { decode(try await transport(url)) }
 }
+
+// Podcasting 2.0 <podcast:chapters> JSON shape — kept file-private and flat (not nested inside
+// decode) to stay within SwiftLint's nesting-depth rule.
+private struct ChaptersDoc: Codable {
+    let chapters: [ChapterEntry]
+}
+private struct ChapterEntry: Codable { let startTime: Double?; let title: String?; let toc: Bool? }
