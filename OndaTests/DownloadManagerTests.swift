@@ -62,4 +62,31 @@ final class DownloadManagerTests: XCTestCase {
         dm.handleFailed(guid: "g1")     // second failure → failed
         XCTAssertEqual(dm.state(for: env.episode), .failed)
     }
+
+    // A retention sweep over many episodes calls delete() in a tight synchronous loop
+    // (EpisodeRetentionService). If the file removal happens inline on the caller's
+    // actor, that loop blocks the main thread for the whole sweep on a show with a lot
+    // of downloaded episodes. The file must still be on disk right after delete()
+    // returns — proving the removal was deferred off the synchronous call path — and
+    // gone only once the deferred work has actually run.
+    func test_delete_removesFileAsynchronously_notOnCallingThread() async throws {
+        let env = try makeEnv()
+        let dm = DownloadManager(persistence: env.persistence, session: FakeURLSession())
+        let fileName = DownloadManager.fileName(for: "g1")
+        let fileURL = DownloadManager.fileURL(named: fileName)
+        try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try Data([0, 1, 2]).write(to: fileURL)
+        let file = DownloadedFile(localFileName: fileName, fileSizeBytes: 3, downloadedAt: .now)
+        file.episode = env.episode; env.episode.downloadedFile = file
+        env.context.insert(file); try env.context.save()
+
+        dm.delete(env.episode)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path),
+                      "file removal must be deferred, not run synchronously on the caller's actor")
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path),
+                       "file is still removed, just off the synchronous call path")
+        try? FileManager.default.removeItem(at: fileURL)
+    }
 }
