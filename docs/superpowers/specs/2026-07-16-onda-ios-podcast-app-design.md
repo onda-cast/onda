@@ -221,7 +221,7 @@ the system share sheet with the file plus share text: quoted transcript excerpt 
 `ClipExporter` (async `export(clip:) -> URL`, pure `shareText(for:)`). Entry point: share button
 on `ClipRow`. Video cards with waveform/captions remain deferred.
 
-**Deferred (v0.5 candidates):** Markdown export via share sheet; video share cards;
+**v0.5 — Markdown export (shipped):** per-clip "Copy as Markdown" (context menu) and bulk "Export All" (.md via share sheet), grouped show → episode; personal export, so notes ARE included (unlike audio sharing). **Deferred (v0.6 candidates):** video share cards;
 Readwise/Obsidian-style bulk export.
 
 **Constraints carried forward:** feed-seconds canonical timeline; no cloud services; clip text is
