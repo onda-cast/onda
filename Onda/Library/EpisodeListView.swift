@@ -11,15 +11,23 @@ struct EpisodeListView: View {
     @Environment(\.dismiss) private var dismiss
     let podcast: Podcast
     @State private var showSettings = false
+    @State private var filter: EpisodeFilter = .downloaded
 
     private var episodes: [Episode] {
-        podcast.episodes.sorted { $0.publishDate > $1.publishDate }
+        filter.apply(to: podcast.episodes)
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: 16) {
                 header
+                SegmentedRow(options: EpisodeFilter.allCases.map { ($0.label, $0) },
+                             selection: filter) { filter = $0 }
+                if episodes.isEmpty && filter == .downloaded {
+                    Text("No downloaded episodes — switch to All or Newest 10")
+                        .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                        .frame(maxWidth: .infinity).padding(.top, 24)
+                }
                 Divider().overlay(theme.color(.separator))
                 ForEach(episodes) { ep in
                     EpisodeRow(episode: ep,
