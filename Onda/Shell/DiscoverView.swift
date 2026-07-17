@@ -16,7 +16,10 @@ struct DiscoverView: View {
     @State private var shake: ShakeState?
     @State private var shakeCount = 0
     @State private var dealID = 0   // bumps when shake results land; replays the deal-in animation
+    @State private var mode: DiscoverMode = .browse
     @FocusState private var searchFocused: Bool
+
+    private enum DiscoverMode: Hashable { case browse, forYou }
 
     private static let shakeTitles = [
         "Shaken for you", "Look what rolled in", "New podcasts drifting in"
@@ -35,38 +38,76 @@ struct DiscoverView: View {
         Array(Set(subs.map(\.category))).sorted()
     }
 
-    @ViewBuilder private var forYouSection: some View {
+    private func isSubscribed(_ dto: PodcastDTO) -> Bool {
+        dto.feedUrl.map(subscribedFeeds.contains) ?? false
+    }
+
+    // MARK: Browse sub-tab (search, categories, trending, shake)
+
+    @ViewBuilder private var browseTab: some View {
+        searchField
+        categoryChips
+        listHeader
+        Group {
+            ForEach(Array(listItems.enumerated()), id: \.element.collectionId) { i, dto in
+                let row = TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) {
+                    Task { [subscriptions] in _ = try? await subscriptions.subscribe(to: dto) }
+                }
+                if shake != nil {
+                    DealtCard(index: i) { row }
+                } else {
+                    row
+                }
+            }
+        }
+        .id(dealID)   // new identity per shake so every deal replays from the top
+    }
+
+    // MARK: For You sub-tab (recommendations)
+
+    @ViewBuilder private var forYouTab: some View {
+        HStack {
+            Text("Recommended for you").brutalHeader(size: 13)
+                .foregroundStyle(theme.color(.textTertiary))
+            Spacer()
+            Button {
+                Task { await recs.refresh(followedCategories: followedCategories) }
+            } label: {
+                Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(theme.color(.textSecondary))
+                    .frame(width: 34, height: 34)
+                    .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+            }
+            .buttonStyle(.plain).disabled(recs.isLoading)
+        }
         if recs.isLoading && recs.recommendations.isEmpty {
             HStack(spacing: 8) {
                 ProgressView().tint(theme.color(.accent))
                 Text("Finding shows for you…").font(.system(size: 13))
                     .foregroundStyle(theme.color(.textTertiary))
-            }
-        } else if !recs.recommendations.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("For You").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
-                ForEach(recs.recommendations.prefix(6)) { rec in
-                    VStack(alignment: .leading, spacing: 4) {
-                        TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) {
-                            Task { [subscriptions] in _ = try? await subscriptions.subscribe(to: rec.dto) }
-                        }
-                        if let reason = rec.reasonLine {
-                            Text(reason).font(.system(size: 11.5)).foregroundStyle(theme.color(.textTertiary))
-                                .padding(.leading, 2)
-                        }
+            }.padding(.top, 40).frame(maxWidth: .infinity)
+        } else if recs.recommendations.isEmpty {
+            Text("Follow a few shows and clip moments you love — recommendations get sharper as Onda learns your taste.")
+                .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 50)
+        } else {
+            ForEach(recs.recommendations) { rec in
+                VStack(alignment: .leading, spacing: 4) {
+                    TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) {
+                        Task { [subscriptions] in _ = try? await subscriptions.subscribe(to: rec.dto) }
                     }
-                    .contextMenu {
-                        Button(role: .destructive) { recs.dismiss(rec) } label: {
-                            Label("Not interested", systemImage: "hand.thumbsdown")
-                        }
+                    if let reason = rec.reasonLine {
+                        Text(reason).font(.system(size: 11.5)).foregroundStyle(theme.color(.textTertiary))
+                            .padding(.leading, 2)
+                    }
+                }
+                .contextMenu {
+                    Button(role: .destructive) { recs.dismiss(rec) } label: {
+                        Label("Not interested", systemImage: "hand.thumbsdown")
                     }
                 }
             }
         }
-    }
-
-    private func isSubscribed(_ dto: PodcastDTO) -> Bool {
-        dto.feedUrl.map(subscribedFeeds.contains) ?? false
     }
 
     var body: some View {
@@ -75,26 +116,10 @@ struct DiscoverView: View {
                 Text("Discover").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
                     .padding(.top, 56)
 
-                searchField
-                categoryChips
+                SegmentedRow(options: [("Browse", DiscoverMode.browse), ("For You", .forYou)],
+                             selection: mode) { mode = $0 }
 
-                if query.isEmpty, shake == nil { forYouSection }
-
-                listHeader
-
-                Group {
-                    ForEach(Array(listItems.enumerated()), id: \.element.collectionId) { i, dto in
-                        let row = TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) {
-                            Task { [subscriptions] in _ = try? await subscriptions.subscribe(to: dto) }
-                        }
-                        if shake != nil {
-                            DealtCard(index: i) { row }
-                        } else {
-                            row
-                        }
-                    }
-                }
-                .id(dealID)   // new identity per shake so every deal replays from the top
+                if mode == .browse { browseTab } else { forYouTab }
             }
             .padding(.horizontal, 20).padding(.bottom, 120)
         }
@@ -114,6 +139,7 @@ struct DiscoverView: View {
             Task { await runSearch(new) }
         }
         .onShake {
+            mode = .browse   // shake results live in Browse
             shakeCount += 1
             Task { await runShake() }
         }
