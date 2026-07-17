@@ -29,6 +29,7 @@ final class ChapterGenerationService {
     @discardableResult
     func generate(for episode: Episode) async -> [Chapter]? {
         guard let generator, let text = transcriptText(episode) else { return nil }
+        guard episode.chapters.isEmpty else { return nil }
         let guid = episode.guid
         guard isGenerating[guid] != true else { return nil }
         isGenerating[guid] = true

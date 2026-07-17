@@ -61,4 +61,37 @@ final class SmartQueueTests: XCTestCase {
         let result = SmartQueue.shortestFirst.apply(to: [long, short, playedShort])
         XCTAssertEqual(result.map(\.guid), ["short", "long"])
     }
+
+    func test_unplayed_excludesArchived() throws {
+        let c = try ctx()
+        let live = episode(in: c, guid: "live", daysAgo: 1, duration: 100)
+        let archived = episode(in: c, guid: "archived", daysAgo: 0.5, duration: 100)
+        archived.isArchived = true
+        let result = SmartQueue.unplayed.apply(to: [live, archived])
+        XCTAssertEqual(result.map(\.guid), ["live"])
+    }
+
+    func test_hasMatches_mirrorsApplyEmptiness() throws {
+        let c = try ctx()
+        let played = episode(in: c, guid: "p", daysAgo: 1, duration: 100, played: true)
+        XCTAssertFalse(SmartQueue.unplayed.hasMatches(in: [played]))
+        XCTAssertFalse(SmartQueue.downloaded.hasMatches(in: [played]))
+        XCTAssertFalse(SmartQueue.shortestFirst.hasMatches(in: [played]))
+        XCTAssertTrue(SmartQueue.recentlyAdded.hasMatches(in: [played]))
+
+        let fresh = episode(in: c, guid: "f", daysAgo: 1, duration: 100, downloaded: true)
+        XCTAssertTrue(SmartQueue.unplayed.hasMatches(in: [played, fresh]))
+        XCTAssertTrue(SmartQueue.downloaded.hasMatches(in: [played, fresh]))
+        XCTAssertTrue(SmartQueue.shortestFirst.hasMatches(in: [played, fresh]))
+    }
+
+    func test_hasMatches_excludesArchived() throws {
+        let c = try ctx()
+        let archived = episode(in: c, guid: "a", daysAgo: 1, duration: 100, downloaded: true)
+        archived.isArchived = true
+        XCTAssertFalse(SmartQueue.unplayed.hasMatches(in: [archived]))
+        XCTAssertFalse(SmartQueue.downloaded.hasMatches(in: [archived]))
+        XCTAssertFalse(SmartQueue.recentlyAdded.hasMatches(in: [archived]))
+        XCTAssertFalse(SmartQueue.shortestFirst.hasMatches(in: [archived]))
+    }
 }

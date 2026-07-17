@@ -1,7 +1,7 @@
 //  ChapterFetcher.swift
 import Foundation
 
-struct ParsedChapter { let title: String; let startTime: TimeInterval; let isAd: Bool; let source = "feed" }
+struct ParsedChapter { let title: String; let startTime: TimeInterval; let isAd: Bool; var source = "feed" }
 
 struct ChapterFetcher: Sendable {
     typealias Transport = @Sendable (URL) async throws -> Data

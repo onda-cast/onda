@@ -45,9 +45,15 @@ final class FoundationModelsChapterGenerator: ChapterGenerating {
         \(transcriptText.prefix(12_000))
         """
         let result = try await session.respond(to: prompt, generating: GeneratedChapters.self)
+        // Clamp start times into the episode's bounds, sort, and drop duplicates that
+        // collapse onto the same (clamped) start time — keep the first occurrence.
         return result.content.chapters
-            .sorted { $0.startTimeSeconds < $1.startTimeSeconds }
-            .map { ParsedChapter(title: $0.title, startTime: $0.startTimeSeconds, isAd: false) }
+            .map { (title: $0.title, start: min(max($0.startTimeSeconds, 0), duration)) }
+            .sorted { $0.start < $1.start }
+            .reduce(into: [ParsedChapter]()) { acc, ch in
+                guard acc.last?.startTime != ch.start else { return }
+                acc.append(ParsedChapter(title: ch.title, startTime: ch.start, isAd: false, source: "generated"))
+            }
     }
 }
 #endif

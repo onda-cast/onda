@@ -39,11 +39,12 @@ struct LibraryView: View {
 
                     if !shows.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
+                            let allEpisodes = shows.flatMap(\.episodes)
                             HStack(spacing: 10) {
                                 ForEach(SmartQueue.allCases, id: \.self) { sq in
-                                    let episodes = sq.apply(to: shows.flatMap(\.episodes))
+                                    let isEmpty = !sq.hasMatches(in: allEpisodes)
                                     Button {
-                                        playback.startSmartQueue(episodes)
+                                        playback.startSmartQueue(sq.apply(to: allEpisodes))
                                     } label: {
                                         Text(sq.label.uppercased())
                                             .font(.system(size: 12, weight: .bold))
@@ -52,8 +53,8 @@ struct LibraryView: View {
                                             .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                                     }
                                     .buttonStyle(.plain)
-                                    .disabled(episodes.isEmpty)
-                                    .opacity(episodes.isEmpty ? 0.4 : 1)
+                                    .disabled(isEmpty)
+                                    .opacity(isEmpty ? 0.4 : 1)
                                 }
                             }.padding(.horizontal, 20)
                         }
