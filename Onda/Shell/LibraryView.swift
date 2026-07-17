@@ -20,6 +20,7 @@ struct LibraryView: View {
                         Spacer()
                         Button { showClips = true } label: {
                             Image(systemName: "bookmark")
+                                .accessibilityLabel("Clips")
                                 .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(theme.color(.textSecondary))
                                 .frame(width: 36, height: 36)

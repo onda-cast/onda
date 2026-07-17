@@ -5,6 +5,7 @@ struct ClipRow: View {
     @Environment(AppTheme.self) private var theme
     let clip: Clip
     var onPlay: () -> Void
+    var onShare: () -> Void = {}
 
     private func timeStr(_ s: TimeInterval) -> String {
         let t = Int(max(0, s)); return String(format: "%d:%02d", t / 60, t % 60)
@@ -21,6 +22,12 @@ struct ClipRow: View {
                         .background(theme.color(.accent)).foregroundStyle(.white)
                 }
                 Spacer()
+                Button(action: onShare) {
+                    Image(systemName: "square.and.arrow.up").accessibilityLabel("Share clip")
+                        .font(.system(size: 14))
+                        .foregroundStyle(theme.color(.text)).frame(width: 32, height: 32)
+                        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                }.buttonStyle(.plain)
                 Button(action: onPlay) {
                     Image(systemName: "play.fill").font(.system(size: 14))
                         .foregroundStyle(.white).frame(width: 32, height: 32)

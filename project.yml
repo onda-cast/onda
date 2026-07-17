@@ -27,3 +27,9 @@ targets:
     sources: [OndaTests]
     dependencies:
       - target: Onda
+  OndaUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [OndaUITests]
+    dependencies:
+      - target: Onda

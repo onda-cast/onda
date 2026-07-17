@@ -32,6 +32,7 @@ struct OndaApp: App {
             _transcripts = State(initialValue: TranscriptService(
                 modelContext: c.mainContext, engine: engine,
                 localURL: { pm.localURL(for: $0) }))
+            UITestSeed.seed(context: c.mainContext)
             let cs = ClipService(modelContext: c.mainContext)
             _clips = State(initialValue: cs)
             pm.onCaptureRequested = { [weak pm] in
