@@ -28,6 +28,7 @@ struct TrendingRow: View {
             }.buttonStyle(.plain).disabled(isSubscribed)
         }
         .padding(10)
+        .background(theme.color(.bgElevated))
         .brutalBorder(width: 2)
         .hardShadow(offset: 3)
     }
