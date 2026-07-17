@@ -599,6 +599,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = B008FA6C8E48CDC7EB7373D3 /* Build configuration list for PBXNativeTarget "Onda" */;
 			buildPhases = (
+				7E9DF59C34779834905E1FDD /* SwiftLint */,
 				807097C8E3BD8AF891C9A78B /* Sources */,
 				4D467B2E413C31276272FD89 /* Resources */,
 				9230168D7C78324F066ADFCB /* Frameworks */,
@@ -684,6 +685,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		7E9DF59C34779834905E1FDD /* SwiftLint */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = SwiftLint;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if which swiftlint > /dev/null; then\n  swiftlint\nelse\n  echo \"warning: SwiftLint not installed, download from https://github.com/realm/swiftlint\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		807097C8E3BD8AF891C9A78B /* Sources */ = {
