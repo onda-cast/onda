@@ -51,6 +51,18 @@ final class SubscriptionService {
         }
     }
 
+    /// Marks every episode played in one pass, then runs the retention sweep ONCE — looping
+    /// setPlayed would sweep per episode (O(n²) and could delete rows mid-iteration).
+    func markAllPlayed(for podcast: Podcast) {
+        for ep in podcast.episodes where !ep.played {
+            ep.played = true
+            ep.playedDate = .now
+            ep.playbackPosition = 0
+        }
+        try? modelContext.save()
+        retention?.evictEligibleEpisodes(for: podcast)
+    }
+
     /// Soft delete. Audio/download removal is the caller's job (DownloadManager owns files);
     /// clips always survive; the transcript survives only when `keepTranscript`.
     func archiveEpisode(_ episode: Episode, keepTranscript: Bool) {
