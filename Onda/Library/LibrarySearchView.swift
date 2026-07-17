@@ -8,6 +8,7 @@ struct LibrarySearchView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(SearchIndexBox.self) private var searchIndexBox
     @Query private var episodes: [Episode]
+    @Query(filter: #Predicate<Podcast> { $0.isSubscribed }) private var subscribedShows: [Podcast]
 
     @State private var query = ""
     @State private var hits: [TranscriptHit] = []
@@ -17,7 +18,7 @@ struct LibrarySearchView: View {
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
-                    TextField("Search transcripts", text: $query)
+                    TextField("Try: gold standard by Tracy in Odd Lots", text: $query)
                         .textInputAutocapitalization(.never)
                 }
                 .padding(.horizontal, 14).frame(height: 48)
@@ -45,7 +46,10 @@ struct LibrarySearchView: View {
                     hits = []
                     return
                 }
-                hits = TranscriptSearch(modelContext: modelContext, index: index).search(q)
+                // Natural-language path: "book mentioned by michael in odd lots" —
+                // parses show/speaker filters, lemmatizes terms, then FTS5 retrieval.
+                hits = TranscriptSearch(modelContext: modelContext, index: index)
+                    .smartSearch(q, knownShows: subscribedShows.map(\.title))
             }
         }
     }
