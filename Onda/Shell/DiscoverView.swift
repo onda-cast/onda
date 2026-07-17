@@ -15,6 +15,7 @@ struct DiscoverView: View {
     @State private var shake: ShakeState?
     @State private var shakeCount = 0
     @State private var dealID = 0   // bumps when shake results land; replays the deal-in animation
+    @FocusState private var searchFocused: Bool
 
     private static let shakeTitles = [
         "Shaken for you", "Look what rolled in", "New podcasts drifting in"
@@ -66,6 +67,9 @@ struct DiscoverView: View {
         .phaseAnimator([0, -1.6, 1.9, -1.2, 0.8, 0], trigger: shakeCount) { view, angle in
             view.rotationEffect(.degrees(angle), anchor: .center)
         } animation: { _ in .spring(duration: 0.07, bounce: 0.5) }
+        // Tapping anywhere (simultaneous so buttons still work) or scrolling dismisses the keyboard.
+        .simultaneousGesture(TapGesture().onEnded { searchFocused = false })
+        .scrollDismissesKeyboard(.immediately)
         .background(theme.color(.bg))
         .task { await loadTrending() }
         .onChange(of: query) { _, new in
@@ -85,6 +89,7 @@ struct DiscoverView: View {
             Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
             TextField("Search shows & episodes", text: $query)
                 .textInputAutocapitalization(.never)
+                .focused($searchFocused)
         }
         .padding(.horizontal, 14).frame(height: 48)
         .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
