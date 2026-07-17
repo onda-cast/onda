@@ -80,7 +80,7 @@ struct TranscriptView: View {
     private var transcriptList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                LazyVStack(alignment: .leading, spacing: 14) {
                     ForEach(Array(cues.enumerated()), id: \.offset) { i, cue in
                         Button {
                             if selecting { handleSelectionTap(i) }

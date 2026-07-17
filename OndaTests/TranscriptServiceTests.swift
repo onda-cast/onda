@@ -56,6 +56,24 @@ final class TranscriptServiceTests: XCTestCase {
         XCTAssertEqual(tr?.cues.first?.text, "On device")
     }
 
+    func test_persist_fiveThousandCues_completesQuickly() throws {
+        let ctx = try makeContext()
+        let ep = episode(in: ctx, transcriptURL: nil)
+        let svc = TranscriptService(modelContext: ctx, engine: nil,
+                                    fetch: { _ in Data() }, localURL: { _ in nil })
+        let cues = (0..<5000).map {
+            ParsedCue(startTime: Double($0), endTime: Double($0) + 1,
+                      text: "cue number \($0)", speaker: nil)
+        }
+        let start = Date()
+        let tr = svc.persist(cues: cues, for: ep, source: "published")
+        let elapsed = Date().timeIntervalSince(start)
+        XCTAssertEqual(tr.cues.count, 5000)
+        // Regression guard for the quadratic relationship-append that hung the main
+        // thread on device (watchdog kill). Generous bound: linear persist is well under it.
+        XCTAssertLessThan(elapsed, 5.0, "bulk cue persist took \(elapsed)s — quadratic regression?")
+    }
+
     func test_noPublished_noEngine_returnsNil() async throws {
         let ctx = try makeContext()
         let ep = episode(in: ctx, transcriptURL: nil)
