@@ -32,6 +32,19 @@ final class RSSFeedParserTests: XCTestCase {
         XCTAssertEqual(f.episodes[0].duration, 3723) // 1:02:03
     }
 
+    func test_notes_decodeHTMLEntities() throws {
+        let xml = """
+        <?xml version="1.0"?><rss version="2.0"><channel><title>S</title>
+        <item><title>E</title><guid>g</guid>
+        <enclosure url="https://ex.com/e.mp3" type="audio/mpeg"/>
+        <description>Stats &amp;amp; analytics &amp;mdash; it&amp;#8217;s &amp;quot;moneyball&amp;quot;&amp;hellip;</description>
+        </item></channel></rss>
+        """
+        let feed = RSSFeedParser().parse(Data(xml.utf8))
+        XCTAssertEqual(try XCTUnwrap(feed).episodes.first?.notes,
+                       "Stats & analytics \u{2014} it\u{2019}s \"moneyball\"\u{2026}")
+    }
+
     func test_parseDuration_handlesFormats() {
         XCTAssertEqual(RSSFeedParser.parseDuration("3600"), 3600)
         XCTAssertEqual(RSSFeedParser.parseDuration("02:03"), 123)
