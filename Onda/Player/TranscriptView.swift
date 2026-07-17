@@ -15,11 +15,29 @@ struct TranscriptView: View {
     @State private var selEnd: Int?
     @State private var showClipSheet = false
 
-    private var cues: [TranscriptCue] {
-        (transcript?.cues ?? []).sorted { $0.startTime < $1.startTime }
+    // Plain-value snapshot of the cues, built ONCE per transcript. Rendering must never
+    // touch (or re-sort) the SwiftData models per playback tick — that faulted thousands
+    // of models twice a second and hung the main thread on device (watchdog kill).
+    struct CueVM: Identifiable, Equatable {
+        let id: Int
+        let start: TimeInterval
+        let end: TimeInterval
+        let text: String
+        let speaker: String?
     }
+    @State private var cueVMs: [CueVM] = []
+    @State private var timeRanges: [(start: TimeInterval, end: TimeInterval)] = []
+
     private var activeIndex: Int? {
-        ActiveCue.index(at: playback.positionSeconds, cues: cues.map { ($0.startTime, $0.endTime) })
+        ActiveCue.index(at: playback.positionSeconds, cues: timeRanges)
+    }
+
+    private func snapshotCues() {
+        let sorted = (transcript?.cues ?? []).sorted { $0.startTime < $1.startTime }
+        cueVMs = sorted.enumerated().map { i, c in
+            CueVM(id: i, start: c.startTime, end: c.endTime, text: c.text, speaker: c.speaker)
+        }
+        timeRanges = cueVMs.map { ($0.start, $0.end) }
     }
 
     var body: some View {
@@ -58,8 +76,8 @@ struct TranscriptView: View {
             .sheet(isPresented: $showClipSheet, onDismiss: { selecting = false; selStart = nil; selEnd = nil }) {
                 if let r = selectionRange {
                     ClipEditSheet(episode: episode,
-                                  requestedStart: cues[r.lowerBound].startTime,
-                                  requestedEnd: cues[r.upperBound].endTime)
+                                  requestedStart: cueVMs[r.lowerBound].start,
+                                  requestedEnd: cueVMs[r.upperBound].end)
                 }
             }
         }
@@ -81,10 +99,11 @@ struct TranscriptView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
-                    ForEach(Array(cues.enumerated()), id: \.offset) { i, cue in
+                    ForEach(cueVMs) { cue in
+                        let i = cue.id
                         Button {
                             if selecting { handleSelectionTap(i) }
-                            else { playback.seek(toFraction: cue.startTime / max(1, episode.duration)) }
+                            else { playback.seek(toFraction: cue.start / max(1, episode.duration)) }
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 if let s = cue.speaker {
@@ -149,6 +168,7 @@ struct TranscriptView: View {
         if episode.transcript != nil || episode.transcriptURL != nil {
             loading = true
             transcript = await transcripts.transcript(for: episode)
+            snapshotCues()
             loading = false
         }
     }
@@ -157,6 +177,7 @@ struct TranscriptView: View {
         guard await TranscriptService.requestSpeechAuthorization() else { return }
         transcribing = true
         transcript = await transcripts.transcript(for: episode)
+        snapshotCues()
         transcribing = false
     }
 }
