@@ -123,6 +123,11 @@ struct TranscriptView: View {
     private var emptyState: some View {
         VStack(spacing: 14) {
             Text("No transcript available").foregroundStyle(theme.color(.textTertiary))
+            if let failure = transcripts.lastFailure[episode.guid] {
+                Text(failure)
+                    .font(.system(size: 13)).multilineTextAlignment(.center)
+                    .foregroundStyle(.red).padding(.horizontal, 24)
+            }
             if transcripts.canTranscribeOnDevice(episode) {
                 Button("Transcribe episode") { Task { await transcribe() } }
                     .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
