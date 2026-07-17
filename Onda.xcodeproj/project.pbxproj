@@ -26,6 +26,7 @@
 		3372A46B0B026B1B9D03CF76 /* DownloadedFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17790937A7B431A19F327E1 /* DownloadedFile.swift */; };
 		3905F44B0C6212DB3D4BFD95 /* DownloadState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1F9BB0E871FB11D09BC5367 /* DownloadState.swift */; };
 		391593E2D7A4313CEBBC4D20 /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE2B49FBD5405DE238541D8 /* NowPlayingView.swift */; };
+		39505CE1D44F45DED3AAD581 /* SearchIndexBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368C79C69446D4484367A9AD /* SearchIndexBox.swift */; };
 		398589EBC0C1BEA39A1F315D /* ChapterFetcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC73D73042EFA6EC9C639B5 /* ChapterFetcherTests.swift */; };
 		4202299A935C6A8B1C29A4D7 /* SpeechEngineReproTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027D2498D259920B8FD7659E /* SpeechEngineReproTests.swift */; };
 		42F19E0B54AC90908C12D1C7 /* ClipEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93942D719E2A7F24435D23FB /* ClipEditSheet.swift */; };
@@ -149,6 +150,7 @@
 		30A2540F9C13B4E709BA6570 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		325070FC3907EFEC82D6435F /* Episode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Episode.swift; sourceTree = "<group>"; };
 		34C33A334266DCF78E6FF739 /* itunes_search.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = itunes_search.json; sourceTree = "<group>"; };
+		368C79C69446D4484367A9AD /* SearchIndexBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchIndexBox.swift; sourceTree = "<group>"; };
 		3755FD31224D33A231E6B9D4 /* FeedFetching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedFetching.swift; sourceTree = "<group>"; };
 		3918C3B972CAA4CCA5678FFE /* Onda.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Onda.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D08E840362422D0CB05A96C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -438,6 +440,7 @@
 			isa = PBXGroup;
 			children = (
 				1CAB8D3C346E8233D34F96B4 /* SearchIndex.swift */,
+				368C79C69446D4484367A9AD /* SearchIndexBox.swift */,
 			);
 			path = Search;
 			sourceTree = "<group>";
@@ -718,6 +721,7 @@
 				029DFFBB6A70763A48064350 /* RSSFeedParser.swift in Sources */,
 				9564DB2BBF45807965A37B62 /* RootView.swift in Sources */,
 				5E961343C1E9A290F3776D26 /* SearchIndex.swift in Sources */,
+				39505CE1D44F45DED3AAD581 /* SearchIndexBox.swift in Sources */,
 				F8112CCD4BFC192E00FC7B69 /* SegmentedRow.swift in Sources */,
 				78C50A91BD56CB1F74763998 /* ShowCard.swift in Sources */,
 				C4C5120BA3D15BB3B79D6421 /* ShowSettings.swift in Sources */,
