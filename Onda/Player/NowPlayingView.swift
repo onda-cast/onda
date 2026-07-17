@@ -72,6 +72,7 @@ struct NowPlayingView: View {
             Spacer()
             SleepTimerMenu()
             Button { showTranscript = true } label: { Image(systemName: "text.quote").font(.system(size: 16, weight: .bold)) }
+                .accessibilityIdentifier("transcript-button")
             Button { showQueue = true } label: { Image(systemName: "list.bullet").font(.system(size: 16, weight: .bold)) }
             Button { showSettings = true } label: { Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold)) }
         }

@@ -27,9 +27,16 @@ struct TranscriptView: View {
     }
     @State private var cueVMs: [CueVM] = []
     @State private var timeRanges: [(start: TimeInterval, end: TimeInterval)] = []
+    @State private var lastUserScrollAt: Date = .distantPast
+
+    // Highlight only applies when THIS episode is the one loaded in the player.
+    private var isCurrentEpisode: Bool { playback.currentEpisode?.guid == episode.guid }
+    // Auto-scroll only while it's actually playing, and never while the user is reading around.
+    private var isFollowing: Bool { isCurrentEpisode && playback.isPlaying }
 
     private var activeIndex: Int? {
-        ActiveCue.index(at: playback.positionSeconds, cues: timeRanges)
+        guard isCurrentEpisode else { return nil }
+        return ActiveCue.index(at: playback.positionSeconds, cues: timeRanges)
     }
 
     private func snapshotCues() {
@@ -124,8 +131,20 @@ struct TranscriptView: View {
                     }
                 }.padding(20)
             }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 10).onChanged { _ in lastUserScrollAt = .now }
+            )
             .onChange(of: activeIndex) { _, new in
-                if let new { withAnimation { proxy.scrollTo(new, anchor: .center) } }
+                guard let new, isFollowing,
+                      Date.now.timeIntervalSince(lastUserScrollAt) > 4 else { return }
+                withAnimation { proxy.scrollTo(new, anchor: .center) }
+            }
+            .onChange(of: cueVMs.count) { _, _ in
+                // Jump to the currently-playing line as soon as cues are available.
+                if let i = activeIndex { proxy.scrollTo(i, anchor: .center) }
+            }
+            .onAppear {
+                if let i = activeIndex { proxy.scrollTo(i, anchor: .center) }
             }
         }
     }
