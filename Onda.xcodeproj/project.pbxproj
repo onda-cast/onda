@@ -192,6 +192,7 @@
 		C117123B460457FF09056145 /* AppearanceProbeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceProbeUITests.swift; sourceTree = "<group>"; };
 		C1609FCC4157FDBE3595D980 /* FeedRefreshService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRefreshService.swift; sourceTree = "<group>"; };
 		C1F9BB0E871FB11D09BC5367 /* DownloadState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadState.swift; sourceTree = "<group>"; };
+		C3F418D8F0B32743930B5D15 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C56597246CCC6EC9FC34A3C6 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 		C5A676C4BB0A69A0343594E4 /* feed_basic.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = feed_basic.xml; sourceTree = "<group>"; };
 		C792A2C9B971CE0D7699E235 /* EpisodeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodeRow.swift; sourceTree = "<group>"; };
@@ -415,6 +416,7 @@
 		E1A4F456370C300061ABA755 /* Onda */ = {
 			isa = PBXGroup;
 			children = (
+				C3F418D8F0B32743930B5D15 /* Info.plist */,
 				8C1426D72C602B5DCF50A4F7 /* OndaApp.swift */,
 				B2D0CE45EE71672F6AE047A7 /* UITestSeed.swift */,
 				2B17C787F5BC7D0250F680A4 /* Clips */,
@@ -753,7 +755,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = com.onda.refresh;
+				INFOPLIST_FILE = Onda/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Onda;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Onda transcribes downloaded episodes on your device so you can read and search them.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -869,7 +871,6 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.1.0;
@@ -905,7 +906,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = com.onda.refresh;
+				INFOPLIST_FILE = Onda/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Onda;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Onda transcribes downloaded episodes on your device so you can read and search them.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -967,7 +968,6 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.1.0;

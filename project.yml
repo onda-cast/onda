@@ -10,7 +10,6 @@ settings:
     DEVELOPMENT_TEAM: Z3GNZJ5348
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_UILaunchScreen_Generation: YES
-    INFOPLIST_KEY_UIBackgroundModes: audio
     CURRENT_PROJECT_VERSION: "1"
     MARKETING_VERSION: "0.1.0"
 targets:
@@ -18,10 +17,16 @@ targets:
     type: application
     platform: iOS
     sources: [Onda]
+    # INFOPLIST_KEY_* cannot express array-valued plist keys (UIBackgroundModes,
+    # BGTaskSchedulerPermittedIdentifiers) — they were silently ignored. Real plist entries:
+    info:
+      path: Onda/Info.plist
+      properties:
+        UIBackgroundModes: [audio]
+        BGTaskSchedulerPermittedIdentifiers: [com.onda.refresh]
     settings:
       base:
         INFOPLIST_KEY_CFBundleDisplayName: Onda
-        INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers: com.onda.refresh
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Onda transcribes downloaded episodes on your device so you can read and search them."
   OndaTests:
     type: bundle.unit-test
