@@ -10,6 +10,8 @@ final class FeedRefreshService {
     private let modelContext: ModelContext
     private let subscriptions: SubscriptionService
     private let downloads: DownloadManager
+    private var lastRefresh: Date = .distantPast
+    static let minRefreshInterval: TimeInterval = 15 * 60
 
     init(modelContext: ModelContext, subscriptions: SubscriptionService, downloads: DownloadManager) {
         self.modelContext = modelContext
@@ -21,7 +23,10 @@ final class FeedRefreshService {
         podcast.episodes.filter { !knownGuids.contains($0.guid) }
     }
 
-    func refreshAll() async {
+    func refreshAll(force: Bool = false) async {
+        // Foregrounding the app shouldn't re-parse every feed each time — throttle to 15 min.
+        guard force || Date.now.timeIntervalSince(lastRefresh) > Self.minRefreshInterval else { return }
+        lastRefresh = .now
         let d = FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed })
         let podcasts = (try? modelContext.fetch(d)) ?? []
         for podcast in podcasts {

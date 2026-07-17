@@ -86,6 +86,9 @@ final class DownloadManager: NSObject {
     }
 
     func updateProgress(guid: String, progress: Double) {
+        // Throttle: delegate fires every few KB; re-rendering observers hundreds of times
+        // per second makes the whole app feel sluggish during downloads.
+        if case .downloading(let prev) = states[guid] ?? .none, abs(progress - prev) < 0.01 { return }
         states[guid] = .downloading(progress: progress)
     }
 
