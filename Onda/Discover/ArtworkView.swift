@@ -25,8 +25,8 @@ struct ArtworkView: View {
 
     private var gradient: some View {
         LinearGradient(
-            colors: [Color(hue: hue / 360, saturation: 0.35, brightness: theme.appearance == .dark ? 0.32 : 0.82),
-                     Color(hue: hue / 360, saturation: 0.30, brightness: theme.appearance == .dark ? 0.24 : 0.72)],
+            colors: [Color(hue: hue / 360, saturation: 0.35, brightness: theme.resolvedAppearance == .dark ? 0.32 : 0.82),
+                     Color(hue: hue / 360, saturation: 0.30, brightness: theme.resolvedAppearance == .dark ? 0.24 : 0.72)],
             startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 }

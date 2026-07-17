@@ -13,6 +13,7 @@ struct EpisodeListView: View {
     @Environment(\.dismiss) private var dismiss
     let podcast: Podcast
     @State private var showSettings = false
+    @State private var showTranscripts = false
     @State private var filter: EpisodeFilter = .downloaded
     @State private var query = ""
     @State private var results: [EpisodeSearchResult] = []
@@ -113,10 +114,15 @@ struct EpisodeListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                Button { showTranscripts = true } label: { Image(systemName: "text.quote") }
+                    .accessibilityLabel("Browse transcripts")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button { showSettings = true } label: { Image(systemName: "gearshape") }
             }
         }
         .sheet(isPresented: $showSettings) { ShowSettingsSheet(podcast: podcast) }
+        .sheet(isPresented: $showTranscripts) { ShowTranscriptsView(podcast: podcast) }
         .onChange(of: query) { _, _ in runSearch() }
     }
 

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(AppTheme.self) private var theme
+    @State private var showClips = false
 
     var body: some View {
         NavigationStack {
@@ -13,14 +14,12 @@ struct ProfileView: View {
 
                     Text("Appearance").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
                     BrutalCard {
-                        HStack {
-                            Text("Light / Dark").font(.system(size: 16, weight: .semibold))
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Theme").font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(theme.color(.text))
-                            Spacer()
-                            Toggle("", isOn: Binding(
-                                get: { theme.appearance == .dark },
-                                set: { _ in theme.toggle() }
-                            )).labelsHidden().tint(theme.color(.accent))
+                            SegmentedRow(options: [("System", Appearance.system),
+                                                   ("Light", .light), ("Dark", .dark)],
+                                         selection: theme.appearance) { theme.setAppearance($0) }
                         }
                         .padding(16)
                     }
@@ -28,6 +27,9 @@ struct ProfileView: View {
                     RetentionSettingsSection()
 
                     Text("General").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
+                    BrutalCard {
+                        Button { showClips = true } label: { row("Saved Clips") }.buttonStyle(.plain)
+                    }
                     BrutalCard { navRow("Podcast Settings", destination: PodcastSettingsListView()) }
                     BrutalCard { navRow("Downloads & Storage", destination: DownloadsStorageView()) }
                 }
@@ -36,19 +38,22 @@ struct ProfileView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(theme.color(.bg))
+            .sheet(isPresented: $showClips) { ClipsView() }
         }
     }
 
-    private func navRow(_ title: String, destination: some View) -> some View {
-        NavigationLink(destination: destination) {
-            HStack {
-                Text(title).font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(theme.color(.text))
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(theme.color(.textTertiary))
-            }
-            .padding(16)
+    private func row(_ title: String) -> some View {
+        HStack {
+            Text(title).font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(theme.color(.text))
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundStyle(theme.color(.textTertiary))
         }
+        .padding(16)
+    }
+
+    private func navRow(_ title: String, destination: some View) -> some View {
+        NavigationLink(destination: destination) { row(title) }
     }
 }

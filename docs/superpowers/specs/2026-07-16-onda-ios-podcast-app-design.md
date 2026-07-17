@@ -368,3 +368,27 @@ customized.
 
 **Out of scope:** storage-size-based caps (bytes), per-episode retention pins ("never delete this
 one"), and auto-archive of un-downloaded old episodes.
+
+## Misc Polish Addendum (added 2026-07-17)
+
+Seven small UX fixes, one branch:
+
+- **Follow button wrap** — `TrendingRow`'s Follow/Following pill is pinned to one line
+  (`lineLimit(1).fixedSize()`); long titles truncate instead of shoving the button to two rows.
+- **Library filter scroll hint** — the horizontal Unplayed/Downloaded/… scroller gets a trailing
+  fade mask so off-screen chips are discoverable.
+- **System theme** — `Appearance` gains `.system` (the default for fresh installs). `AppTheme`
+  keeps the stored preference and resolves `.system` against the live device scheme, fed in by a
+  `SystemSchemeBridge` root modifier reading `@Environment(\.colorScheme)`. `colorScheme` returns
+  nil for system (SwiftUI follows the device); `color()` uses `resolvedAppearance`. Profile shows a
+  System/Light/Dark segmented control.
+- **Downloads & Storage restyle + breakdown** — neo-brutalist rebuild. A `StorageCalculator` (pure,
+  unit-tested) computes audio bytes (real file sizes) vs. transcript bytes (estimated from cue
+  UTF-8 length), overall and per podcast. Top: a proportional type bar + legend + Clear Audio /
+  Clear Transcripts (confirmed). Below: per-podcast cards with a menu to delete that show's
+  downloads or transcripts. Deleting downloads frees audio only (episode stays streamable).
+- **Show transcript browser** — a `text.quote` toolbar button on the podcast screen opens
+  `ShowTranscriptsView`: a searchable list of that show's transcripts (search over cue text with a
+  matched snippet), tapping opens the existing `TranscriptView`.
+- **Clips discoverability** — the Library entry keeps its bookmark but is labelled "CLIPS" (accessibility
+  label preserved as "Clips" for existing UI tests), and Profile gains a "Saved Clips" row.
