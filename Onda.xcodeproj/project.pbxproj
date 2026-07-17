@@ -44,6 +44,7 @@
 		6F663B2EBE40D001D9C4CD7A /* FeedRefreshServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A438C9713DECE88526A93F4D /* FeedRefreshServiceTests.swift */; };
 		704D55B56F96BA2997EBAA9C /* OndaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1426D72C602B5DCF50A4F7 /* OndaApp.swift */; };
 		722AF450B80687A094B08684 /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E7D73117D054CD51D1A7E7 /* DownloadManager.swift */; };
+		72982ABA2D7EC75720B4BEF8 /* UITestSeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D0CE45EE71672F6AE047A7 /* UITestSeed.swift */; };
 		78C50A91BD56CB1F74763998 /* ShowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 421075011CD9ACC11AC9E688 /* ShowCard.swift */; };
 		79124B9489A4D77E1F6D7025 /* ITunesSearchClientBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2CF0359FFD2A2518DFC0CFC /* ITunesSearchClientBox.swift */; };
 		7A6EAA5D11DC0D5777865B37 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7D89A90138AEE75E6CA063 /* ModelTests.swift */; };
@@ -73,6 +74,7 @@
 		AC8BFE08CC7BB14BB4BCEF06 /* PlayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF527AF76929ACA91A63D7 /* PlayerEngine.swift */; };
 		AF097E07975F74F4EA8226D5 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20505A324537A29B2E603405 /* ProfileView.swift */; };
 		AFCEA49459314178CF2BD336 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D08E840362422D0CB05A96C /* Theme.swift */; };
+		B55EAF0466798DD45EC1BFD1 /* ClipShareUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 614D7FDBFE03DB9BE928110D /* ClipShareUITests.swift */; };
 		B76FE3AFC6105791CB1F8EE7 /* AdWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB76E9F921E83B4F3D008312 /* AdWindowTests.swift */; };
 		B8A8966E10D6A300EDCD78B3 /* RSSFeedParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A314E30235A9437DD24EB94A /* RSSFeedParserTests.swift */; };
 		BA5A213ABE3A407DB6C4B4E8 /* ITunesSearchClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E11F07C519566716B0038C8 /* ITunesSearchClient.swift */; };
@@ -92,6 +94,7 @@
 		E10FE48367E1073EB58FC0D9 /* Chapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B66F7F8374B5A6DA938F1481 /* Chapter.swift */; };
 		E46FC800AB3C3970E7ABFF1A /* ClipTextSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19797BCDC2764A9E884552A8 /* ClipTextSnapshot.swift */; };
 		EBF3D546A8A34C903BA08430 /* TrendingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724742E0E1635727F2999811 /* TrendingRow.swift */; };
+		EE0DD6B7A6CAB3E4DF728838 /* uitest-audio.aiff in Resources */ = {isa = PBXBuildFile; fileRef = 3F65138271FBACF93B441DAA /* uitest-audio.aiff */; };
 		F339BE46425621A1A28C19E7 /* AdWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1167AF2050B72699C1A53695 /* AdWindow.swift */; };
 		F8112CCD4BFC192E00FC7B69 /* SegmentedRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81E6C698734C534FA80E44B /* SegmentedRow.swift */; };
 		F8BF36096CD22B461C04864C /* Transcript.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9F3DA6972693D50DE7CDD1 /* Transcript.swift */; };
@@ -99,6 +102,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		7977C6FDEC67555E3A524975 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 86139A9B98638067083C045F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EF10DE9A791D5F09D76BB40D;
+			remoteInfo = Onda;
+		};
 		EAFA81C4FB27498B32384075 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 86139A9B98638067083C045F /* Project object */;
@@ -131,6 +141,7 @@
 		3918C3B972CAA4CCA5678FFE /* Onda.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Onda.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D08E840362422D0CB05A96C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		3EE2B49FBD5405DE238541D8 /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
+		3F65138271FBACF93B441DAA /* uitest-audio.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = "uitest-audio.aiff"; sourceTree = "<group>"; };
 		421075011CD9ACC11AC9E688 /* ShowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowCard.swift; sourceTree = "<group>"; };
 		469CC05685CD4AF03D586364 /* SubscriptionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionServiceTests.swift; sourceTree = "<group>"; };
 		4981733BFE82B20F4431CC7B /* ModelSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelSchema.swift; sourceTree = "<group>"; };
@@ -139,6 +150,7 @@
 		57DEEC394467B44E80611FEE /* ClipExporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipExporterTests.swift; sourceTree = "<group>"; };
 		5AC73D73042EFA6EC9C639B5 /* ChapterFetcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterFetcherTests.swift; sourceTree = "<group>"; };
 		5E11F07C519566716B0038C8 /* ITunesSearchClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ITunesSearchClient.swift; sourceTree = "<group>"; };
+		614D7FDBFE03DB9BE928110D /* ClipShareUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipShareUITests.swift; sourceTree = "<group>"; };
 		64BB3761E9D6DB90106AE150 /* feed_messy.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = feed_messy.xml; sourceTree = "<group>"; };
 		67CE2B1E3EF1BFC12BF71E97 /* ParsedCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsedCue.swift; sourceTree = "<group>"; };
 		706BE42C701B0693B6E11502 /* DownloadStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadStateTests.swift; sourceTree = "<group>"; };
@@ -161,7 +173,9 @@
 		A438C9713DECE88526A93F4D /* FeedRefreshServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRefreshServiceTests.swift; sourceTree = "<group>"; };
 		A9E0512972681EB4C4F71DA9 /* QueueItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueItem.swift; sourceTree = "<group>"; };
 		AB38DA8A4E82A891E4D93ACD /* ITunesSearchClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ITunesSearchClientTests.swift; sourceTree = "<group>"; };
+		AE2BCDEF6F50433DB4E50086 /* OndaUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OndaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B17790937A7B431A19F327E1 /* DownloadedFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadedFile.swift; sourceTree = "<group>"; };
+		B2D0CE45EE71672F6AE047A7 /* UITestSeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestSeed.swift; sourceTree = "<group>"; };
 		B304337388F8B89323A7B254 /* ClipTextSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipTextSnapshotTests.swift; sourceTree = "<group>"; };
 		B5E7D73117D054CD51D1A7E7 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		B66F7F8374B5A6DA938F1481 /* Chapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chapter.swift; sourceTree = "<group>"; };
@@ -290,6 +304,14 @@
 			path = Discover;
 			sourceTree = "<group>";
 		};
+		49CB63BD196A47E3A7289668 /* OndaUITests */ = {
+			isa = PBXGroup;
+			children = (
+				614D7FDBFE03DB9BE928110D /* ClipShareUITests.swift */,
+			);
+			path = OndaUITests;
+			sourceTree = "<group>";
+		};
 		62AF7A424789E5EA5209D893 /* Shell */ = {
 			isa = PBXGroup;
 			children = (
@@ -362,6 +384,7 @@
 			children = (
 				E1A4F456370C300061ABA755 /* Onda */,
 				F6DE9B703BCC4E04F8CB016B /* OndaTests */,
+				49CB63BD196A47E3A7289668 /* OndaUITests */,
 				A03170A6E38D8372CEDADE8F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -371,6 +394,7 @@
 			children = (
 				3918C3B972CAA4CCA5678FFE /* Onda.app */,
 				CCED420BAEC9D54A817C10D7 /* OndaTests.xctest */,
+				AE2BCDEF6F50433DB4E50086 /* OndaUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -379,6 +403,7 @@
 			isa = PBXGroup;
 			children = (
 				8C1426D72C602B5DCF50A4F7 /* OndaApp.swift */,
+				B2D0CE45EE71672F6AE047A7 /* UITestSeed.swift */,
 				2B17C787F5BC7D0250F680A4 /* Clips */,
 				47FB79BAA6264D3708582688 /* Discover */,
 				2FA220E68F12A828B8DD312E /* Downloads */,
@@ -388,6 +413,7 @@
 				43CFA085C1ECB4B30C71433F /* Playback */,
 				86251BCA2304D2F53939E486 /* Player */,
 				E3886E559BD26D1880EC1EA7 /* Profile */,
+				E238F114F6D3B3E0FBEFD679 /* Resources */,
 				01B612EA751E2AAE112F201A /* Services */,
 				6CF24D10569B0E23B6AF4F3D /* Settings */,
 				62AF7A424789E5EA5209D893 /* Shell */,
@@ -395,6 +421,14 @@
 				7B804F243213C425C1A4BB99 /* Transcription */,
 			);
 			path = Onda;
+			sourceTree = "<group>";
+		};
+		E238F114F6D3B3E0FBEFD679 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3F65138271FBACF93B441DAA /* uitest-audio.aiff */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		E3886E559BD26D1880EC1EA7 /* Profile */ = {
@@ -447,6 +481,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		566F11F5899590F499C4A57B /* OndaUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B509C5B51B0F81D67EDC3067 /* Build configuration list for PBXNativeTarget "OndaUITests" */;
+			buildPhases = (
+				D6E1D4CE4C812CA0F1B22784 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AE15D57852E9794CAA2C8368 /* PBXTargetDependency */,
+			);
+			name = OndaUITests;
+			packageProductDependencies = (
+			);
+			productName = OndaUITests;
+			productReference = AE2BCDEF6F50433DB4E50086 /* OndaUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		63AFADB6FB91A104458E6FB3 /* OndaTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4F2F5610DE1390A02C133C78 /* Build configuration list for PBXNativeTarget "OndaTests" */;
@@ -471,6 +523,7 @@
 			buildConfigurationList = B008FA6C8E48CDC7EB7373D3 /* Build configuration list for PBXNativeTarget "Onda" */;
 			buildPhases = (
 				807097C8E3BD8AF891C9A78B /* Sources */,
+				4D467B2E413C31276272FD89 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -492,6 +545,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					566F11F5899590F499C4A57B = {
+						TestTargetID = EF10DE9A791D5F09D76BB40D;
+					};
 				};
 			};
 			buildConfigurationList = C9F3CE28C3B34E2403E6EFD0 /* Build configuration list for PBXProject "Onda" */;
@@ -510,11 +566,20 @@
 			targets = (
 				EF10DE9A791D5F09D76BB40D /* Onda */,
 				63AFADB6FB91A104458E6FB3 /* OndaTests */,
+				566F11F5899590F499C4A57B /* OndaUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		4D467B2E413C31276272FD89 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EE0DD6B7A6CAB3E4DF728838 /* uitest-audio.aiff in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		93FC32A89954DFBA328A8114 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -597,6 +662,7 @@
 				1E538B298E30CE4E89A8033C /* TranscriptService.swift in Sources */,
 				CEBC2508AAB5FE11728B86C3 /* TranscriptView.swift in Sources */,
 				EBF3D546A8A34C903BA08430 /* TrendingRow.swift in Sources */,
+				72982ABA2D7EC75720B4BEF8 /* UITestSeed.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -628,6 +694,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D6E1D4CE4C812CA0F1B22784 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B55EAF0466798DD45EC1BFD1 /* ClipShareUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -635,6 +709,11 @@
 			isa = PBXTargetDependency;
 			target = EF10DE9A791D5F09D76BB40D /* Onda */;
 			targetProxy = EAFA81C4FB27498B32384075 /* PBXContainerItemProxy */;
+		};
+		AE15D57852E9794CAA2C8368 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EF10DE9A791D5F09D76BB40D /* Onda */;
+			targetProxy = 7977C6FDEC67555E3A524975 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -657,6 +736,22 @@
 			};
 			name = Release;
 		};
+		529CA9335067B390563E918C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.onda.OndaUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Onda;
+			};
+			name = Debug;
+		};
 		56802B77DD45CB72DE2995D0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -670,6 +765,22 @@
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Onda.app/Onda";
+			};
+			name = Release;
+		};
+		62100ED448DB1651E225150E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.onda.OndaUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Onda;
 			};
 			name = Release;
 		};
@@ -853,6 +964,15 @@
 			buildConfigurations = (
 				E0CE3F743360F5353C266483 /* Debug */,
 				189045D0BF274ACC6A00DF01 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B509C5B51B0F81D67EDC3067 /* Build configuration list for PBXNativeTarget "OndaUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				529CA9335067B390563E918C /* Debug */,
+				62100ED448DB1651E225150E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

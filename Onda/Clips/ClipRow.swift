@@ -23,7 +23,8 @@ struct ClipRow: View {
                 }
                 Spacer()
                 Button(action: onShare) {
-                    Image(systemName: "square.and.arrow.up").font(.system(size: 14))
+                    Image(systemName: "square.and.arrow.up").accessibilityLabel("Share clip")
+                        .font(.system(size: 14))
                         .foregroundStyle(theme.color(.text)).frame(width: 32, height: 32)
                         .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                 }.buttonStyle(.plain)
