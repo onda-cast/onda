@@ -26,7 +26,11 @@ struct RootView: View {
                 tabBar
             }
         }
-        .fullScreenCover(isPresented: $nowPlayingOpen) { NowPlayingView() }
+        .sheet(isPresented: $nowPlayingOpen) {
+            NowPlayingView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)   // swipe-down works; the ⌄ button stays the visual affordance
+        }
     }
 
     private var tabBar: some View {

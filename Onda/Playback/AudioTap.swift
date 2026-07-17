@@ -1,6 +1,9 @@
 //  AudioTap.swift
 import AVFoundation
 import Accelerate
+import os
+
+let tapLog = Logger(subsystem: "com.chasegilliam.Onda", category: "audiotap")
 
 final class AudioTap {
     // Boxed state the C callbacks read/write via the tap's clientInfo.
@@ -10,6 +13,8 @@ final class AudioTap {
         var gain: Float = 1.0
         var onRMS: (@Sendable (Float, Double) -> Void)?
         var sampleRate: Double = 44_100
+        var isFloat: Bool = true
+        var lastRMSLog: Double = 0     // throttled diagnostics
     }
     let storage = Storage()
     private(set) var audioMix: AVAudioMix?
@@ -56,7 +61,10 @@ private func tapPrepare(_ tap: MTAudioProcessingTap, _ maxFrames: CMItemCount,
                         _ format: UnsafePointer<AudioStreamBasicDescription>) {
     let raw = MTAudioProcessingTapGetStorage(tap)
     let storage = Unmanaged<AudioTap.Storage>.fromOpaque(raw).takeUnretainedValue()
-    storage.sampleRate = format.pointee.mSampleRate
+    let f = format.pointee
+    storage.sampleRate = f.mSampleRate
+    storage.isFloat = (f.mFormatFlags & kAudioFormatFlagIsFloat) != 0
+    tapLog.info("tap prepared: sampleRate=\(f.mSampleRate) float=\(storage.isFloat) bits=\(f.mBitsPerChannel) channels=\(f.mChannelsPerFrame) flags=\(f.mFormatFlags)")
 }
 
 private func tapProcess(_ tap: MTAudioProcessingTap, _ numberFrames: CMItemCount,
@@ -71,6 +79,14 @@ private func tapProcess(_ tap: MTAudioProcessingTap, _ numberFrames: CMItemCount
     let storage = Unmanaged<AudioTap.Storage>.fromOpaque(raw).takeUnretainedValue()
     let gain = storage.gain
 
+    guard storage.isFloat else {
+        // Non-float pipeline: our vDSP math would read garbage. Log once per second so
+        // device diagnostics reveal it, and pass audio through untouched.
+        let now = CFAbsoluteTimeGetCurrent()
+        if now - storage.lastRMSLog > 1 { storage.lastRMSLog = now; tapLog.error("tap: non-float format, DSP bypassed") }
+        return
+    }
+
     let abl = UnsafeMutableAudioBufferListPointer(bufferListInOut)
     var sumRMS: Float = 0; var bufCount = 0
     for buffer in abl {
@@ -83,6 +99,11 @@ private func tapProcess(_ tap: MTAudioProcessingTap, _ numberFrames: CMItemCount
     }
     let avgRMS = bufCount > 0 ? sumRMS / Float(bufCount) : 0
     let seconds = Double(numberFrames) / storage.sampleRate
+    let now = CFAbsoluteTimeGetCurrent()
+    if now - storage.lastRMSLog > 1 {
+        storage.lastRMSLog = now
+        tapLog.info("tap rms=\(avgRMS, format: .fixed(precision: 5)) gain=\(gain)")
+    }
     if let cb = storage.onRMS {
         DispatchQueue.main.async { cb(avgRMS, seconds) }
     }

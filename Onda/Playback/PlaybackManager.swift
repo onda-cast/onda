@@ -27,6 +27,7 @@ final class PlaybackManager {
         engine.onRMS = { [weak self] rms, secs in
             guard let self, self.settings?.skipSilence == true else { return }
             if let skip = self.silence.consume(rms: rms, bufferSeconds: secs) {
+                tapLog.info("skip-silence triggered: jumping \(skip.seconds, format: .fixed(precision: 2))s")
                 self.skip(by: skip.seconds)
             }
         }
