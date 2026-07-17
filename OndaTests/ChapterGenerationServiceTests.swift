@@ -31,10 +31,12 @@ final class ChapterGenerationServiceTests: XCTestCase {
         let ctx = try makeContext()
         let ep = episode(in: ctx)
         let stub = StubGenerator(result: .success([]))
-        let withText = ChapterGenerationService(modelContext: ctx, generator: stub, transcriptText: { _ in "hello" })
+        let withText = ChapterGenerationService(modelContext: ctx, generator: stub,
+                                                 hasTranscript: { _ in true }, transcriptText: { _ in "hello" })
         XCTAssertTrue(withText.canGenerate(ep))
 
-        let noText = ChapterGenerationService(modelContext: ctx, generator: stub, transcriptText: { _ in nil })
+        let noText = ChapterGenerationService(modelContext: ctx, generator: stub,
+                                               hasTranscript: { _ in false }, transcriptText: { _ in nil })
         XCTAssertFalse(noText.canGenerate(ep))
 
         ep.chapters.append(Chapter(title: "Existing", startTime: 0))
@@ -48,7 +50,8 @@ final class ChapterGenerationServiceTests: XCTestCase {
             ParsedChapter(title: "Intro", startTime: 0, isAd: true),   // model can't claim ad — must be forced false
             ParsedChapter(title: "Main topic", startTime: 300, isAd: false),
         ]))
-        let svc = ChapterGenerationService(modelContext: ctx, generator: stub, transcriptText: { _ in "a transcript" })
+        let svc = ChapterGenerationService(modelContext: ctx, generator: stub,
+                                            hasTranscript: { _ in true }, transcriptText: { _ in "a transcript" })
         let chapters = await svc.generate(for: ep)
         XCTAssertEqual(chapters?.count, 2)
         XCTAssertEqual(ep.chapters.count, 2)
@@ -59,7 +62,8 @@ final class ChapterGenerationServiceTests: XCTestCase {
         let ctx = try makeContext()
         let ep = episode(in: ctx)
         let stub = StubGenerator(result: .failure(ChapterGenerationError.unavailable))
-        let svc = ChapterGenerationService(modelContext: ctx, generator: stub, transcriptText: { _ in "text" })
+        let svc = ChapterGenerationService(modelContext: ctx, generator: stub,
+                                            hasTranscript: { _ in true }, transcriptText: { _ in "text" })
         let chapters = await svc.generate(for: ep)
         XCTAssertNil(chapters)
         XCTAssertNotNil(svc.lastFailure["g"])
@@ -69,7 +73,8 @@ final class ChapterGenerationServiceTests: XCTestCase {
     func test_generate_noGenerator_returnsNil() async throws {
         let ctx = try makeContext()
         let ep = episode(in: ctx)
-        let svc = ChapterGenerationService(modelContext: ctx, generator: nil, transcriptText: { _ in "text" })
+        let svc = ChapterGenerationService(modelContext: ctx, generator: nil,
+                                            hasTranscript: { _ in true }, transcriptText: { _ in "text" })
         let chapters = await svc.generate(for: ep)
         XCTAssertNil(chapters)
     }

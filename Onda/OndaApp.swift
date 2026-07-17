@@ -47,6 +47,7 @@ struct OndaApp: App {
             }()
             _chapterGen = State(initialValue: ChapterGenerationService(
                 modelContext: c.mainContext, generator: chapterGenerator,
+                hasTranscript: { ep in !(ep.transcript?.cues.isEmpty ?? true) },
                 transcriptText: { ep in
                     let cues = ep.transcript?.cues.sorted { $0.startTime < $1.startTime } ?? []
                     let joined = cues.map(\.text).joined(separator: " ")
