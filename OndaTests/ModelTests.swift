@@ -60,4 +60,18 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(s.outroTrimSec, 0)
         XCTAssertEqual(s.notifMode, "all")
     }
+
+    func test_chapter_defaultsToFeedSource() throws {
+        let ctx = try inMemoryContext()
+        let ep = Episode(guid: "g", title: "E", publishDate: .now, duration: 100,
+                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let feedChapter = Chapter(title: "Intro", startTime: 0, isAd: false)
+        let generatedChapter = Chapter(title: "AI: Setup", startTime: 120, isAd: false, source: "generated")
+        feedChapter.episode = ep; ep.chapters.append(feedChapter)
+        generatedChapter.episode = ep; ep.chapters.append(generatedChapter)
+        ctx.insert(ep); ctx.insert(feedChapter); ctx.insert(generatedChapter)
+        try ctx.save()
+        XCTAssertEqual(feedChapter.source, "feed")
+        XCTAssertEqual(generatedChapter.source, "generated")
+    }
 }
