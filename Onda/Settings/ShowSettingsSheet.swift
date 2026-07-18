@@ -78,10 +78,6 @@ struct ShowSettingsSheet: View {
                                            value: Binding(get: { s.keepTranscriptsOverride },
                                                           set: { s.keepTranscriptsOverride = $0 }))
                     }
-                    section("Notifications") {
-                        SegmentedRow(options: [("All", "all"), ("Important", "important"), ("None", "none")],
-                                     selection: s.notifMode) { s.notifMode = $0 }
-                    }
                 }
                 .padding(20)
             }
@@ -134,12 +130,24 @@ struct ShowSettingsSheet: View {
         HStack {
             Text(title).font(.system(size: 14)).foregroundStyle(theme.color(.textSecondary))
             Spacer()
-            Button("−") { value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1) }
+            stepButton("−", "Decrease \(title)") {
+                value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1)
+            }
             Text(label(value.wrappedValue)).monospacedDigit().frame(minWidth: 88)
                 .font(.system(size: 14, weight: .semibold)).foregroundStyle(theme.color(.text))
-            Button("+") { value.wrappedValue = min(range.upperBound, value.wrappedValue + 1) }
+            stepButton("+", "Increase \(title)") {
+                value.wrappedValue = min(range.upperBound, value.wrappedValue + 1)
+            }
         }
-        .foregroundStyle(theme.color(.accent)).font(.system(size: 17, weight: .semibold))
+    }
+
+    private func stepButton(_ glyph: String, _ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(glyph).font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(theme.color(.accent))
+                .frame(width: 44, height: 44).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain).accessibilityLabel(label)
     }
 
     @ViewBuilder private func section(_ title: String, @ViewBuilder _ content: () -> some View) -> some View {
@@ -154,11 +162,10 @@ struct ShowSettingsSheet: View {
     private func stepperRow(_ title: String, value: Binding<Int>) -> some View {
         HStack {
             Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text)); Spacer()
-            Button("−") { value.wrappedValue = max(0, value.wrappedValue - 5) }
+            stepButton("−", "Decrease \(title)") { value.wrappedValue = max(0, value.wrappedValue - 5) }
             Text("\(value.wrappedValue)s").monospacedDigit().frame(minWidth: 44)
-                .foregroundStyle(theme.color(.text))
-            Button("+") { value.wrappedValue = min(60, value.wrappedValue + 5) }
+                .font(.system(size: 16, weight: .semibold)).foregroundStyle(theme.color(.text))
+            stepButton("+", "Increase \(title)") { value.wrappedValue = min(60, value.wrappedValue + 5) }
         }
-        .foregroundStyle(theme.color(.accent)).font(.system(size: 18, weight: .semibold))
     }
 }

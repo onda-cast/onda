@@ -11,6 +11,7 @@ struct ClipsView: View {
     @State private var refreshKey = 0
     @State private var shareItems: ShareItems?
     @State private var exporting = false
+    @State private var exportError: String?
 
     struct ShareItems: Identifiable {
         let id = UUID()
@@ -62,8 +63,11 @@ struct ClipsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        if let url = try? MarkdownExport.writeDocument(clips: clips.allClips()) {
+                        do {
+                            let url = try MarkdownExport.writeDocument(clips: clips.allClips())
                             shareItems = ShareItems(fileURL: url, text: "Onda clips export")
+                        } catch {
+                            exportError = "Couldn't export clips: \(error.localizedDescription)"
                         }
                     } label: { Image(systemName: "square.and.arrow.up.on.square").accessibilityLabel("Export All") }
                     .disabled(clips.allClips().isEmpty)
@@ -79,6 +83,10 @@ struct ClipsView: View {
                         .padding(20).background(theme.color(.bgElevated)).brutalBorder(width: 2)
                 }
             }
+            .alert("Export failed", isPresented: Binding(get: { exportError != nil },
+                                                         set: { if !$0 { exportError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(exportError ?? "") }
         }
     }
 
@@ -90,8 +98,12 @@ struct ClipsView: View {
         })
         Task {
             defer { exporting = false }
-            guard let url = try? await exporter.export(clip: clip) else { return }
-            shareItems = ShareItems(fileURL: url, text: ClipExporter.shareText(for: clip))
+            do {
+                let url = try await exporter.export(clip: clip)
+                shareItems = ShareItems(fileURL: url, text: ClipExporter.shareText(for: clip))
+            } catch {
+                exportError = "Couldn't export this clip. If the episode isn't downloaded, try downloading it first."
+            }
         }
     }
 }

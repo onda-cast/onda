@@ -13,6 +13,9 @@ struct DiscoverView: View {
     @State private var results: [PodcastDTO] = []
     @State private var trending: [PodcastDTO] = []
     @State private var loading = false
+    @State private var searching = false
+    @State private var trendingFailed = false
+    @State private var searchFailed = false
     @State private var shake: ShakeState?
     @State private var shakeCount = 0
     @State private var dealID = 0   // bumps when shake results land; replays the deal-in animation
@@ -42,12 +45,15 @@ struct DiscoverView: View {
         dto.feedUrl.map(subscribedFeeds.contains) ?? false
     }
 
+    private var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+
     // MARK: Browse sub-tab (search, categories, trending, shake)
 
     @ViewBuilder private var browseTab: some View {
         searchField
         categoryChips
         listHeader
+        browseStatus
         Group {
             ForEach(Array(listItems.enumerated()), id: \.element.collectionId) { i, dto in
                 let row = TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) {
@@ -61,6 +67,47 @@ struct DiscoverView: View {
             }
         }
         .id(dealID)   // new identity per shake so every deal replays from the top
+    }
+
+    // Distinguish loading / error / genuinely-empty so a network failure never looks like "no results".
+    @ViewBuilder private var browseStatus: some View {
+        if isSearching {
+            if searchFailed {
+                errorRetry("Search failed — check your connection") { Task { await runSearch(query) } }
+            } else if !searching && results.isEmpty {
+                statusNote("No results for “\(query)”")
+            }
+        } else if shake == nil && trending.isEmpty {
+            if loading {
+                loadingRow("Loading trending…")
+            } else if trendingFailed {
+                errorRetry("Couldn't load trending") { Task { await loadTrending(force: true) } }
+            }
+        }
+    }
+
+    private func loadingRow(_ text: String) -> some View {
+        HStack(spacing: 8) {
+            ProgressView().tint(theme.color(.accent))
+            Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+        }.frame(maxWidth: .infinity).padding(.top, 40)
+    }
+
+    private func statusNote(_ text: String) -> some View {
+        Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+            .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 40)
+    }
+
+    private func errorRetry(_ text: String, action: @escaping () -> Void) -> some View {
+        VStack(spacing: 10) {
+            Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                .multilineTextAlignment(.center)
+            Button(action: action) {
+                Text("Retry").font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                    .padding(.horizontal, 20).padding(.vertical, 10)
+                    .background(theme.color(.accent)).brutalBorder(width: 2)
+            }.buttonStyle(.plain)
+        }.frame(maxWidth: .infinity).padding(.top, 36)
     }
 
     // MARK: For You sub-tab (recommendations)
@@ -113,8 +160,23 @@ struct DiscoverView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Discover").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
-                    .padding(.top, 56)
+                HStack {
+                    Text("Discover").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
+                    Spacer()
+                    Button { triggerShake() } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "shuffle").font(.system(size: 14, weight: .bold))
+                            Text("SHUFFLE").font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundStyle(theme.color(.textSecondary))
+                        .padding(.horizontal, 10).frame(height: 36)
+                        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Shuffle new podcasts")
+                    .accessibilityHint("Also works by shaking your phone")
+                }
+                .padding(.top, 56)
 
                 SegmentedRow(options: [("Browse", DiscoverMode.browse), ("For You", .forYou)],
                              selection: mode) { mode = $0 }
@@ -138,11 +200,7 @@ struct DiscoverView: View {
             if !new.trimmingCharacters(in: .whitespaces).isEmpty { shake = nil }
             Task { await runSearch(new) }
         }
-        .onShake {
-            mode = .browse   // shake results live in Browse
-            shakeCount += 1
-            Task { await runShake() }
-        }
+        .onShake { triggerShake() }
         .sensoryFeedback(.impact(weight: .medium), trigger: shakeCount)
         .sensoryFeedback(.success, trigger: dealID)
     }
@@ -214,8 +272,18 @@ struct DiscoverView: View {
         if names.count == 1 { return "Because you follow \(names[0])" }
         return "Because you follow \(names[0]) & \(names[1])"
     }
+}
 
-    private func runShake() async {
+// MARK: - Data loading & shake
+extension DiscoverView {
+    // Shared entry point for the shake gesture and the visible Shuffle button.
+    func triggerShake() {
+        mode = .browse   // shake results live in Browse
+        shakeCount += 1
+        Task { await runShake() }
+    }
+
+    func runShake() async {
         let followed = Array(Set(subs.map(\.category))).sorted()
         var rng = SystemRandomNumberGenerator()
         let result = await shakeSuggestions(
@@ -224,6 +292,8 @@ struct DiscoverView: View {
             subscribedFeeds: subscribedFeeds,
             using: clientBox.client,
             rng: &rng)
+        // Nothing new to show → stay on Trending rather than an empty "success" state.
+        guard !result.picks.isEmpty else { return }
         let title = Self.shakeTitles.randomElement() ?? "Shaken for you"
         withAnimation(.spring(duration: 0.35, bounce: 0.35)) {
             shake = ShakeState(picks: result.picks, categories: result.categories,
@@ -232,21 +302,29 @@ struct DiscoverView: View {
         }
     }
 
-    private func loadTrending() async {
-        guard trending.isEmpty else { return }
-        loading = true; defer { loading = false }
+    func loadTrending(force: Bool = false) async {
+        guard force || trending.isEmpty else { return }
+        loading = true; trendingFailed = false; defer { loading = false }
         do {
             let ids = try await clientBox.client.topChartIds(limit: 25)
             trending = try await clientBox.client.lookup(ids: Array(ids.prefix(20)))
-        } catch { trending = [] }
+        } catch {
+            trending = []; trendingFailed = true
+        }
     }
 
-    private func runSearch(_ term: String) async {
+    func runSearch(_ term: String) async {
         let t = term.trimmingCharacters(in: .whitespaces)
-        guard t.count >= 2 else { results = []; return }
+        guard t.count >= 2 else { results = []; searchFailed = false; return }
         try? await Task.sleep(for: .milliseconds(300))   // debounce
         guard t == query.trimmingCharacters(in: .whitespaces) else { return }
-        results = (try? await clientBox.client.search(term: t)) ?? []
-        if !results.isEmpty { recs.recordSearch(t) }   // an interest signal for future recs
+        searching = true; searchFailed = false
+        defer { searching = false }
+        do {
+            results = try await clientBox.client.search(term: t)
+            if !results.isEmpty { recs.recordSearch(t) }   // an interest signal for future recs
+        } catch {
+            results = []; searchFailed = true
+        }
     }
 }

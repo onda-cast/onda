@@ -17,7 +17,6 @@ struct NowPlayingView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                header
                 if let ep {
                     ArtworkView(url: ep.podcast?.artworkURL, seed: ep.podcast?.title ?? ep.title)
                         .frame(maxWidth: 240).aspectRatio(1, contentMode: .fit)
@@ -34,8 +33,14 @@ struct NowPlayingView: View {
                     about(ep)
                 }
             }
-            .padding(.horizontal, 24).padding(.top, 60).padding(.bottom, 20)
+            .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 20)
             .frame(maxWidth: .infinity)
+        }
+        // Header pinned so the transcript/queue/settings actions never scroll away.
+        .safeAreaInset(edge: .top) {
+            header
+                .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 8)
+                .background(theme.color(.bg))
         }
         // Scrubber + transport pinned: always on screen regardless of device height.
         .safeAreaInset(edge: .bottom) {
@@ -102,6 +107,8 @@ struct NowPlayingView: View {
                 get: { playback.progressFraction },
                 set: { playback.seek(toFraction: $0) }), in: 0...1)
             .tint(theme.color(.accent))
+            .accessibilityLabel("Playback position")
+            .accessibilityValue("\(timeStr(playback.positionSeconds)) of \(timeStr(playback.durationSeconds))")
             if let frac = downloadFraction {
                 downloadTrack(frac)
             }
@@ -137,13 +144,16 @@ struct NowPlayingView: View {
     private var transport: some View {
         HStack(spacing: 20) {
             Button { playback.skip(by: -15) } label: { skipLabel("gobackward.15") }
+                .accessibilityLabel("Skip back 15 seconds")
             Button { playback.togglePlayPause() } label: {
                 Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 36)).foregroundStyle(.white)
                     .frame(width: 96, height: 96).background(theme.color(.accent))
                     .brutalBorder(width: 3).hardShadow(offset: 5)
             }
+            .accessibilityLabel(playback.isPlaying ? "Pause" : "Play")
             Button { playback.skip(by: 30) } label: { skipLabel("goforward.30") }
+                .accessibilityLabel("Skip forward 30 seconds")
         }.buttonStyle(.plain)
     }
 
@@ -252,23 +262,27 @@ struct NowPlayingView: View {
         }.frame(maxWidth: 280, alignment: .leading)
     }
 
-    private func cycleSpeed() {
+}
+
+// MARK: - Audio-effect chips
+extension NowPlayingView {
+    func cycleSpeed() {
         let steps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
         guard let s = settings else { return }
         let i = steps.firstIndex(of: s.speed) ?? 1
         s.speed = steps[(i + 1) % steps.count]
         playback.applyAudioSettings()
     }
-    private func toggleBoost() {
+    func toggleBoost() {
         settings.map { $0.voiceBoost = ($0.voiceBoost + 1) % 3 }
         playback.applyAudioSettings()
     }
-    private func toggleSilence() {
+    func toggleSilence() {
         settings.map { $0.skipSilence.toggle() }
         playback.applyAudioSettings()
     }
 
-    private func timeStr(_ s: TimeInterval) -> String {
+    func timeStr(_ s: TimeInterval) -> String {
         let t = Int(max(0, s)); return String(format: "%d:%02d", t / 60, t % 60)
     }
 }
@@ -289,7 +303,7 @@ private struct BackToTranscriptButton: View {
             .background(theme.color(.accent)).brutalBorder(width: 2).hardShadow(offset: 3)
         }
         .buttonStyle(.plain)
-        .padding(.top, 64)
+        .padding(.top, 112)   // clear the pinned header row
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 }

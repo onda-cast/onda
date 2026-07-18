@@ -75,13 +75,25 @@ struct RetentionSettingsSection: View {
         HStack {
             Text(title).font(.system(size: 14)).foregroundStyle(theme.color(.textSecondary))
             Spacer()
-            Button("−") { value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1) }
+            stepButton("−", "Decrease \(title)") {
+                value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1)
+            }
             Text(label(value.wrappedValue)).monospacedDigit().frame(minWidth: 80)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(theme.color(.text))
-            Button("+") { value.wrappedValue = min(range.upperBound, value.wrappedValue + 1) }
+            stepButton("+", "Increase \(title)") {
+                value.wrappedValue = min(range.upperBound, value.wrappedValue + 1)
+            }
         }
-        .foregroundStyle(theme.color(.accent)).font(.system(size: 17, weight: .semibold))
         .padding(.top, 10)
+    }
+
+    private func stepButton(_ glyph: String, _ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(glyph).font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(theme.color(.accent))
+                .frame(width: 44, height: 44).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain).accessibilityLabel(label)
     }
 }

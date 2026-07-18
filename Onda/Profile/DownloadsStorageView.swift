@@ -11,6 +11,17 @@ struct DownloadsStorageView: View {
     @State private var refreshKey = 0
     @State private var confirmClearAudio = false
     @State private var confirmClearTranscripts = false
+    @State private var pendingDelete: PendingDelete?
+
+    private enum PendingDelete: Identifiable {
+        case audio(String), transcripts(String)
+        var id: String {
+            switch self {
+            case .audio(let i): return "a-\(i)"
+            case .transcripts(let i): return "t-\(i)"
+            }
+        }
+    }
 
     private var breakdown: StorageBreakdown {
         _ = refreshKey
@@ -43,6 +54,31 @@ struct DownloadsStorageView: View {
                             titleVisibility: .visible) {
             Button("Delete Transcripts", role: .destructive) { clearAllTranscripts() }
         } message: { Text("Removes saved transcripts and makes them un-searchable.") }
+        .confirmationDialog(pendingDeleteTitle,
+                            isPresented: Binding(get: { pendingDelete != nil },
+                                                 set: { if !$0 { pendingDelete = nil } }),
+                            titleVisibility: .visible, presenting: pendingDelete) { pd in
+            Button("Delete", role: .destructive) {
+                switch pd {
+                case .audio(let id): deleteAudio(id)
+                case .transcripts(let id): deleteTranscripts(id)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { pd in
+            switch pd {
+            case .audio: Text("Frees the audio. Episodes stay and can be streamed or re-downloaded.")
+            case .transcripts: Text("Removes this show's transcripts and makes them un-searchable.")
+            }
+        }
+    }
+
+    private var pendingDeleteTitle: String {
+        switch pendingDelete {
+        case .audio: return "Delete this show's downloads?"
+        case .transcripts: return "Delete this show's transcripts?"
+        case nil: return ""
+        }
     }
 
     // MARK: Type bar
@@ -109,12 +145,12 @@ struct DownloadsStorageView: View {
                 Spacer()
                 Menu {
                     if row.audioBytes > 0 {
-                        Button(role: .destructive) { deleteAudio(row.id) } label: {
+                        Button(role: .destructive) { pendingDelete = .audio(row.id) } label: {
                             Label("Delete Downloads", systemImage: "trash")
                         }
                     }
                     if row.transcriptBytes > 0 {
-                        Button(role: .destructive) { deleteTranscripts(row.id) } label: {
+                        Button(role: .destructive) { pendingDelete = .transcripts(row.id) } label: {
                             Label("Delete Transcripts", systemImage: "trash")
                         }
                     }
