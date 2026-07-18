@@ -50,4 +50,25 @@ final class ArticleExtractorTests: XCTestCase {
             XCTAssertEqual(e, .fetchFailed)
         } catch { XCTFail("unexpected error \(error)") }
     }
+
+    /// Pins the overlap fix: a second, concurrent extract() call on the SAME instance must not
+    /// orphan the first call's continuation/WKWebView (which is what happened when both were
+    /// stored as shared instance properties). Both calls share one extractor and one fixture.
+    func test_concurrentExtractCallsOnSameInstance_bothSucceed() async throws {
+        let html = try fixture("article_basic")
+        let extractor = ArticleExtractor(fetch: { _ in html })
+        async let first = extractor.extract(from: URL(string: "https://example.com/terns-1")!)
+        async let second = extractor.extract(from: URL(string: "https://example.com/terns-2")!)
+        let (articleOne, articleTwo) = try await (first, second)
+        for article in [articleOne, articleTwo] {
+            XCTAssertEqual(article.title, "The Long Migration")
+            XCTAssertTrue(article.textContent.contains("Arctic terns"))
+        }
+    }
+
+    // A hermetic test for the timeout path itself (finding 1) was considered but skipped: there's
+    // no way to inject a stalled/hanging WKWebView navigation, so pinning it would mean racing a
+    // tiny `timeout:` against real WKWebView init + local-HTML navigation time, which is
+    // non-deterministic and would be flaky in CI. The overlap test above covers finding 2, and the
+    // cancellation-handler wiring for finding 1 is exercised manually (see fix report).
 }

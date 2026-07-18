@@ -24,13 +24,14 @@ struct ExtractedArticle: Equatable, Sendable {
 
 /// Fetches a URL's HTML and runs Mozilla's Readability.js (Safari-Reader-style extraction)
 /// in an off-screen WKWebView. MainActor because WKWebView requires it.
+///
+/// Each `extract(from:)` call creates and owns its own `WKWebView` and `WebLoadDelegate` so that
+/// overlapping calls on the same instance never share mutable state (see `runReadability`).
 @MainActor
-final class ArticleExtractor: NSObject {
+final class ArticleExtractor {
     typealias Fetch = @Sendable (URL) async throws -> Data
     private let fetch: Fetch
     private let timeout: Duration
-    private var loadContinuation: CheckedContinuation<Void, Error>?
-    private var webView: WKWebView?   // retained for the duration of one extract() call
 
     // Readability(document).parse() does NOT return null for a nav-only/chrome-only page — it still
     // returns a low-content object (e.g. textContent "Home", length 4) built from whatever leftover
@@ -59,14 +60,24 @@ final class ArticleExtractor: NSObject {
     }
 
     private func runReadability(html: String, baseURL: URL) async throws -> ExtractedArticle {
+        // Local to this call: a second, concurrent extract() call on the same instance gets its own
+        // web view and delegate, so the two never race over shared continuation/webView state.
         let web = WKWebView(frame: .zero)
-        webView = web
-        web.navigationDelegate = self
-        defer { webView = nil }
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            loadContinuation = cont
-            web.loadHTMLString(html, baseURL: baseURL)
+        let delegate = WebLoadDelegate()
+        web.navigationDelegate = delegate   // navigationDelegate is weak — `delegate` above retains it.
+
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+                delegate.begin(cont)
+                web.loadHTMLString(html, baseURL: baseURL)
+            }
+        } onCancel: {
+            Task { @MainActor in
+                web.stopLoading()
+                delegate.resume(throwing: ArticleExtractionError.timeout)
+            }
         }
+
         guard let jsURL = Bundle(for: ArticleExtractor.self).url(forResource: "Readability",
                                                                  withExtension: "js"),
               let readability = try? String(contentsOf: jsURL, encoding: .utf8) else {
@@ -106,20 +117,41 @@ final class ArticleExtractor: NSObject {
     }
 }
 
-extension ArticleExtractor: WKNavigationDelegate {
+/// Owns the `CheckedContinuation` for exactly one WKWebView navigation. A single call site
+/// (`ArticleExtractor.runReadability`) creates one of these per `extract(from:)` invocation, so
+/// concurrent calls never share a continuation. The once-guard lets both the navigation callbacks
+/// and the task-cancellation handler race to resume without a double-resume crash.
+@MainActor
+private final class WebLoadDelegate: NSObject, WKNavigationDelegate {
+    private var continuation: CheckedContinuation<Void, Error>?
+
+    func begin(_ continuation: CheckedContinuation<Void, Error>) {
+        self.continuation = continuation
+    }
+
+    /// Resumes the continuation with `error` (or success if `nil`). Safe to call more than once —
+    /// only the first call has any effect — and safe to call from either a navigation delegate
+    /// callback or the cancellation handler in `runReadability`.
+    func resume(throwing error: Error? = nil) {
+        guard let continuation else { return }
+        self.continuation = nil
+        if let error {
+            continuation.resume(throwing: error)
+        } else {
+            continuation.resume()
+        }
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        loadContinuation?.resume()
-        loadContinuation = nil
+        resume()
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        loadContinuation?.resume(throwing: ArticleExtractionError.fetchFailed)
-        loadContinuation = nil
+        resume(throwing: ArticleExtractionError.fetchFailed)
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!,
                  withError error: Error) {
-        loadContinuation?.resume(throwing: ArticleExtractionError.fetchFailed)
-        loadContinuation = nil
+        resume(throwing: ArticleExtractionError.fetchFailed)
     }
 }
