@@ -167,7 +167,19 @@ struct NowPlayingView: View {
     private var chips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                Button { cycleSpeed() } label: { chip(speedLabel, active: false) }
+                // Tap cycles through speeds; long-press opens a menu to pick one directly.
+                Button { cycleSpeed() } label: { chip(speedLabel, active: (settings?.speed ?? 1) != 1) }
+                    .contextMenu {
+                        ForEach(Self.speedSteps, id: \.self) { sp in
+                            Button { setSpeed(sp) } label: {
+                                if settings?.speed == sp {
+                                    Label(Self.speedText(sp), systemImage: "checkmark")
+                                } else {
+                                    Text(Self.speedText(sp))
+                                }
+                            }
+                        }
+                    }
                 Button { toggleBoost() } label: {
                     chip("Boost: \(boostLabel)", active: (settings?.voiceBoost ?? 0) > 0)
                 }
@@ -192,9 +204,9 @@ struct NowPlayingView: View {
             .brutalBorder(width: 2)
     }
 
-    private var speedLabel: String {
-        let s = settings?.speed ?? 1.0
-        return s == s.rounded() ? "\(Int(s))×" : "\(s)×"
+    private var speedLabel: String { Self.speedText(settings?.speed ?? 1.0) }
+    static func speedText(_ s: Double) -> String {
+        s == s.rounded() ? "\(Int(s))×" : "\(s)×"
     }
     private var boostLabel: String { ["Off", "Med", "High"][settings?.voiceBoost ?? 0] }
 
@@ -266,11 +278,19 @@ struct NowPlayingView: View {
 
 // MARK: - Audio-effect chips
 extension NowPlayingView {
+    static let speedSteps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
+
+    /// Tap: advance to the next speed step (wrapping).
     func cycleSpeed() {
-        let steps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
         guard let s = settings else { return }
+        let steps = Self.speedSteps
         let i = steps.firstIndex(of: s.speed) ?? 1
-        s.speed = steps[(i + 1) % steps.count]
+        setSpeed(steps[(i + 1) % steps.count])
+    }
+
+    /// Long-press menu: jump straight to a chosen speed.
+    func setSpeed(_ speed: Double) {
+        settings?.speed = speed
         playback.applyAudioSettings()
     }
     func toggleBoost() {
