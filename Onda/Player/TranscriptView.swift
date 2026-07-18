@@ -116,12 +116,17 @@ struct TranscriptView: View {
                         showClipSheet = true
                     } label: {
                         Text("Clip \(hi - lo + 1) line\(hi == lo ? "" : "s")")
-                            .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                            .scaledFont(15, weight: .bold).foregroundStyle(.white)
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
                             .background(theme.color(.accent)).brutalBorder(width: 2)
                     }
                     .buttonStyle(.plain).padding(16)
                     .background(theme.color(.bg))
+                } else if selecting {
+                    Text("Tap the first and last line to clip.")
+                        .scaledFont(13, weight: .semibold).foregroundStyle(theme.color(.textSecondary))
+                        .frame(maxWidth: .infinity).padding(.vertical, 14).padding(.horizontal, 16)
+                        .background(theme.color(.bg))
                 }
             }
             .sheet(isPresented: $showClipSheet, onDismiss: resetSelection, content: {
@@ -165,20 +170,20 @@ struct TranscriptView: View {
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 if let s = cue.speaker {
-                    Text(s).font(.system(size: 12, weight: .bold)).textCase(.uppercase)
+                    Text(s).scaledFont(12, weight: .bold).textCase(.uppercase)
                         .foregroundStyle(theme.color(.accent))
                 }
-                Text(timeStr(cue.start)).font(.system(size: 11, weight: .medium)).monospacedDigit()
+                Text(timeStr(cue.start)).scaledFont(11, weight: .medium).monospacedDigit()
                     .foregroundStyle(theme.color(.textTertiary))
                 styledCueText(cue, isActiveCue: i == activeIndex)
-                    .font(.system(size: 16))
+                    .scaledFont(16)
                     .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
             if !selecting {
                 Button { playback.jumpFromTranscript(episode: episode, to: cue.start) } label: {
-                    Image(systemName: "play.fill").font(.system(size: 13, weight: .bold))
+                    Image(systemName: "play.fill").scaledFont(13, weight: .bold)
                         .foregroundStyle(theme.color(.accent))
                         .frame(width: 40, height: 40)
                         .background(theme.color(.bgElevated)).brutalBorder(width: 2)
@@ -193,7 +198,15 @@ struct TranscriptView: View {
                 ? theme.color(.accentWash)
                 : (i == activeIndex && !selecting ? theme.color(.accentWash) : .clear))
         .contentShape(Rectangle())
-        .onTapGesture { if selecting { handleSelectionTap(i) } }
+        // Read mode: tapping anywhere on the line jumps to the player (the side button reinforces
+        // it). Select mode: tapping picks the clip range instead.
+        .onTapGesture {
+            if selecting {
+                handleSelectionTap(i)
+            } else {
+                playback.jumpFromTranscript(episode: episode, to: cue.start)
+            }
+        }
         .id(i)
     }
 
@@ -222,38 +235,6 @@ struct TranscriptView: View {
         }
     }
 
-    private var progressState: some View {
-        VStack(spacing: 12) {
-            ProgressView(value: transcripts.progress[episode.guid] ?? 0)
-                .tint(theme.color(.accent)).frame(maxWidth: 220)
-            Text(transcribing ? "Transcribing on device…" : "Loading transcript…")
-                .foregroundStyle(theme.color(.textTertiary))
-        }.frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 14) {
-            Text("No transcript available").foregroundStyle(theme.color(.textTertiary))
-            if let failure = transcripts.lastFailure[episode.guid] {
-                Text(failure)
-                    .font(.system(size: 13)).multilineTextAlignment(.center)
-                    .foregroundStyle(.red).padding(.horizontal, 24)
-            }
-            if transcripts.canTranscribeOnDevice(episode) {
-                Button("Transcribe episode") { Task { await transcribe() } }
-                    .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
-                    .padding(.horizontal, 20).padding(.vertical, 12)
-                    .background(theme.color(.accent)).brutalBorder(width: 2)
-            } else if transcripts.hasEngine {
-                Text("Download this episode to transcribe it on device")
-                    .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
-            } else {
-                Text("On-device transcription requires iOS 26 or later")
-                    .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
-            }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
     private func load() async {
         guard transcript == nil else { return }
         // Only auto-load the cheap published path; on-device requires an explicit tap.
@@ -271,5 +252,54 @@ struct TranscriptView: View {
         transcript = await transcripts.transcript(for: episode)
         snapshotCues()
         transcribing = false
+    }
+}
+
+// MARK: - Progress & empty states
+extension TranscriptView {
+    private var progressState: some View {
+        VStack(spacing: 12) {
+            ProgressView(value: transcripts.progress[episode.guid] ?? 0)
+                .tint(theme.color(.accent)).frame(maxWidth: 220)
+            Text(transcribing ? "Transcribing on device…" : "Loading transcript…")
+                .foregroundStyle(theme.color(.textTertiary))
+            if transcribing {
+                // The transcription task keeps running after dismissal; the service posts an
+                // app-wide toast (RootView) when it finishes.
+                Button {
+                    transcripts.notifyOnCompletion(of: episode)
+                    dismiss()
+                } label: {
+                    Text("Continue in Background")
+                        .scaledFont(14, weight: .bold).foregroundStyle(theme.color(.textSecondary))
+                        .padding(.horizontal, 16).padding(.vertical, 11)
+                        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                }
+                .buttonStyle(.plain).padding(.top, 8)
+            }
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 14) {
+            Text("No transcript available").foregroundStyle(theme.color(.textTertiary))
+            if let failure = transcripts.lastFailure[episode.guid] {
+                Text(failure)
+                    .scaledFont(13).multilineTextAlignment(.center)
+                    .foregroundStyle(.red).padding(.horizontal, 24)
+            }
+            if transcripts.canTranscribeOnDevice(episode) {
+                Button("Transcribe episode") { Task { await transcribe() } }
+                    .scaledFont(15, weight: .bold).foregroundStyle(.white)
+                    .padding(.horizontal, 20).padding(.vertical, 12)
+                    .background(theme.color(.accent)).brutalBorder(width: 2)
+            } else if transcripts.hasEngine {
+                Text("Download this episode to transcribe it on device")
+                    .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
+            } else {
+                Text("On-device transcription requires iOS 26 or later")
+                    .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
+            }
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

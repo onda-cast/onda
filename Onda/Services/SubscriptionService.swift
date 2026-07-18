@@ -2,6 +2,11 @@
 import Foundation
 import SwiftData
 
+/// Owns the subscription lifecycle: subscribing (via iTunes result or a direct/private feed URL),
+/// pulling new episodes from feeds, marking played, archiving, and unsubscribing (which is also the
+/// show-delete action). Wired app-wide as an `@Observable` singleton; the retention sweep and
+/// download cleanup are injected post-init (`retention`, `deleteDownload`, `downloadEpisode`) to
+/// avoid a dependency cycle.
 @MainActor
 @Observable
 final class SubscriptionService {
@@ -18,6 +23,9 @@ final class SubscriptionService {
         self.feeds = feeds
     }
 
+    /// Subscribes to an iTunes search result: creates (or reuses) the `Podcast`, marks it
+    /// subscribed, pulls its episodes, and auto-downloads the newest one.
+    /// - Throws: when the search result carries no RSS feed URL.
     @discardableResult
     func subscribe(to dto: PodcastDTO) async throws -> Podcast {
         guard let feedURL = dto.feedUrl else {
@@ -31,6 +39,34 @@ final class SubscriptionService {
             modelContext.insert(p)
             return p
         }()
+        try await activateSubscription(podcast)
+        return podcast
+    }
+
+    /// Fetches and parses a feed without persisting anything — the AddFeedSheet preview step.
+    func previewFeed(_ url: URL) async throws -> ParsedFeed {
+        try await feeds.fetchFeed(url)
+    }
+
+    /// Subscribe to a feed directly by URL (private/paid tokenized feeds). Show metadata comes
+    /// from the feed channel itself; nothing is persisted if the fetch fails.
+    @discardableResult
+    func subscribeToFeedURL(_ url: URL) async throws -> Podcast {
+        let parsed = try await feeds.fetchFeed(url)   // validate before inserting anything
+        let podcast = try existingPodcast(feedURL: url) ?? {
+            let p = Podcast(feedURL: url, title: parsed.title, author: parsed.author,
+                            artworkURL: parsed.artworkURL, category: parsed.category,
+                            itunesId: nil, isPrivateFeed: true)
+            modelContext.insert(p)
+            return p
+        }()
+        try await activateSubscription(podcast)
+        return podcast
+    }
+
+    /// Shared subscribe tail for both the iTunes and direct-URL paths: mark subscribed, ensure
+    /// settings, pull episodes, and prime the newest episode for offline.
+    private func activateSubscription(_ podcast: Podcast) async throws {
         podcast.isSubscribed = true
         if podcast.settings == nil {
             let s = ShowSettings.makeDefault(); s.podcast = podcast; podcast.settings = s
@@ -42,9 +78,10 @@ final class SubscriptionService {
         if let newest = podcast.episodes.max(by: { $0.publishDate < $1.publishDate }) {
             downloadEpisode?(newest)   // idempotent in DownloadManager
         }
-        return podcast
     }
 
+    /// Toggles an episode's played state (clearing its resume position) and, when marking played,
+    /// runs the retention sweep so an "auto-delete immediately" rule fires without waiting.
     func setPlayed(_ episode: Episode, _ played: Bool) {
         episode.played = played
         episode.playedDate = played ? .now : nil
@@ -129,6 +166,9 @@ final class SubscriptionService {
         }
     }
 
+    /// Re-fetches the show's feed and inserts only episodes whose guid isn't already stored,
+    /// extending the relationship in one batch (per-item appends to a SwiftData relationship are
+    /// quadratic). Archived episodes are not resurrected.
     func refreshEpisodes(for podcast: Podcast) async throws {
         guard !podcast.isLocal else { return }   // synthetic shows have no feed to poll
         let feed = try await feeds.fetchFeed(podcast.feedURL)

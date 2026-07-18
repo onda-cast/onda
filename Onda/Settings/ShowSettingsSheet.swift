@@ -5,6 +5,7 @@ import AVFoundation
 struct ShowSettingsSheet: View {
     @Environment(AppTheme.self) private var theme
     @Environment(PlaybackManager.self) private var playback
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.dismiss) private var dismiss
     @Bindable var podcast: Podcast
 
@@ -27,10 +28,10 @@ struct ShowSettingsSheet: View {
                     section("Playback") {
                         row("Speed") {
                             Button(speedLabel) { cycleSpeed() }
-                                .font(.system(size: 15, weight: .bold)).foregroundStyle(theme.color(.text))
+                                .scaledFont(15, weight: .bold).foregroundStyle(theme.color(.text))
                         }
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Voice Boost").font(.system(size: 16)).foregroundStyle(theme.color(.text))
+                            Text("Voice Boost").scaledFont(16).foregroundStyle(theme.color(.text))
                             SegmentedRow(options: [("Off", 0), ("Med", 1), ("High", 2)],
                                          selection: s.voiceBoost) { s.voiceBoost = $0; playback.applyAudioSettings() }
                         }
@@ -40,7 +41,7 @@ struct ShowSettingsSheet: View {
                     }
                     section("Ads & Downloads") {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Ad Skip").font(.system(size: 16)).foregroundStyle(theme.color(.text))
+                            Text("Ad Skip").scaledFont(16).foregroundStyle(theme.color(.text))
                             SegmentedRow(options: [("Off", "off"), ("Manual", "manual"), ("Auto", "auto")],
                                          selection: s.adSkipMode) { s.adSkipMode = $0 }
                         }
@@ -55,7 +56,9 @@ struct ShowSettingsSheet: View {
                     section("Downloads & Retention") {
                         overridePicker("Keep Downloads",
                                        state: overrideState(s.maxDownloadsKeptOverride, offValue: 0),
-                                       offLabel: "No limit") { mode in
+                                       offLabel: "No limit",
+                                       defaultHint: appSettings.defaultMaxDownloadsKept == 0
+                                           ? "No limit" : "\(appSettings.defaultMaxDownloadsKept) per show") { mode in
                             s.maxDownloadsKeptOverride = [nil, 0, 10][mode]
                         }
                         if let cap = s.maxDownloadsKeptOverride, cap > 0 {
@@ -66,7 +69,8 @@ struct ShowSettingsSheet: View {
                         }
                         overridePicker("Auto-Delete Listened",
                                        state: overrideState(s.autoDeleteListenedAfterDaysOverride, offValue: -1),
-                                       offLabel: "Off") { mode in
+                                       offLabel: "Off",
+                                       defaultHint: autoDeleteDefaultHint) { mode in
                             s.autoDeleteListenedAfterDaysOverride = [nil, -1, 7][mode]
                         }
                         if let days = s.autoDeleteListenedAfterDaysOverride, days >= 0 {
@@ -77,15 +81,13 @@ struct ShowSettingsSheet: View {
                                          label: { $0 == 0 ? "Immediately" : "\($0) day\($0 == 1 ? "" : "s")" })
                         }
                         boolOverridePicker("Auto-Transcribe Downloads",
+                                           defaultHint: appSettings.defaultAutoTranscribeOnDownload ? "On" : "Off",
                                            value: Binding(get: { s.autoTranscribeOnDownloadOverride },
                                                           set: { s.autoTranscribeOnDownloadOverride = $0 }))
                         boolOverridePicker("Keep Transcripts After Delete",
+                                           defaultHint: appSettings.keepTranscriptsOnDelete ? "On" : "Off",
                                            value: Binding(get: { s.keepTranscriptsOverride },
                                                           set: { s.keepTranscriptsOverride = $0 }))
-                    }
-                    section("Notifications") {
-                        SegmentedRow(options: [("All", "all"), ("Important", "important"), ("None", "none")],
-                                     selection: s.notifMode) { s.notifMode = $0 }
                     }
                 }
                 .padding(20)
@@ -108,6 +110,13 @@ struct ShowSettingsSheet: View {
         playback.applyAudioSettings()
     }
 
+    private var autoDeleteDefaultHint: String {
+        let d = appSettings.defaultAutoDeleteListenedAfterDays
+        if d < 0 { return "Off" }
+        if d == 0 { return "Immediately" }
+        return "\(d) day\(d == 1 ? "" : "s")"
+    }
+
     /// nil → 0 (inherit default), the sentinel offValue → 1 (explicit off), anything else → 2 (custom).
     private func overrideState(_ value: Int?, offValue: Int) -> Int {
         guard let value else { return 0 }
@@ -116,35 +125,59 @@ struct ShowSettingsSheet: View {
 
     /// Three-way override control: 0 = inherit default, 1 = explicit off/unlimited, 2 = custom.
     @ViewBuilder private func overridePicker(_ title: String, state: Int, offLabel: String,
+                                             defaultHint: String,
                                              onChange: @escaping (Int) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text))
+            Text(title).scaledFont(16).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), (offLabel, 1), ("Custom", 2)],
                          selection: state, onChange: onChange)
+            defaultCaption(defaultHint, shown: state == 0)
         }
     }
 
-    @ViewBuilder private func boolOverridePicker(_ title: String, value: Binding<Bool?>) -> some View {
+    @ViewBuilder private func boolOverridePicker(_ title: String, defaultHint: String,
+                                                 value: Binding<Bool?>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text))
+            Text(title).scaledFont(16).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), ("Off", 1), ("On", 2)],
                          selection: value.wrappedValue == nil ? 0 : (value.wrappedValue == false ? 1 : 2)) {
                 value.wrappedValue = [nil, false, true][$0]
             }
+            defaultCaption(defaultHint, shown: value.wrappedValue == nil)
+        }
+    }
+
+    // Spells out what "Default" resolves to (from the global settings) while that segment is active,
+    // so "Default" isn't an opaque choice.
+    @ViewBuilder private func defaultCaption(_ hint: String, shown: Bool) -> some View {
+        if shown {
+            Text("Default: \(hint)").scaledFont(12).foregroundStyle(theme.color(.textTertiary))
         }
     }
 
     private func countStepper(_ title: String, value: Binding<Int>, range: ClosedRange<Int>,
                               label: (Int) -> String) -> some View {
         HStack {
-            Text(title).font(.system(size: 14)).foregroundStyle(theme.color(.textSecondary))
+            Text(title).scaledFont(14).foregroundStyle(theme.color(.textSecondary))
             Spacer()
-            Button("−") { value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1) }
+            stepButton("−", "Decrease \(title)") {
+                value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1)
+            }
             Text(label(value.wrappedValue)).monospacedDigit().frame(minWidth: 88)
-                .font(.system(size: 14, weight: .semibold)).foregroundStyle(theme.color(.text))
-            Button("+") { value.wrappedValue = min(range.upperBound, value.wrappedValue + 1) }
+                .scaledFont(14, weight: .semibold).foregroundStyle(theme.color(.text))
+            stepButton("+", "Increase \(title)") {
+                value.wrappedValue = min(range.upperBound, value.wrappedValue + 1)
+            }
         }
-        .foregroundStyle(theme.color(.accent)).font(.system(size: 17, weight: .semibold))
+    }
+
+    private func stepButton(_ glyph: String, _ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(glyph).scaledFont(20, weight: .semibold)
+                .foregroundStyle(theme.color(.accent))
+                .frame(width: 44, height: 44).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain).accessibilityLabel(label)
     }
 
     @ViewBuilder private func section(_ title: String, @ViewBuilder _ content: () -> some View) -> some View {
@@ -154,17 +187,16 @@ struct ShowSettingsSheet: View {
         }
     }
     @ViewBuilder private func row(_ title: String, @ViewBuilder _ trailing: () -> some View) -> some View {
-        HStack { Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text)); Spacer(); trailing() }
+        HStack { Text(title).scaledFont(16).foregroundStyle(theme.color(.text)); Spacer(); trailing() }
     }
     private func stepperRow(_ title: String, value: Binding<Int>) -> some View {
         HStack {
-            Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text)); Spacer()
-            Button("−") { value.wrappedValue = max(0, value.wrappedValue - 5) }
+            Text(title).scaledFont(16).foregroundStyle(theme.color(.text)); Spacer()
+            stepButton("−", "Decrease \(title)") { value.wrappedValue = max(0, value.wrappedValue - 5) }
             Text("\(value.wrappedValue)s").monospacedDigit().frame(minWidth: 44)
-                .foregroundStyle(theme.color(.text))
-            Button("+") { value.wrappedValue = min(60, value.wrappedValue + 5) }
+                .scaledFont(16, weight: .semibold).foregroundStyle(theme.color(.text))
+            stepButton("+", "Increase \(title)") { value.wrappedValue = min(60, value.wrappedValue + 5) }
         }
-        .foregroundStyle(theme.color(.accent)).font(.system(size: 18, weight: .semibold))
     }
 
     private var availableVoices: [AVSpeechSynthesisVoice] {

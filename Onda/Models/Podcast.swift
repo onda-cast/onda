@@ -12,6 +12,10 @@ final class Podcast {
     var itunesId: Int?
     var isSubscribed: Bool
     var isLocal: Bool = false   // synthetic show (e.g. "Articles") — no feed to refresh
+    /// True for shows added via a tokenized private/paid feed URL. The URL contains a secret,
+    /// so private shows are kept out of anything that leaves the device (taste profile, future
+    /// share/export surfaces).
+    var isPrivateFeed: Bool = false
 
     @Relationship(deleteRule: .cascade, inverse: \Episode.podcast)
     var episodes: [Episode] = []
@@ -20,7 +24,8 @@ final class Podcast {
     var settings: ShowSettings?
 
     init(feedURL: URL, title: String, author: String, artworkURL: URL?,
-         category: String, itunesId: Int?, isSubscribed: Bool = false) {
+         category: String, itunesId: Int?, isSubscribed: Bool = false,
+         isPrivateFeed: Bool = false) {
         self.feedURL = feedURL
         self.title = title
         self.author = author
@@ -28,5 +33,6 @@ final class Podcast {
         self.category = category
         self.itunesId = itunesId
         self.isSubscribed = isSubscribed
+        self.isPrivateFeed = isPrivateFeed
     }
 }

@@ -59,22 +59,16 @@ struct ShowTranscriptsView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
-            TextField("Search transcripts", text: $query)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
-        }
-        .padding(.horizontal, 14).frame(height: 48)
-        .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
+        BrutalSearchField("Search transcripts", text: $query)
     }
 
     private func card(_ ep: Episode, snippet: String?) -> some View {
         BrutalCard {
             VStack(alignment: .leading, spacing: 6) {
-                Text(ep.title).font(.system(size: 15, weight: .bold)).lineLimit(2)
+                Text(ep.title).scaledFont(15, weight: .bold).lineLimit(2)
                     .foregroundStyle(theme.color(.text))
                 if let snippet {
-                    Text(snippet).font(.system(size: 13)).lineLimit(2)
+                    Text(snippet).scaledFont(13).lineLimit(2)
                         .foregroundStyle(theme.color(.textSecondary))
                 }
             }

@@ -8,6 +8,13 @@ private struct StubFeeds: FeedFetching {
     func fetchFeed(_ url: URL) async throws -> ParsedFeed { feed }
 }
 
+private struct FailingFeeds: FeedFetching {
+    func fetchFeed(_ url: URL) async throws -> ParsedFeed {
+        throw NSError(domain: "test", code: 404,
+                      userInfo: [NSLocalizedDescriptionKey: "not found"])
+    }
+}
+
 @MainActor
 final class SubscriptionServiceTests: XCTestCase {
     private func context() throws -> ModelContext {
@@ -117,6 +124,58 @@ final class SubscriptionServiceTests: XCTestCase {
         XCTAssertTrue(ep.isArchived)
         XCTAssertNil(ep.transcript)
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<Transcript>()).count, 0)
+    }
+
+    func test_subscribeToFeedURL_createsPrivatePodcastFromChannelMetadata() async throws {
+        let ctx = try context()
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a", "b"])))
+        let url = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let pod = try await svc.subscribeToFeedURL(url)
+        XCTAssertTrue(pod.isPrivateFeed)
+        XCTAssertTrue(pod.isSubscribed)
+        XCTAssertEqual(pod.feedURL, url)
+        XCTAssertEqual(pod.title, "The Signal", "title comes from the feed channel")
+        XCTAssertEqual(pod.author, "Ex")
+        XCTAssertEqual(pod.category, "Technology")
+        XCTAssertNil(pod.itunesId)
+        XCTAssertNotNil(pod.settings)
+        XCTAssertEqual(pod.episodes.count, 2)
+    }
+
+    func test_subscribeToFeedURL_autoDownloadsNewestEpisode() async throws {
+        let ctx = try context()
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
+        var downloaded: [String] = []
+        svc.downloadEpisode = { downloaded.append($0.guid) }
+        _ = try await svc.subscribeToFeedURL(URL(string: "https://ex.com/p.xml?t=k")!)
+        XCTAssertEqual(downloaded, ["a"])
+    }
+
+    func test_subscribeToFeedURL_twice_doesNotDuplicatePodcast() async throws {
+        let ctx = try context()
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
+        let url = URL(string: "https://ex.com/p.xml?t=k")!
+        _ = try await svc.subscribeToFeedURL(url)
+        let again = try await svc.subscribeToFeedURL(url)
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<Podcast>()).count, 1)
+        XCTAssertTrue(again.isSubscribed)
+    }
+
+    func test_subscribeToFeedURL_fetchFailure_persistsNothing() async throws {
+        let ctx = try context()
+        let svc = SubscriptionService(modelContext: ctx, feeds: FailingFeeds())
+        do {
+            _ = try await svc.subscribeToFeedURL(URL(string: "https://ex.com/bad.xml")!)
+            XCTFail("expected throw")
+        } catch { /* expected */ }
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<Podcast>()).count, 0)
+    }
+
+    func test_subscribe_publicPath_isNotPrivate() async throws {
+        let ctx = try context()
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
+        let pod = try await svc.subscribe(to: dto())
+        XCTAssertFalse(pod.isPrivateFeed)
     }
 
     func test_subscribeTwice_doesNotDuplicatePodcast() async throws {

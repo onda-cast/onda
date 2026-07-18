@@ -9,8 +9,20 @@ struct DownloadsStorageView: View {
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }) private var podcasts: [Podcast]
 
     @State private var refreshKey = 0
+    @State private var bumpTask: Task<Void, Never>?
     @State private var confirmClearAudio = false
     @State private var confirmClearTranscripts = false
+    @State private var pendingDelete: PendingDelete?
+
+    private enum PendingDelete: Identifiable {
+        case audio(String), transcripts(String)
+        var id: String {
+            switch self {
+            case .audio(let i): return "a-\(i)"
+            case .transcripts(let i): return "t-\(i)"
+            }
+        }
+    }
 
     private var breakdown: StorageBreakdown {
         _ = refreshKey
@@ -43,6 +55,31 @@ struct DownloadsStorageView: View {
                             titleVisibility: .visible) {
             Button("Delete Transcripts", role: .destructive) { clearAllTranscripts() }
         } message: { Text("Removes saved transcripts and makes them un-searchable.") }
+        .confirmationDialog(pendingDeleteTitle,
+                            isPresented: Binding(get: { pendingDelete != nil },
+                                                 set: { if !$0 { pendingDelete = nil } }),
+                            titleVisibility: .visible, presenting: pendingDelete) { pd in
+            Button("Delete", role: .destructive) {
+                switch pd {
+                case .audio(let id): deleteAudio(id)
+                case .transcripts(let id): deleteTranscripts(id)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { pd in
+            switch pd {
+            case .audio: Text("Frees the audio. Episodes stay and can be streamed or re-downloaded.")
+            case .transcripts: Text("Removes this show's transcripts and makes them un-searchable.")
+            }
+        }
+    }
+
+    private var pendingDeleteTitle: String {
+        switch pendingDelete {
+        case .audio: return "Delete this show's downloads?"
+        case .transcripts: return "Delete this show's transcripts?"
+        case nil: return ""
+        }
     }
 
     // MARK: Type bar
@@ -51,16 +88,17 @@ struct DownloadsStorageView: View {
         BrutalCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("Storage Used").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
+                    Text("Downloads & Transcripts").brutalHeader(size: 13)
+                        .foregroundStyle(theme.color(.textTertiary))
                     Spacer()
-                    Text(sizeStr(bd.totalBytes)).font(.system(size: 15, weight: .bold)).monospacedDigit()
+                    Text(sizeStr(bd.totalBytes)).scaledFont(15, weight: .bold).monospacedDigit()
                         .foregroundStyle(theme.color(.text))
                 }
                 proportionBar(audio: bd.audioBytes, transcript: bd.transcriptBytes)
                 HStack(spacing: 16) {
                     legend(color: theme.color(.accent), label: "Audio", bytes: bd.audioBytes)
                     legend(color: theme.color(.accent).opacity(0.45), label: "Transcripts",
-                           bytes: bd.transcriptBytes)
+                           bytes: bd.transcriptBytes, approx: true)
                 }
                 HStack(spacing: 10) {
                     smallButton("Clear Audio") { confirmClearAudio = true }
@@ -87,10 +125,10 @@ struct DownloadsStorageView: View {
         .frame(height: 16).brutalBorder(width: 2)
     }
 
-    private func legend(color: Color, label: String, bytes: Int64) -> some View {
+    private func legend(color: Color, label: String, bytes: Int64, approx: Bool = false) -> some View {
         HStack(spacing: 6) {
             Rectangle().fill(color).frame(width: 12, height: 12).brutalBorder(width: 1.5)
-            Text("\(label) \(sizeStr(bytes))").font(.system(size: 12, weight: .semibold))
+            Text("\(label) \(approx ? "~" : "")\(sizeStr(bytes))").scaledFont(12, weight: .semibold)
                 .foregroundStyle(theme.color(.textSecondary))
         }
     }
@@ -101,25 +139,25 @@ struct DownloadsStorageView: View {
         BrutalCard {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(row.title).font(.system(size: 15, weight: .bold)).lineLimit(1)
+                    Text(row.title).scaledFont(15, weight: .bold).lineLimit(1)
                         .foregroundStyle(theme.color(.text))
-                    Text("Audio \(sizeStr(row.audioBytes)) · Transcripts \(sizeStr(row.transcriptBytes))")
-                        .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+                    Text("Audio \(sizeStr(row.audioBytes)) · Transcripts ~\(sizeStr(row.transcriptBytes))")
+                        .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
                 }
                 Spacer()
                 Menu {
                     if row.audioBytes > 0 {
-                        Button(role: .destructive) { deleteAudio(row.id) } label: {
+                        Button(role: .destructive) { pendingDelete = .audio(row.id) } label: {
                             Label("Delete Downloads", systemImage: "trash")
                         }
                     }
                     if row.transcriptBytes > 0 {
-                        Button(role: .destructive) { deleteTranscripts(row.id) } label: {
+                        Button(role: .destructive) { pendingDelete = .transcripts(row.id) } label: {
                             Label("Delete Transcripts", systemImage: "trash")
                         }
                     }
                 } label: {
-                    Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold))
+                    Image(systemName: "ellipsis").scaledFont(16, weight: .bold)
                         .foregroundStyle(theme.color(.textSecondary))
                         .frame(width: 40, height: 40)
                 }
@@ -130,7 +168,7 @@ struct DownloadsStorageView: View {
 
     private func smallButton(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).font(.system(size: 12, weight: .bold))
+            Text(title).scaledFont(12, weight: .bold)
                 .foregroundStyle(theme.color(.text))
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(theme.color(.bg)).brutalBorder(width: 2)
@@ -169,9 +207,17 @@ struct DownloadsStorageView: View {
         modelContext.delete(tr)   // cascades cues
     }
 
-    // Download deletes happen on a background actor; nudge the view to recompute sizes after.
+    // Recompute sizes right away — breakdown reads fileSizeBytes off the model, and the delete is
+    // already applied+saved by the time we're here, so there's no need to wait 150ms (that fixed
+    // guess is what let a stale size flash through). A single coalesced follow-up catches the
+    // background actor's on-disk settle without stacking overlapping timers on fast re-entry.
     private func bump() {
-        Task { try? await Task.sleep(for: .milliseconds(150)); refreshKey += 1 }
+        refreshKey += 1
+        bumpTask?.cancel()
+        bumpTask = Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            if !Task.isCancelled { refreshKey += 1 }
+        }
     }
 
     private func sizeStr(_ bytes: Int64) -> String {

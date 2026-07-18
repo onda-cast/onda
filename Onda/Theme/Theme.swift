@@ -40,8 +40,6 @@ final class AppTheme {
         }
     }
 
-    func toggle() { setAppearance(appearance == .light ? .dark : .light) }
-
     func setAppearance(_ a: Appearance) {
         appearance = a
         if persist { UserDefaults.standard.set(a.rawValue, forKey: Self.key) }

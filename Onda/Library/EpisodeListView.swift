@@ -15,10 +15,19 @@ struct EpisodeListView: View {
     let podcast: Podcast
     @State private var showSettings = false
     @State private var showTranscripts = false
-    @State private var filter: EpisodeFilter = .downloaded
+    @State private var filter: EpisodeFilter
     @State private var query = ""
     @State private var results: [EpisodeSearchResult] = []
-    @State private var showUnsubscribeConfirm = false
+    @State private var pendingUnsubscribe = false
+    @State private var pendingDownloadDelete: Episode?
+    @State private var detailEpisode: Episode?
+
+    init(podcast: Podcast) {
+        self.podcast = podcast
+        // Don't open a freshly-subscribed show onto an empty "no downloads" screen.
+        let hasDownloads = podcast.episodes.contains { $0.downloadedFile != nil }
+        _filter = State(initialValue: hasDownloads ? .downloaded : .all)
+    }
 
     private var isSearching: Bool {
         !query.trimmingCharacters(in: .whitespaces).isEmpty
@@ -48,13 +57,15 @@ struct EpisodeListView: View {
                                  selection: filter) { filter = $0 }
                 }
                 if !isSearching && episodes.isEmpty && filter == .downloaded {
-                    Text("No downloaded episodes — switch to All or Newest 10")
-                        .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
-                        .frame(maxWidth: .infinity).padding(.top, 24)
+                    Button { filter = .all } label: {
+                        Text("No downloads yet — show all episodes")
+                            .scaledFont(13, weight: .semibold).foregroundStyle(theme.color(.accent))
+                            .frame(maxWidth: .infinity).padding(.top, 24)
+                    }.buttonStyle(.plain)
                 }
                 if isSearching && results.isEmpty {
                     Text("No episodes match “\(query)”")
-                        .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                        .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
                         .frame(maxWidth: .infinity).padding(.top, 24)
                 }
             }
@@ -78,12 +89,13 @@ struct EpisodeListView: View {
                            onPlay: { play(ep) },
                            onDownload: {
                                switch downloads.state(for: ep) {
-                               case .downloaded: downloads.delete(ep)
+                               case .downloaded: pendingDownloadDelete = ep   // confirm, don't delete on tap
                                case .failed:     downloads.retryManually(guid: ep.guid)
                                case .downloading: break
                                case .none:       downloads.download(ep)
                                }
-                           })
+                           },
+                           onOpen: { detailEpisode = ep })
                 .listRowBackground(theme.color(.bg))
                 .listRowSeparatorTint(theme.color(.separator))
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -135,11 +147,12 @@ struct EpisodeListView: View {
         }
         .sheet(isPresented: $showSettings) { ShowSettingsSheet(podcast: podcast) }
         .sheet(isPresented: $showTranscripts) { ShowTranscriptsView(podcast: podcast) }
+        .sheet(item: $detailEpisode) { EpisodeDetailView(episode: $0) }
         .onChange(of: query) { _, _ in runSearch() }
         .confirmationDialog(podcast.isLocal
                             ? "Delete \(podcast.title)?"
                             : "Unsubscribe from \(podcast.title)?",
-                            isPresented: $showUnsubscribeConfirm,
+                            isPresented: $pendingUnsubscribe,
                             titleVisibility: .visible) {
             Button(podcast.isLocal ? "Delete" : "Unsubscribe", role: .destructive) {
                 subscriptions.unsubscribe(podcast); dismiss()
@@ -150,6 +163,13 @@ struct EpisodeListView: View {
                  ? "Permanently deletes every converted article in this show. This can't be undone."
                  : "Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
         }
+        .confirmationDialog("Delete this download?",
+                            isPresented: Binding(get: { pendingDownloadDelete != nil },
+                                                 set: { if !$0 { pendingDownloadDelete = nil } }),
+                            titleVisibility: .visible, presenting: pendingDownloadDelete) { ep in
+            Button("Delete Download", role: .destructive) { downloads.delete(ep) }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in Text("Frees the audio file. You can stream or re-download it later.") }
     }
 
     private var searchBar: some View {
@@ -199,12 +219,10 @@ struct EpisodeListView: View {
                 .frame(width: 96, height: 96).hardShadow(offset: 4)
             VStack(alignment: .leading, spacing: 6) {
                 Text(podcast.title).brutalHeader(size: 20).foregroundStyle(theme.color(.text))
-                Text(podcast.category).font(.system(size: 13))
+                Text(podcast.category).scaledFont(13)
                     .foregroundStyle(theme.color(.textTertiary))
-                Button(podcast.isLocal ? "Delete Show" : "Unsubscribe") {
-                    showUnsubscribeConfirm = true
-                }
-                .font(.system(size: 13, weight: .bold)).foregroundStyle(theme.color(.accent))
+                Button(podcast.isLocal ? "Delete Show" : "Unsubscribe") { pendingUnsubscribe = true }
+                    .scaledFont(13, weight: .bold).foregroundStyle(.red)
             }
             Spacer()
         }

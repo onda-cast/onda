@@ -19,6 +19,29 @@ final class TranscriptService {
     var progress: [String: Double] = [:]
     var lastFailure: [String: String] = [:]   // guid → human-readable reason
 
+    // MARK: Background completion notice
+    /// App-wide toast text shown when a backgrounded transcription finishes (see RootView).
+    var completionNotice: String?
+    private var notifyGuids: Set<String> = []
+    private var noticeTask: Task<Void, Never>?
+
+    /// "Continue in background": the user left the transcript sheet while transcription runs;
+    /// post an in-app notice when this episode's run completes (or fails).
+    func notifyOnCompletion(of episode: Episode) {
+        notifyGuids.insert(episode.guid)
+    }
+
+    private func postNoticeIfRequested(guid: String, episodeTitle: String, success: Bool) {
+        guard notifyGuids.remove(guid) != nil else { return }
+        completionNotice = success ? "Transcript ready — \(episodeTitle)"
+                                   : "Transcription failed — \(episodeTitle)"
+        noticeTask?.cancel()
+        noticeTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            if !Task.isCancelled { self?.completionNotice = nil }
+        }
+    }
+
     init(modelContext: ModelContext, parser: TranscriptParser = .init(),
          engine: AudioTranscribing?,
          fetch: @escaping Fetch = { try await URLSession.shared.data(from: $0).0 },
@@ -59,7 +82,11 @@ final class TranscriptService {
                     Task { @MainActor [weak self] in self?.progress[guid] = p }
                 }
                 progress[guid] = nil
-                if !cues.isEmpty { return persist(cues: cues, for: episode, source: "ondevice") }
+                if !cues.isEmpty {
+                    let tr = persist(cues: cues, for: episode, source: "ondevice")
+                    postNoticeIfRequested(guid: guid, episodeTitle: episode.title, success: true)
+                    return tr
+                }
                 lastFailure[guid] = "Transcription produced no text for this audio."
             } catch {
                 progress[guid] = nil
@@ -73,6 +100,8 @@ final class TranscriptService {
                     lastFailure[guid] = "Transcription failed: \(error.localizedDescription)"
                 }
             }
+            // Reached only on the failure paths (empty result or thrown) — success returned above.
+            postNoticeIfRequested(guid: guid, episodeTitle: episode.title, success: false)
         }
         return nil
     }

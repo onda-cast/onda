@@ -69,6 +69,7 @@ struct OndaApp: App {
             let articlesService = OndaApp.makeArticleService(context: c.mainContext, ts: ts)
             articlesService.registerBackgroundTask()
             _articles = State(initialValue: articlesService)
+            pm.restoreLastEpisode()   // cold-launch: bring back the last episode (paused) into the mini-player
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
         }

@@ -11,6 +11,18 @@ final class ModelTests: XCTestCase {
         return ModelContext(container)
     }
 
+    func test_podcast_isPrivateFeed_defaultsFalseAndPersists() throws {
+        let ctx = try inMemoryContext()
+        let pub = Podcast(feedURL: URL(string: "https://ex.com/pub.xml")!, title: "Pub",
+                          author: "A", artworkURL: nil, category: "Tech", itunesId: 1)
+        let priv = Podcast(feedURL: URL(string: "https://ex.com/priv.xml?token=s3cret")!, title: "Priv",
+                           author: "A", artworkURL: nil, category: "Tech", itunesId: nil,
+                           isPrivateFeed: true)
+        ctx.insert(pub); ctx.insert(priv); try ctx.save()
+        XCTAssertFalse(pub.isPrivateFeed, "default is public")
+        XCTAssertTrue(priv.isPrivateFeed)
+    }
+
     func test_insertPodcastWithEpisode_persistsRelationship() throws {
         let ctx = try inMemoryContext()
         let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!,

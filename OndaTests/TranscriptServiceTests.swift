@@ -132,3 +132,37 @@ final class TranscriptServiceTests: XCTestCase {
         XCTAssertNil(tr.cues.first?.words)
     }
 }
+
+// MARK: - Background completion notice
+extension TranscriptServiceTests {
+    func test_backgroundNotice_postedOnSuccess_onlyWhenRequested() async throws {
+        let ctx = try makeContext()
+        let ep = episode(in: ctx, transcriptURL: nil)
+        let stub = StubEngine(cues: [ParsedCue(startTime: 0, endTime: 2, text: "Hi", speaker: nil)])
+        let svc = TranscriptService(modelContext: ctx, engine: stub,
+                                    fetch: { _ in Data() },
+                                    localURL: { _ in URL(fileURLWithPath: "/tmp/e.mp3") })
+        // Not requested → no notice.
+        _ = await svc.transcript(for: ep)
+        XCTAssertNil(svc.completionNotice)
+
+        // Requested ("Continue in background") → notice with the episode title.
+        let ep2 = episode(in: ctx, transcriptURL: nil)
+        ep2.transcript = nil
+        svc.notifyOnCompletion(of: ep2)
+        _ = await svc.transcript(for: ep2)
+        XCTAssertEqual(svc.completionNotice, "Transcript ready — E")
+    }
+
+    func test_backgroundNotice_postedOnFailure() async throws {
+        let ctx = try makeContext()
+        let ep = episode(in: ctx, transcriptURL: nil)
+        let stub = StubEngine(cues: [])   // empty result → failure path
+        let svc = TranscriptService(modelContext: ctx, engine: stub,
+                                    fetch: { _ in Data() },
+                                    localURL: { _ in URL(fileURLWithPath: "/tmp/e.mp3") })
+        svc.notifyOnCompletion(of: ep)
+        _ = await svc.transcript(for: ep)
+        XCTAssertEqual(svc.completionNotice, "Transcription failed — E")
+    }
+}

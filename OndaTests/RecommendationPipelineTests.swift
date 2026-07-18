@@ -63,9 +63,53 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertGreaterThan(profile.terms.overlap(with: TermVector(text: "espresso"), limit: 1).count, 0)
     }
 
+    func test_profile_excludesPrivateFeeds() throws {
+        let ctx = try ctx()
+        let priv = Podcast(feedURL: URL(string: "https://ex.com/p.xml?token=s3cret")!,
+                           title: "Secret Members Show", author: "Patron Person",
+                           artworkURL: nil, category: "TrueCrime", itunesId: nil,
+                           isPrivateFeed: true)
+        ctx.insert(priv)
+        let ep = Episode(guid: "e", title: "Members Only Episode", publishDate: .now, duration: 10,
+                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        ep.played = true
+        ep.podcast = priv; priv.episodes.append(ep); ctx.insert(ep)
+
+        let profile = TasteProfileBuilder.build(subscriptions: [priv], clips: [], searchTerms: [])
+        XCTAssertTrue(profile.isEmpty,
+                      "private shows must contribute nothing — their terms feed iTunes search queries")
+    }
+
     func test_profile_emptyWhenNoSignals() throws {
         let profile = TasteProfileBuilder.build(subscriptions: [], clips: [], searchTerms: [])
         XCTAssertTrue(profile.isEmpty)
+    }
+
+    func test_profile_displayVocabulary_excludesTranscriptAndClipTokens() throws {
+        let ctx = try ctx()
+        let pod = Podcast(feedURL: URL(string: "https://a.com/f.xml")!, title: "Show",
+                          author: "Dev", artworkURL: nil, category: "Technology", itunesId: 1)
+        ctx.insert(pod)
+        let ep = Episode(guid: "e", title: "E", publishDate: .now, duration: 10,
+                         audioURL: URL(string: "https://a.com/e.mp3")!, notes: "")
+        ep.podcast = pod; pod.episodes.append(ep); ctx.insert(ep)
+        let tr = Transcript(source: "published", language: "en"); tr.episode = ep; ep.transcript = tr
+        let cue = TranscriptCue(startTime: 0, endTime: 5, text: "a shocking murder", speaker: nil)
+        cue.transcript = tr; tr.cues = [cue]; ctx.insert(tr); ctx.insert(cue)
+        let clip = Clip(startTime: 0, endTime: 5, text: "espresso portafilter", note: nil,
+                        createdAt: .now, needsReview: false)
+        clip.episode = ep; ctx.insert(clip)
+
+        let profile = TasteProfileBuilder.build(subscriptions: [pod], clips: [clip],
+                                                searchTerms: ["swift concurrency"])
+        XCTAssertTrue(profile.displayVocabulary.contains("technology"), "category is showable")
+        XCTAssertTrue(profile.displayVocabulary.contains("swift"), "search term is showable")
+        XCTAssertTrue(profile.displayVocabulary.contains("dev"), "author is showable")
+        XCTAssertFalse(profile.displayVocabulary.contains("murder"), "transcript token not shown")
+        XCTAssertFalse(profile.displayVocabulary.contains("espresso"), "clip token not shown")
+        // …but transcript/clip tokens still drive scoring.
+        XCTAssertTrue(profile.terms.terms.contains("murder"))
+        XCTAssertTrue(profile.terms.terms.contains("espresso"))
     }
 
     // MARK: Retriever query construction + exclusions
@@ -133,6 +177,7 @@ final class RecommendationPipelineTests: XCTestCase {
         await svc.refresh(followedCategories: [])
         XCTAssertEqual(svc.recommendations.map(\.dto.collectionName), ["Top Show"])
         XCTAssertFalse(svc.isStale, "cache fresh after refresh")
+        XCTAssertFalse(svc.isPersonalized, "no profile signal → charts, not personalized")
     }
 
     func test_service_dismiss_removesAndPersists() async throws {

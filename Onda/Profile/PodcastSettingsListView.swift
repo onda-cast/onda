@@ -21,14 +21,14 @@ struct PodcastSettingsListView: View {
                         ArtworkView(url: show.artworkURL, seed: show.title)
                             .frame(width: 40, height: 40).clipped()
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(show.title).font(.system(size: 15, weight: .semibold))
+                            Text(show.title).scaledFont(15, weight: .semibold)
                                 .foregroundStyle(theme.color(.text)).lineLimit(1)
                             Text(hasOverrides(show) ? "Customized" : "Using defaults")
-                                .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+                                .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                            .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
                     }
                 }
             }

@@ -5,7 +5,8 @@ struct TrendingRow: View {
     @Environment(AppTheme.self) private var theme
     let dto: PodcastDTO
     let isSubscribed: Bool
-    var onFollow: () -> Void
+    // Follow when not subscribed; tap again to unfollow (parent confirms).
+    var onToggle: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
@@ -14,19 +15,22 @@ struct TrendingRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(dto.collectionName).brutalHeader(size: 14).foregroundStyle(theme.color(.text))
                     .lineLimit(1)
-                Text(dto.primaryGenreName ?? "Podcast").font(.system(size: 13))
+                Text(dto.primaryGenreName ?? "Podcast").scaledFont(13)
                     .foregroundStyle(theme.color(.textTertiary))
             }
             Spacer(minLength: 8)
-            Button(action: onFollow) {
+            Button(action: onToggle) {
                 Text(isSubscribed ? "Following" : "Follow")
-                    .font(.system(size: 13, weight: .bold)).textCase(.uppercase)
+                    .scaledFont(13, weight: .bold).textCase(.uppercase)
                     .lineLimit(1).fixedSize()
-                    .foregroundStyle(.white)
+                    .foregroundStyle(isSubscribed ? theme.color(.textSecondary) : .white)
                     .padding(.horizontal, 16).padding(.vertical, 7)
-                    .background(isSubscribed ? theme.color(.textTertiary) : theme.color(.accent))
+                    .background(isSubscribed ? theme.color(.bg) : theme.color(.accent))
                     .brutalBorder(width: 2)
-            }.buttonStyle(.plain).disabled(isSubscribed)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isSubscribed ? "Following \(dto.collectionName), tap to unfollow"
+                                             : "Follow \(dto.collectionName)")
         }
         .padding(10)
         .background(theme.color(.bgElevated))

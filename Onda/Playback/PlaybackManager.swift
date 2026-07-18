@@ -2,19 +2,35 @@
 import Foundation
 import SwiftData
 import AVFoundation
+import UIKit
 
+/// Owns audio playback for the whole app: the transport (play / pause / seek), the canonical
+/// playback position, the cross-show queue, and the sleep timer, plus the bridges out to the lock
+/// screen (``NowPlayingCenter``) and the audio effects (Voice Boost, skip-silence, ad-skip,
+/// intro/outro trim). Injected app-wide as an `@Observable` singleton; SwiftUI views read its
+/// published state directly. Every playback-affecting setting resolves from the current episode's
+/// `ShowSettings`.
+///
+/// - Important: `positionSeconds`/`durationSeconds` and all seeks are in **original feed seconds**
+///   (the canonical timeline). Trim and skip-silence change what wall-clock maps to a feed second
+///   but never the stored/displayed position.
 @MainActor
 @Observable
 final class PlaybackManager {
     private let engine: PlayerEngine
     private let modelContext: ModelContext
 
+    /// The episode currently loaded in the player, or `nil` before anything has played.
     var currentEpisode: Episode?
+    /// Whether the transport is currently playing (as opposed to paused/stopped).
     var isPlaying: Bool = false
+    /// Current playback position, in feed-seconds. Persisted to `Episode.playbackPosition` ~every 5s.
     var positionSeconds: TimeInterval = 0
+    /// Duration of the current episode, in feed-seconds.
     var durationSeconds: TimeInterval = 0
 
     private var lastPersistedAt: TimeInterval = -100
+    private static let lastEpisodeKey = "lastPlayedEpisodeGuid"
     private let nowPlaying = NowPlayingCenter()
     var adActive: Bool = false
     private var silence = SilenceDetector()
@@ -63,8 +79,11 @@ final class PlaybackManager {
     var captureToast: String?
     private var toastTask: Task<Void, Never>?
 
+    /// Shows an app-wide confirmation toast (auto-dismissed after 2s) with a success haptic — used
+    /// when a clip is captured, including from the lock-screen bookmark command.
     func showCaptureToast(_ text: String) {
         captureToast = text
+        UINotificationFeedbackGenerator().notificationOccurred(.success)   // felt when foregrounded
         toastTask?.cancel()
         toastTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(2))
@@ -80,12 +99,13 @@ final class PlaybackManager {
     var showNowPlaying = false
     // Bumped on a jump; TranscriptView and ShowTranscriptsView dismiss themselves when it changes.
     private(set) var transcriptJumpNonce = 0
-    // Non-nil for ~5s after a jump → the floating "Back to transcript" button shows in the player.
+    // Set after a jump → the "Back to transcript" button shows in the player. Persists until the
+    // user taps it or a different episode starts (cleared in play()); no timed disappearance.
     var returnToTranscriptEpisode: Episode?
     private var transcriptReturnTask: Task<Void, Never>?
 
     /// Jump to a transcript line and land in the player: seek 1s before the line, dismiss the
-    /// transcript sheet(s), open Now Playing, and offer a 5s "back to transcript" affordance.
+    /// transcript sheet(s), open Now Playing, and offer a persistent "back to transcript" button.
     func jumpFromTranscript(episode: Episode, to start: TimeInterval) {
         let target = max(0, start - 1)
         if currentEpisode?.guid != episode.guid { play(episode) }
@@ -97,17 +117,18 @@ final class PlaybackManager {
             // Let the transcript sheet(s) dismiss before presenting the player (podcast-screen path).
             try? await Task.sleep(for: .milliseconds(400))
             self?.showNowPlaying = true
-            try? await Task.sleep(for: .seconds(5))
-            self?.returnToTranscriptEpisode = nil
         }
     }
 
+    /// Dismisses the pending "back to transcript" affordance (the user tapped it or it's no longer
+    /// relevant), clearing ``returnToTranscriptEpisode``.
     func clearTranscriptReturn() {
         transcriptReturnTask?.cancel()
         returnToTranscriptEpisode = nil
     }
 
     private var settings: ShowSettings? { currentEpisode?.podcast?.settings }
+    /// Playback progress as a fraction `0...1` (position ÷ duration); `0` when nothing is loaded.
     var progressFraction: Double {
         guard durationSeconds > 0 else { return 0 }
         return min(1, max(0, positionSeconds / durationSeconds))
@@ -115,6 +136,8 @@ final class PlaybackManager {
 
     private var clipEndBound: TimeInterval?
 
+    /// Plays a clip's bounded range: loads its episode, seeks to `clip.startTime`, and stops
+    /// playback at `clip.endTime` without marking the episode played or advancing the queue.
     func playClip(_ clip: Clip) {
         guard let ep = clip.episode else { return }
         play(ep, autoDownload: false)     // clears any prior bound; a clip tap shouldn't pull the whole file
@@ -123,9 +146,15 @@ final class PlaybackManager {
         clipEndBound = clip.endTime
     }
 
+    /// Loads and starts an episode from its resume position (respecting the show's intro trim),
+    /// applying the show's speed/boost/skip-silence settings and updating the lock screen.
+    /// - Parameter autoDownload: when `true` (default) a streamed (not-yet-downloaded) episode is
+    ///   also saved for offline in the background via the wired `ensureDownloaded`.
     func play(_ episode: Episode, autoDownload: Bool = true) {
         clipEndBound = nil
+        returnToTranscriptEpisode = nil   // a new episode invalidates the pending transcript return
         currentEpisode = episode
+        UserDefaults.standard.set(episode.guid, forKey: Self.lastEpisodeKey)  // restored on next launch
         durationSeconds = episode.duration
         nowPlaying.prepareArtwork(url: episode.podcast?.artworkURL)
         let intro = TimeInterval(settings?.introTrimSec ?? 0)
@@ -143,6 +172,26 @@ final class PlaybackManager {
         if autoDownload, local == nil { ensureDownloaded?(episode) }
     }
 
+    /// Re-reads the current show's speed, Voice Boost, and skip-silence settings and applies them
+    /// to the engine. Call after changing any of those while an episode is loaded.
+    /// On a cold launch, re-loads the last-played episode into the player **paused** (no autoplay),
+    /// so the mini-player reappears on the Library page ready to resume from the saved position.
+    /// No-op if something is already loaded or nothing was ever played.
+    func restoreLastEpisode() {
+        guard currentEpisode == nil,
+              let guid = UserDefaults.standard.string(forKey: Self.lastEpisodeKey) else { return }
+        let descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.guid == guid })
+        guard let episode = try? modelContext.fetch(descriptor).first else { return }
+        currentEpisode = episode
+        durationSeconds = episode.duration
+        let start = max(episode.playbackPosition, TimeInterval(settings?.introTrimSec ?? 0))
+        positionSeconds = start
+        nowPlaying.prepareArtwork(url: episode.podcast?.artworkURL)
+        engine.load(url: localURL(for: episode) ?? episode.audioURL, startAt: start)
+        engine.rate = Float(settings?.speed ?? 1.0)
+        // Intentionally paused: isPlaying stays false until the user taps play.
+    }
+
     func applyAudioSettings() {
         engine.rate = Float(settings?.speed ?? 1.0)
         let boost = BoostLevel(clamping: settings?.voiceBoost ?? 0)
@@ -158,27 +207,31 @@ final class PlaybackManager {
         AdWindow(chapters: ep.chapters.map { ($0.startTime, $0.isAd) }, duration: ep.duration)
     }
 
+    /// Toggles between play and pause for the current episode (no-op when nothing is loaded).
     func togglePlayPause() {
         guard currentEpisode != nil else { return }
         if isPlaying { engine.pause(); persistPosition() } else { engine.play() }
         isPlaying.toggle()
     }
 
+    /// Seeks relative to the current position by `seconds` (negative to go back), clamped to the
+    /// episode bounds. Cancels any active clip end-bound.
     func skip(by seconds: TimeInterval) {
         clipEndBound = nil
         let target = max(0, min(durationSeconds, positionSeconds + seconds))
         engine.seek(to: target); positionSeconds = target
     }
 
+    /// Seeks to a fraction `0...1` of the episode duration (the scrubber's seek path).
     func seek(toFraction f: Double) {
         clipEndBound = nil
         let target = max(0, min(durationSeconds, durationSeconds * f))
         engine.seek(to: target); positionSeconds = target
     }
 
-    // Resolve a downloaded file to a playable URL. Checks the relationship first, then
-    // falls back to the guid-derived path on disk — the relationship can be stale within
-    // a session because downloads persist via a separate @ModelActor context.
+    /// The on-disk URL of `episode`'s downloaded audio, or `nil` if it isn't downloaded. Checks the
+    /// `downloadedFile` relationship first, then the guid-derived path — the relationship can be
+    /// stale within a session because downloads persist via a separate `@ModelActor` context.
     func localURL(for episode: Episode) -> URL? {
         if let name = episode.downloadedFile?.localFileName {
             let url = DownloadManager.fileURL(named: name)
@@ -232,6 +285,8 @@ final class PlaybackManager {
         try? modelContext.save()
     }
 
+    /// Called when the current episode reaches its (trimmed) end: marks it played, then either
+    /// stops for an end-of-episode sleep timer or advances to the next queued/unplayed episode.
     func handleEndOfItem() {
         if let ep = currentEpisode { ep.played = true; ep.playedDate = .now; ep.playbackPosition = 0 }
         try? modelContext.save()
@@ -250,10 +305,18 @@ final class PlaybackManager {
     enum SleepMode: Equatable { case off, duration(TimeInterval), endOfEpisode }
     var sleepMode: SleepMode = .off
     fileprivate var sleepTimer: Timer?
+    private(set) var sleepFireDate: Date?
+
+    /// Seconds left on a duration sleep timer, or nil when none is armed.
+    var sleepRemaining: TimeInterval? {
+        guard let d = sleepFireDate else { return nil }
+        return max(0, d.timeIntervalSinceNow)
+    }
 }
 
 // MARK: - Queue + sleep timer
 extension PlaybackManager {
+    /// Appends an episode to the end of the cross-show queue (no-op if already queued).
     func enqueue(_ episode: Episode) {
         guard !queue.contains(where: { $0.guid == episode.guid }) else { return }
         let item = QueueItem(episode: episode, position: queue.count)
@@ -262,6 +325,7 @@ extension PlaybackManager {
         try? modelContext.save()
     }
 
+    /// Removes an episode from the queue and re-persists the queue order.
     func removeFromQueue(_ episode: Episode) {
         queue.removeAll { $0.guid == episode.guid }
         let guid = episode.guid
@@ -270,6 +334,7 @@ extension PlaybackManager {
         reindexQueue()
     }
 
+    /// Reorders the queue (drag-to-reorder) and persists the new positions.
     func moveQueue(from: IndexSet, to: Int) {
         queue.move(fromOffsets: from, toOffset: to)
         reindexQueue()
@@ -283,6 +348,16 @@ extension PlaybackManager {
         try? modelContext.save()
     }
 
+    /// Tapping a queue item skips ahead to it: the item and everything above it leave the queue.
+    func playFromQueue(_ episode: Episode) {
+        if let idx = queue.firstIndex(where: { $0.guid == episode.guid }) {
+            for ep in Array(queue.prefix(idx + 1)) { removeFromQueue(ep) }
+        }
+        play(episode)
+    }
+
+    /// Plays the next episode: the head of the queue if non-empty, otherwise the newest unplayed
+    /// episode of the current show; stops playback when neither exists.
     func playNextInQueue() {
         if !queue.isEmpty {
             let next = queue[0]
@@ -300,6 +375,8 @@ extension PlaybackManager {
         isPlaying = false
     }
 
+    /// Replaces the queue with `episodes` and starts playing the first one — the materialization
+    /// path for a smart queue (Unplayed, Downloaded, …) tapped in Library.
     func startSmartQueue(_ episodes: [Episode]) {
         guard let first = episodes.first else { return }
         clearQueue()
@@ -318,17 +395,25 @@ extension PlaybackManager {
         queue.removeAll()
     }
 
+    /// Arms (or clears, with `.off`) the sleep timer. `.duration` pauses after N seconds;
+    /// `.endOfEpisode` pauses when the current episode finishes.
     func setSleepTimer(_ mode: SleepMode) {
         sleepMode = mode
         sleepTimer?.invalidate(); sleepTimer = nil
+        sleepFireDate = nil
         if case let .duration(seconds) = mode {
+            sleepFireDate = Date().addingTimeInterval(seconds)
             sleepTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { _ in
-                Task { @MainActor [weak self] in
-                    guard let self, self.isPlaying else { return }
-                    self.togglePlayPause()
-                    self.sleepMode = .off
-                }
+                Task { @MainActor [weak self] in self?.fireSleepTimer() }
             }
         }
+    }
+
+    // Always clears the armed state (even if paused when it fires) so the icon never lies.
+    private func fireSleepTimer() {
+        if isPlaying { togglePlayPause() }
+        sleepMode = .off
+        sleepFireDate = nil
+        sleepTimer = nil
     }
 }

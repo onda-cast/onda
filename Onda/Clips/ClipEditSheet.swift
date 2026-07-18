@@ -38,7 +38,7 @@ struct ClipEditSheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Excerpt").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
                     Text(previewText.isEmpty ? "(no transcript for this range)" : previewText)
-                        .font(.system(size: 14.5)).foregroundStyle(theme.color(.textSecondary))
+                        .scaledFont(14.5).foregroundStyle(theme.color(.textSecondary))
                         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
                         .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                     Text("Note").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))

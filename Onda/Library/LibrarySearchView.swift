@@ -16,23 +16,17 @@ struct LibrarySearchView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
-                    TextField("Try: gold standard by Tracy in Odd Lots", text: $query)
-                        .textInputAutocapitalization(.never)
-                }
-                .padding(.horizontal, 14).frame(height: 48)
-                .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
-                .padding(20)
+                BrutalSearchField("Try: gold standard by Tracy in Odd Lots", text: $query)
+                    .padding(20)
 
                 List(hits) { hit in
                     Button { open(hit) } label: {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(hit.showTitle).brutalHeader(size: 12).foregroundStyle(theme.color(.accent))
-                            Text(hit.cueText).font(.system(size: 15)).foregroundStyle(theme.color(.text))
+                            Text(hit.cueText).scaledFont(15).foregroundStyle(theme.color(.text))
                                 .lineLimit(2)
                             Text(hit.episodeTitle + " · " + timeStr(hit.startTime))
-                                .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+                                .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
                         }
                     }
                 }
