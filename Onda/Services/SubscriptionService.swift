@@ -61,7 +61,10 @@ final class SubscriptionService {
         let hash = PrivateFeedIdentity.hash(for: url)
         let placeholder = PrivateFeedIdentity.placeholderURL(forHash: hash)
         let podcast: Podcast
-        if let existing = try existingPodcast(feedURL: placeholder) {
+        // A podcast stuck in the fail-safe migration's pending window still has the real URL
+        // (not the placeholder) in feedURL — check both so re-subscribing to it reuses the
+        // existing row instead of creating a duplicate Podcast.
+        if let existing = try existingPodcast(feedURL: placeholder) ?? existingPodcast(feedURL: url) {
             podcast = existing
         } else {
             try tokenStore.store(realURL: url, hash: hash)
@@ -147,7 +150,11 @@ final class SubscriptionService {
     /// quadratic). Archived episodes are not resurrected.
     func refreshEpisodes(for podcast: Podcast) async throws {
         let fetchURL: URL
-        if podcast.isPrivateFeed {
+        // isPrivateFeed alone doesn't guarantee feedURL is a placeholder: a podcast stuck in the
+        // fail-safe migration's pending window (Keychain write failed) still has the real URL in
+        // feedURL and is perfectly fetchable directly. Only resolve through the token store when
+        // feedURL is actually the placeholder form.
+        if PrivateFeedIdentity.isPlaceholder(podcast.feedURL) {
             guard let realURL = try tokenStore.realURL(forHash: podcast.feedURL.host ?? "") else {
                 throw NSError(domain: "Onda.Subscribe", code: 2,
                               userInfo: [NSLocalizedDescriptionKey: "Private feed token not found"])

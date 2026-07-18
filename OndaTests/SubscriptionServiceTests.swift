@@ -145,6 +145,47 @@ final class SubscriptionServiceTests: XCTestCase {
         } catch { /* expected */ }
     }
 
+    func test_refreshEpisodes_unmigratedPrivateFeed_fetchesRealURLDirectly() async throws {
+        // Simulates a podcast stuck in the fail-safe migration's pending window: isPrivateFeed
+        // is true but feedURL still holds the real (un-migrated) URL, and no token was ever
+        // written to the store. subscribeToFeedURL always creates placeholders, so this row is
+        // built directly, bypassing it.
+        let ctx = try context()
+        let realURL = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let pod = Podcast(feedURL: realURL, title: "T", author: "A", artworkURL: nil,
+                          category: "Tech", itunesId: nil, isSubscribed: true, isPrivateFeed: true)
+        ctx.insert(pod)
+        try ctx.save()
+
+        let tokenStore = InMemoryTokenStore()   // deliberately empty — no token for this hash
+        let svc = SubscriptionService(modelContext: ctx,
+                                      feeds: RequireURLFeeds(expected: realURL, feed: feed(["a"])),
+                                      tokenStore: tokenStore)
+        try await svc.refreshEpisodes(for: pod)
+        XCTAssertEqual(pod.episodes.count, 1, "un-migrated private feed refreshes using its real feedURL directly")
+    }
+
+    func test_subscribeToFeedURL_unmigratedExistingRow_reusesInsteadOfDuplicating() async throws {
+        // Same pending-migration scenario, but exercised through subscribeToFeedURL's dedup
+        // check: an existing row with the real URL still in feedURL must be found and reused,
+        // not missed (which would create a duplicate Podcast).
+        let ctx = try context()
+        let url = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let existing = Podcast(feedURL: url, title: "T", author: "A", artworkURL: nil,
+                               category: "Tech", itunesId: nil, isSubscribed: false, isPrivateFeed: true)
+        ctx.insert(existing)
+        try ctx.save()
+
+        let tokenStore = InMemoryTokenStore()
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])),
+                                      tokenStore: tokenStore)
+        let pod = try await svc.subscribeToFeedURL(url)
+
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<Podcast>()).count, 1, "no duplicate Podcast created")
+        XCTAssertEqual(pod.feedURL, url, "the existing un-migrated row is reused as-is, not rewritten here")
+        XCTAssertTrue(pod.isSubscribed)
+    }
+
     func test_markPlayed_togglesAndClearsPosition() async throws {
         let ctx = try context()
         let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))

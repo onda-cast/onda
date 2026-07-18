@@ -1,6 +1,9 @@
 //  PrivateFeedTokenMigration.swift
 import Foundation
 import SwiftData
+import os
+
+private let migrationLog = Logger(subsystem: "com.chasegilliam.Onda", category: "privateFeedTokenMigration")
 
 /// One-time, idempotent, fail-safe migration of existing private-feed podcasts: moves each
 /// real tokenized feedURL into Keychain and rewrites the SwiftData row to the non-secret
@@ -15,7 +18,15 @@ enum PrivateFeedTokenMigration {
         for podcast in podcasts where !PrivateFeedIdentity.isPlaceholder(podcast.feedURL) {
             let realURL = podcast.feedURL
             let hash = PrivateFeedIdentity.hash(for: realURL)
-            guard (try? tokenStore.store(realURL: realURL, hash: hash)) != nil else { continue }
+            do {
+                try tokenStore.store(realURL: realURL, hash: hash)
+            } catch {
+                migrationLog.error("""
+                    failed to store token for podcast \(podcast.title, privacy: .public): \
+                    \(String(describing: error), privacy: .public)
+                    """)
+                continue
+            }
             podcast.feedURL = PrivateFeedIdentity.placeholderURL(forHash: hash)
             didMigrateAny = true
         }
