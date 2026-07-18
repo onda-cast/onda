@@ -9,6 +9,11 @@ enum UITestSeed {
 
     static func seed(context: ModelContext) {
         guard isActive else { return }
+        // Playback state from a previously-run UI test survives relaunch (the seed reuses the
+        // same episode guid), and restoreLastEpisode() would then float a mini-player whose
+        // "UITest Show" text hijacks the tests' firstMatch taps. Clear it: every seeded launch
+        // starts with no restorable episode.
+        UserDefaults.standard.removeObject(forKey: PlaybackManager.lastEpisodeKey)
         // Wipe-and-reseed: stale seeds from earlier app versions must not leak into tests.
         let existing = (try? context.fetch(FetchDescriptor<Podcast>(
             predicate: #Predicate { $0.title == "UITest Show" }))) ?? []

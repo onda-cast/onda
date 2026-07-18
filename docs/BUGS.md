@@ -109,3 +109,29 @@ Audited 2026-07-18: every other such callback already routes correctly (`queue: 
 `MainActor.assumeIsolated`, `DispatchQueue.main.async`, `Task { @MainActor }`, or `@Sendable`);
 the artwork handler was the sole offender. Diagnose device-only crashes from the `.ips` by finding
 the TRIGGERED thread's queue and its top Onda frame.
+
+## #4 — UI tests: seeded "UITest Show" taps hijacked by restored mini-player (FIXED 2026-07-18)
+
+**Symptom:** 6 OndaUITests failed consistently on a fresh iPhone 17 simulator — every test that
+starts with `app.staticTexts["UITest Show"].firstMatch.tap()` (episode-list tests, the
+show-settings gear test) reported seeded elements "not found". Failure-time accessibility
+snapshots showed the app still on the Library grid with the **Now Playing sheet open**: the tap
+had landed on the mini-player, not the grid tile.
+
+**Root cause:** cross-test playback state, not seeding or identifiers. `PlaybackManager`
+persists `lastPlayedEpisodeGuid` to UserDefaults, which survives app relaunches between UI
+tests, and `UITestSeed`'s wipe-and-reseed recreates the episode with the same guid — so after
+any earlier test tapped play (e.g. `AdvancedConfigUITests.test_player_skipButtons`, first in
+alphabetical run order), every later launch ran `restoreLastEpisode()` and floated a mini-player
+whose labels ("UITest Episode", "UITest Show") collide with the tests' `firstMatch` queries.
+Tapping the mini-player's text opens the Now Playing sheet, under which the gear /
+`play-episode` / `episode-search` elements don't exist. Whether a given test failed depended
+purely on what ran before it, which is why single-test runs passed.
+
+**Fix:** `UITestSeed.seed` now removes `PlaybackManager.lastEpisodeKey` (made internal) before
+seeding, so every seeded launch starts with no restorable episode and the mini-player only
+appears when a test itself starts playback. Full suite verified green (12/12) after the fix.
+
+**Note:** "Test crashed with signal kill" failures seen alongside these are a separate,
+nondeterministic launch-timeout flake on a loaded machine (app killed while "Setting up
+automation session"); the affected tests differ per run and pass in isolation and on re-run.

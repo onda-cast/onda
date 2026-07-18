@@ -31,7 +31,9 @@ final class PlaybackManager {
     var durationSeconds: TimeInterval = 0
 
     private var lastPersistedAt: TimeInterval = -100
-    private static let lastEpisodeKey = "lastPlayedEpisodeGuid"
+    // Internal (not private) so UITestSeed can clear it: a restored mini-player from a previous
+    // test's playback would otherwise make seeded launches nondeterministic.
+    static let lastEpisodeKey = "lastPlayedEpisodeGuid"
     private let nowPlaying = NowPlayingCenter()
     var adActive: Bool = false
     private var silence = SilenceDetector()
