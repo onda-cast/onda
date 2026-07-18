@@ -10,6 +10,8 @@ struct NowPlayingView: View {
     @State private var showQueue = false
     @State private var showSettings = false
     @State private var showTranscript = false
+    @State private var showJumpToTime = false
+    @State private var jumpText = ""
 
     private var ep: Episode? { playback.currentEpisode }
     private var settings: ShowSettings? { ep?.podcast?.settings }
@@ -99,45 +101,6 @@ struct NowPlayingView: View {
     private var downloadFraction: Double? {
         guard let ep, case .downloading(let p) = downloads.state(for: ep) else { return nil }
         return p
-    }
-
-    private var scrubber: some View {
-        VStack(spacing: 2) {
-            Slider(value: Binding(
-                get: { playback.progressFraction },
-                set: { playback.seek(toFraction: $0) }), in: 0...1)
-            .tint(theme.color(.accent))
-            .accessibilityLabel("Playback position")
-            .accessibilityValue("\(timeStr(playback.positionSeconds)) of \(timeStr(playback.durationSeconds))")
-            if let frac = downloadFraction {
-                downloadTrack(frac)
-            }
-            HStack {
-                Text(timeStr(playback.positionSeconds))
-                Spacer()
-                if let frac = downloadFraction {
-                    Text("Saving \(Int(frac * 100))%").foregroundStyle(theme.color(.accent))
-                    Spacer()
-                }
-                Text("-" + timeStr(max(0, playback.durationSeconds - playback.positionSeconds)))
-            }
-            .scaledFont(12.5).monospacedDigit().foregroundStyle(theme.color(.textTertiary))
-        }
-        .frame(maxWidth: 280)
-        .animation(.easeInOut(duration: 0.2), value: downloadFraction == nil)
-    }
-
-    // Buffered-style track under the scrubber: fills as the offline copy downloads, then vanishes.
-    private func downloadTrack(_ fraction: Double) -> some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(theme.color(.separator))
-                Capsule().fill(theme.color(.accent).opacity(0.55))
-                    .frame(width: geo.size.width * CGFloat(max(0, min(1, fraction))))
-            }
-        }
-        .frame(height: 3)
-        .padding(.top, 2)
     }
 
     // Sized for the smallest supported screens (375pt wide): 60 + 96 + 60 + spacing + padding.
@@ -276,8 +239,83 @@ struct NowPlayingView: View {
 
 }
 
+// MARK: - Scrubber
+extension NowPlayingView {
+    var scrubber: some View {
+        VStack(spacing: 2) {
+            Slider(value: Binding(
+                get: { playback.progressFraction },
+                set: { playback.seek(toFraction: $0) }), in: 0...1)
+            .tint(theme.color(.accent))
+            // A still hold opens type-a-timecode; an actual drag moves >10pt, which cancels the
+            // long press, so normal scrubbing is unaffected.
+            .simultaneousGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                jumpText = ""
+                showJumpToTime = true
+            })
+            .accessibilityLabel("Playback position")
+            .accessibilityValue("\(timeStr(playback.positionSeconds)) of \(timeStr(playback.durationSeconds))")
+            .accessibilityHint("Long press to type a time")
+            .alert("Jump to Time", isPresented: $showJumpToTime) {
+                TextField("1:23:45", text: $jumpText)
+                    .keyboardType(.numbersAndPunctuation)
+                Button("Jump") {
+                    if let t = Self.parseTimecode(jumpText) {
+                        playback.seek(toFraction: t / max(1, playback.durationSeconds))
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Enter a time like 12:34, 1:02:30, or seconds.")
+            }
+            if let frac = downloadFraction {
+                downloadTrack(frac)
+            }
+            HStack {
+                Text(timeStr(playback.positionSeconds))
+                Spacer()
+                if let frac = downloadFraction {
+                    Text("Saving \(Int(frac * 100))%").foregroundStyle(theme.color(.accent))
+                    Spacer()
+                }
+                Text("-" + timeStr(max(0, playback.durationSeconds - playback.positionSeconds)))
+            }
+            .scaledFont(12.5).monospacedDigit().foregroundStyle(theme.color(.textTertiary))
+        }
+        .frame(maxWidth: 280)
+        .animation(.easeInOut(duration: 0.2), value: downloadFraction == nil)
+    }
+
+    // Buffered-style track under the scrubber: fills as the offline copy downloads, then vanishes.
+    private func downloadTrack(_ fraction: Double) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(theme.color(.separator))
+                Capsule().fill(theme.color(.accent).opacity(0.55))
+                    .frame(width: geo.size.width * CGFloat(max(0, min(1, fraction))))
+            }
+        }
+        .frame(height: 3)
+        .padding(.top, 2)
+    }
+}
+
 // MARK: - Audio-effect chips
 extension NowPlayingView {
+    /// Parses a typed timecode: "SS" (plain seconds, any size), "MM:SS", or "HH:MM:SS".
+    /// Sub-parts after the first must be 0–59. Returns nil for anything malformed.
+    static func parseTimecode(_ input: String) -> TimeInterval? {
+        let parts = input.trimmingCharacters(in: .whitespaces).split(separator: ":", omittingEmptySubsequences: false)
+        guard (1...3).contains(parts.count) else { return nil }
+        var values: [Int] = []
+        for (i, raw) in parts.enumerated() {
+            guard !raw.isEmpty, let v = Int(raw), v >= 0 else { return nil }
+            if i > 0, v > 59 { return nil }   // minutes/seconds fields must be 0–59
+            values.append(v)
+        }
+        return TimeInterval(values.reduce(0) { $0 * 60 + $1 })
+    }
+
     // Bigger glyph + a full 44pt tap target — the header controls were cramped and hard to hit.
     func headerIcon(_ symbol: String) -> some View {
         Image(systemName: symbol).scaledFont(18, weight: .bold)
