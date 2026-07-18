@@ -403,20 +403,25 @@ extension LibraryView {
                     .accessibilityLabel("Play all \(episodes.count) episodes")
                 }
                 .padding(.bottom, 6)
-                ForEach(episodes, id: \.guid) { ep in
-                    EpisodeRow(episode: ep,
-                               downloadState: downloads.state(for: ep),
-                               showLabel: ep.podcast?.title,
-                               onPlay: { playback.play(ep) },
-                               onDownload: {
-                                   switch downloads.state(for: ep) {
-                                   case .downloaded: pendingDownloadDelete = ep
-                                   case .failed:     downloads.retryManually(guid: ep.guid)
-                                   case .downloading: break
-                                   case .none:       downloads.download(ep)
-                                   }
-                               },
-                               onOpen: { detailEpisode = ep })
+                // LazyVStack is load-bearing: with a real library, "Unplayed" can be hundreds of
+                // episodes — an eager ForEach builds every row in one main-thread layout pass and
+                // freezes the page (reported on device). Lazy matches libraryContent's grid/list.
+                LazyVStack(spacing: 0) {
+                    ForEach(episodes, id: \.guid) { ep in
+                        EpisodeRow(episode: ep,
+                                   downloadState: downloads.state(for: ep),
+                                   showLabel: ep.podcast?.title,
+                                   onPlay: { playback.play(ep) },
+                                   onDownload: {
+                                       switch downloads.state(for: ep) {
+                                       case .downloaded: pendingDownloadDelete = ep
+                                       case .failed:     downloads.retryManually(guid: ep.guid)
+                                       case .downloading: break
+                                       case .none:       downloads.download(ep)
+                                       }
+                                   },
+                                   onOpen: { detailEpisode = ep })
+                    }
                 }
             }
         }
