@@ -63,6 +63,23 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertGreaterThan(profile.terms.overlap(with: TermVector(text: "espresso"), limit: 1).count, 0)
     }
 
+    func test_profile_excludesPrivateFeeds() throws {
+        let ctx = try ctx()
+        let priv = Podcast(feedURL: URL(string: "https://ex.com/p.xml?token=s3cret")!,
+                           title: "Secret Members Show", author: "Patron Person",
+                           artworkURL: nil, category: "TrueCrime", itunesId: nil,
+                           isPrivateFeed: true)
+        ctx.insert(priv)
+        let ep = Episode(guid: "e", title: "Members Only Episode", publishDate: .now, duration: 10,
+                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        ep.played = true
+        ep.podcast = priv; priv.episodes.append(ep); ctx.insert(ep)
+
+        let profile = TasteProfileBuilder.build(subscriptions: [priv], clips: [], searchTerms: [])
+        XCTAssertTrue(profile.isEmpty,
+                      "private shows must contribute nothing — their terms feed iTunes search queries")
+    }
+
     func test_profile_emptyWhenNoSignals() throws {
         let profile = TasteProfileBuilder.build(subscriptions: [], clips: [], searchTerms: [])
         XCTAssertTrue(profile.isEmpty)
