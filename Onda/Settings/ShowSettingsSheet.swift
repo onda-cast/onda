@@ -1,5 +1,6 @@
 //  ShowSettingsSheet.swift
 import SwiftUI
+import AVFoundation
 
 struct ShowSettingsSheet: View {
     @Environment(AppTheme.self) private var theme
@@ -14,11 +15,15 @@ struct ShowSettingsSheet: View {
         return podcast.settings!
     }
     private let speedSteps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
+    @State private var showAllVoiceLanguages = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    if podcast.isLocal {
+                        section("Article Voice") { voiceSection }
+                    }
                     section("Playback") {
                         row("Speed") {
                             Button(speedLabel) { cycleSpeed() }
@@ -160,5 +165,40 @@ struct ShowSettingsSheet: View {
             Button("+") { value.wrappedValue = min(60, value.wrappedValue + 5) }
         }
         .foregroundStyle(theme.color(.accent)).font(.system(size: 18, weight: .semibold))
+    }
+
+    private var availableVoices: [AVSpeechSynthesisVoice] {
+        let all = AVSpeechSynthesisVoice.speechVoices()
+        let lang = Locale.current.language.languageCode?.identifier ?? "en"
+        let filtered = showAllVoiceLanguages ? all : all.filter { $0.language.hasPrefix(lang) }
+        return filtered.sorted { ($0.language, $0.name) < ($1.language, $1.name) }
+    }
+
+    @ViewBuilder private var voiceSection: some View {
+        row("Voice") {
+            Menu {
+                Picker("Voice", selection: Binding(
+                    get: { s.ttsVoiceIdentifier ?? "" },
+                    set: { s.ttsVoiceIdentifier = $0.isEmpty ? nil : $0 })) {
+                    Text("System Default").tag("")
+                    ForEach(availableVoices, id: \.identifier) { voice in
+                        Text("\(voice.name) (\(voice.language))").tag(voice.identifier)
+                    }
+                }
+            } label: {
+                Text(selectedVoiceName)
+                    .font(.system(size: 15, weight: .bold)).foregroundStyle(theme.color(.text))
+            }
+        }
+        Toggle("All Languages", isOn: $showAllVoiceLanguages)
+            .tint(theme.color(.accent)).foregroundStyle(theme.color(.text))
+        Text("New articles are narrated with this voice. Already-converted episodes keep theirs.")
+            .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+    }
+
+    private var selectedVoiceName: String {
+        guard let id = s.ttsVoiceIdentifier,
+              let voice = AVSpeechSynthesisVoice(identifier: id) else { return "System Default" }
+        return voice.name
     }
 }
