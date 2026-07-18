@@ -15,6 +15,43 @@ private struct FailingFeeds: FeedFetching {
     }
 }
 
+private final class InMemoryTokenStore: PrivateFeedTokenStoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [String: URL] = [:]
+
+    func store(realURL: URL, hash: String) throws {
+        lock.lock(); defer { lock.unlock() }
+        storage[hash] = realURL
+    }
+
+    func realURL(forHash hash: String) throws -> URL? {
+        lock.lock(); defer { lock.unlock() }
+        return storage[hash]
+    }
+
+    func delete(hash: String) throws {
+        lock.lock(); defer { lock.unlock() }
+        storage.removeValue(forKey: hash)
+    }
+
+    func removeAll() {
+        lock.lock(); defer { lock.unlock() }
+        storage.removeAll()
+    }
+}
+
+private struct RequireURLFeeds: FeedFetching {
+    let expected: URL
+    let feed: ParsedFeed
+    func fetchFeed(_ url: URL) async throws -> ParsedFeed {
+        guard url == expected else {
+            throw NSError(domain: "test", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "unexpected URL: \(url)"])
+        }
+        return feed
+    }
+}
+
 @MainActor
 final class SubscriptionServiceTests: XCTestCase {
     private func context() throws -> ModelContext {
@@ -77,6 +114,78 @@ final class SubscriptionServiceTests: XCTestCase {
         XCTAssertEqual(pod.episodes.count, 3, "existing guid 'a' not duplicated")
     }
 
+    func test_refreshEpisodes_privateFeed_resolvesRealURLFromTokenStore() async throws {
+        let ctx = try context()
+        let tokenStore = InMemoryTokenStore()
+        let realURL = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let subscribeSvc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])),
+                                               tokenStore: tokenStore)
+        let pod = try await subscribeSvc.subscribeToFeedURL(realURL)
+
+        // If refreshEpisodes fetched the placeholder URL instead of resolving the real one,
+        // RequireURLFeeds throws and this call fails.
+        let refreshSvc = SubscriptionService(modelContext: ctx,
+                                             feeds: RequireURLFeeds(expected: realURL, feed: feed(["a", "b"])),
+                                             tokenStore: tokenStore)
+        try await refreshSvc.refreshEpisodes(for: pod)
+        XCTAssertEqual(pod.episodes.count, 2)
+    }
+
+    func test_refreshEpisodes_privateFeed_missingToken_throws() async throws {
+        let ctx = try context()
+        let tokenStore = InMemoryTokenStore()
+        let realURL = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])),
+                                      tokenStore: tokenStore)
+        let pod = try await svc.subscribeToFeedURL(realURL)
+        tokenStore.removeAll()
+        do {
+            try await svc.refreshEpisodes(for: pod)
+            XCTFail("expected throw when the Keychain token is missing")
+        } catch { /* expected */ }
+    }
+
+    func test_refreshEpisodes_unmigratedPrivateFeed_fetchesRealURLDirectly() async throws {
+        // Simulates a podcast stuck in the fail-safe migration's pending window: isPrivateFeed
+        // is true but feedURL still holds the real (un-migrated) URL, and no token was ever
+        // written to the store. subscribeToFeedURL always creates placeholders, so this row is
+        // built directly, bypassing it.
+        let ctx = try context()
+        let realURL = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let pod = Podcast(feedURL: realURL, title: "T", author: "A", artworkURL: nil,
+                          category: "Tech", itunesId: nil, isSubscribed: true, isPrivateFeed: true)
+        ctx.insert(pod)
+        try ctx.save()
+
+        let tokenStore = InMemoryTokenStore()   // deliberately empty — no token for this hash
+        let svc = SubscriptionService(modelContext: ctx,
+                                      feeds: RequireURLFeeds(expected: realURL, feed: feed(["a"])),
+                                      tokenStore: tokenStore)
+        try await svc.refreshEpisodes(for: pod)
+        XCTAssertEqual(pod.episodes.count, 1, "un-migrated private feed refreshes using its real feedURL directly")
+    }
+
+    func test_subscribeToFeedURL_unmigratedExistingRow_reusesInsteadOfDuplicating() async throws {
+        // Same pending-migration scenario, but exercised through subscribeToFeedURL's dedup
+        // check: an existing row with the real URL still in feedURL must be found and reused,
+        // not missed (which would create a duplicate Podcast).
+        let ctx = try context()
+        let url = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let existing = Podcast(feedURL: url, title: "T", author: "A", artworkURL: nil,
+                               category: "Tech", itunesId: nil, isSubscribed: false, isPrivateFeed: true)
+        ctx.insert(existing)
+        try ctx.save()
+
+        let tokenStore = InMemoryTokenStore()
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])),
+                                      tokenStore: tokenStore)
+        let pod = try await svc.subscribeToFeedURL(url)
+
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<Podcast>()).count, 1, "no duplicate Podcast created")
+        XCTAssertEqual(pod.feedURL, url, "the existing un-migrated row is reused as-is, not rewritten here")
+        XCTAssertTrue(pod.isSubscribed)
+    }
+
     func test_markPlayed_togglesAndClearsPosition() async throws {
         let ctx = try context()
         let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
@@ -128,12 +237,17 @@ final class SubscriptionServiceTests: XCTestCase {
 
     func test_subscribeToFeedURL_createsPrivatePodcastFromChannelMetadata() async throws {
         let ctx = try context()
-        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a", "b"])))
+        let tokenStore = InMemoryTokenStore()
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a", "b"])),
+                                      tokenStore: tokenStore)
         let url = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
         let pod = try await svc.subscribeToFeedURL(url)
         XCTAssertTrue(pod.isPrivateFeed)
         XCTAssertTrue(pod.isSubscribed)
-        XCTAssertEqual(pod.feedURL, url)
+        XCTAssertEqual(pod.feedURL.scheme, "onda-private-feed", "feedURL is replaced with a placeholder")
+        XCTAssertNotEqual(pod.feedURL, url, "the real tokenized URL must not be stored in SwiftData")
+        XCTAssertEqual(try tokenStore.realURL(forHash: pod.feedURL.host!), url,
+                      "the real URL is retrievable from the token store")
         XCTAssertEqual(pod.title, "The Signal", "title comes from the feed channel")
         XCTAssertEqual(pod.author, "Ex")
         XCTAssertEqual(pod.category, "Technology")
@@ -144,7 +258,8 @@ final class SubscriptionServiceTests: XCTestCase {
 
     func test_subscribeToFeedURL_autoDownloadsNewestEpisode() async throws {
         let ctx = try context()
-        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])),
+                                      tokenStore: InMemoryTokenStore())
         var downloaded: [String] = []
         svc.downloadEpisode = { downloaded.append($0.guid) }
         _ = try await svc.subscribeToFeedURL(URL(string: "https://ex.com/p.xml?t=k")!)
@@ -153,7 +268,8 @@ final class SubscriptionServiceTests: XCTestCase {
 
     func test_subscribeToFeedURL_twice_doesNotDuplicatePodcast() async throws {
         let ctx = try context()
-        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])),
+                                      tokenStore: InMemoryTokenStore())
         let url = URL(string: "https://ex.com/p.xml?t=k")!
         _ = try await svc.subscribeToFeedURL(url)
         let again = try await svc.subscribeToFeedURL(url)

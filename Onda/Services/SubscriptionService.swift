@@ -12,15 +12,18 @@ import SwiftData
 final class SubscriptionService {
     private let modelContext: ModelContext
     private let feeds: FeedFetching
+    private let tokenStore: PrivateFeedTokenStoring
     // Wired post-init in OndaApp (same style as PlaybackManager.onCaptureRequested) — the
     // retention sweep runs reactively on mark-played, and unsubscribe frees downloads.
     var retention: EpisodeRetentionService?
     var deleteDownload: ((Episode) -> Void)?
     var downloadEpisode: ((Episode) -> Void)?   // wired to DownloadManager.download in OndaApp
 
-    init(modelContext: ModelContext, feeds: FeedFetching) {
+    init(modelContext: ModelContext, feeds: FeedFetching,
+         tokenStore: PrivateFeedTokenStoring = PrivateFeedTokenStore()) {
         self.modelContext = modelContext
         self.feeds = feeds
+        self.tokenStore = tokenStore
     }
 
     /// Subscribes to an iTunes search result: creates (or reuses) the `Podcast`, marks it
@@ -49,17 +52,28 @@ final class SubscriptionService {
     }
 
     /// Subscribe to a feed directly by URL (private/paid tokenized feeds). Show metadata comes
-    /// from the feed channel itself; nothing is persisted if the fetch fails.
+    /// from the feed channel itself; nothing is persisted if the fetch fails. The real URL is
+    /// written to Keychain and only a non-secret placeholder is stored in SwiftData — see
+    /// docs/superpowers/specs/2026-07-18-private-feed-token-keychain-design.md.
     @discardableResult
     func subscribeToFeedURL(_ url: URL) async throws -> Podcast {
         let parsed = try await feeds.fetchFeed(url)   // validate before inserting anything
-        let podcast = try existingPodcast(feedURL: url) ?? {
-            let p = Podcast(feedURL: url, title: parsed.title, author: parsed.author,
+        let hash = PrivateFeedIdentity.hash(for: url)
+        let placeholder = PrivateFeedIdentity.placeholderURL(forHash: hash)
+        let podcast: Podcast
+        // A podcast stuck in the fail-safe migration's pending window still has the real URL
+        // (not the placeholder) in feedURL — check both so re-subscribing to it reuses the
+        // existing row instead of creating a duplicate Podcast.
+        if let existing = try existingPodcast(feedURL: placeholder) ?? existingPodcast(feedURL: url) {
+            podcast = existing
+        } else {
+            try tokenStore.store(realURL: url, hash: hash)
+            let p = Podcast(feedURL: placeholder, title: parsed.title, author: parsed.author,
                             artworkURL: parsed.artworkURL, category: parsed.category,
                             itunesId: nil, isPrivateFeed: true)
             modelContext.insert(p)
-            return p
-        }()
+            podcast = p
+        }
         try await activateSubscription(podcast)
         return podcast
     }
@@ -171,7 +185,21 @@ final class SubscriptionService {
     /// quadratic). Archived episodes are not resurrected.
     func refreshEpisodes(for podcast: Podcast) async throws {
         guard !podcast.isLocal else { return }   // synthetic shows have no feed to poll
-        let feed = try await feeds.fetchFeed(podcast.feedURL)
+        let fetchURL: URL
+        // isPrivateFeed alone doesn't guarantee feedURL is a placeholder: a podcast stuck in the
+        // fail-safe migration's pending window (Keychain write failed) still has the real URL in
+        // feedURL and is perfectly fetchable directly. Only resolve through the token store when
+        // feedURL is actually the placeholder form.
+        if PrivateFeedIdentity.isPlaceholder(podcast.feedURL) {
+            guard let realURL = try tokenStore.realURL(forHash: podcast.feedURL.host ?? "") else {
+                throw NSError(domain: "Onda.Subscribe", code: 2,
+                              userInfo: [NSLocalizedDescriptionKey: "Private feed token not found"])
+            }
+            fetchURL = realURL
+        } else {
+            fetchURL = podcast.feedURL
+        }
+        let feed = try await feeds.fetchFeed(fetchURL)
         let existing = Set(podcast.episodes.map(\.guid))
         // Build new episodes first and extend the relationship ONCE — per-item appends to a
         // SwiftData relationship array are quadratic (same class of hang as the cue persist).

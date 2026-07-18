@@ -26,9 +26,12 @@ struct OndaApp: App {
             let c = try ModelContainer(for: Schema(ondaSchema))
             container = c
             AudioSession.activate()
+            let tokenStore = PrivateFeedTokenStore()
+            PrivateFeedTokenMigration.run(context: c.mainContext, tokenStore: tokenStore)
             let settings = AppSettings()
             _appSettings = State(initialValue: settings)
-            let subs = SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient())
+            let subs = SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient(),
+                                           tokenStore: tokenStore)
             let dm = DownloadManager(persistence: PersistenceActor(modelContainer: c))
             _subscriptions = State(initialValue: subs)
             _downloads = State(initialValue: dm)
