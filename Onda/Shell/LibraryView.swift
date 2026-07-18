@@ -2,24 +2,6 @@
 import SwiftUI
 import SwiftData
 
-enum LibraryLayout: String, CaseIterable {
-    case grid, compact, text
-    var label: String {
-        switch self {
-        case .grid: return "Grid"
-        case .compact: return "Compact"
-        case .text: return "Text Only"
-        }
-    }
-    var icon: String {
-        switch self {
-        case .grid: return "square.grid.2x2"
-        case .compact: return "rectangle.grid.1x2"
-        case .text: return "text.justify"
-        }
-    }
-}
-
 private struct ChipsWidthKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
@@ -374,53 +356,84 @@ extension LibraryView {
 
 // MARK: - Chip-filtered episode list
 extension LibraryView {
-    /// The library content while a chip filter is active: matching episodes across all shows.
-    /// Tapping a row plays that one episode; only the explicit Play All replaces the queue.
+    private func filterHeader(_ episodes: [Episode]) -> some View {
+        HStack {
+            Text("\(episodes.count) episode\(episodes.count == 1 ? "" : "s")")
+                .brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
+            Spacer()
+            Button {
+                startSmartQueue(episodes)
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "play.fill").scaledFont(11, weight: .bold)
+                    Text("PLAY ALL").scaledFont(12, weight: .bold)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12).frame(height: 34)
+                .background(theme.color(.accentStrong)).brutalBorder(width: 2)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Play all \(episodes.count) episodes")
+        }
+        .padding(.bottom, 6)
+    }
+
+    // Same download-tap semantics as EpisodeListView's rows.
+    private func downloadAction(_ ep: Episode) {
+        switch downloads.state(for: ep) {
+        case .downloaded: pendingDownloadDelete = ep
+        case .failed:     downloads.retryManually(guid: ep.guid)
+        case .downloading: break
+        case .none:       downloads.download(ep)
+        }
+    }
+
+    /// Filtered episodes grouped per show. Groups are ordered by each show's first appearance in
+    /// the filter's own ordering (so "Recently Added" still leads with the freshest show), and
+    /// episodes inside a group keep the filter's order. The flattened group order is what
+    /// Play All queues — the queue matches exactly what's on screen.
+    private func groupedByShow(_ episodes: [Episode]) -> [(show: Podcast, episodes: [Episode])] {
+        var order: [URL] = []
+        var byShow: [URL: (show: Podcast, episodes: [Episode])] = [:]
+        for ep in episodes {
+            guard let pod = ep.podcast else { continue }
+            if byShow[pod.feedURL] == nil {
+                order.append(pod.feedURL)
+                byShow[pod.feedURL] = (pod, [])
+            }
+            byShow[pod.feedURL]?.episodes.append(ep)
+        }
+        return order.compactMap { byShow[$0] }
+    }
+
+    /// The library content while a chip filter is active: matching episodes across all shows,
+    /// grouped by show. Tapping a row plays that one episode; only Play All replaces the queue.
     @ViewBuilder func filteredEpisodeList(_ filter: SmartQueue) -> some View {
-        let episodes = filter.apply(to: shows.flatMap(\.episodes))
+        let groups = groupedByShow(filter.apply(to: shows.flatMap(\.episodes)))
+        let episodes = groups.flatMap(\.episodes)
         if episodes.isEmpty {
             Text("No \(filter.label.lowercased()) episodes")
                 .foregroundStyle(theme.color(.textTertiary))
                 .frame(maxWidth: .infinity).padding(.top, 60)
         } else {
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("\(episodes.count) episode\(episodes.count == 1 ? "" : "s")")
-                        .brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
-                    Spacer()
-                    Button {
-                        startSmartQueue(episodes)
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "play.fill").scaledFont(11, weight: .bold)
-                            Text("PLAY ALL").scaledFont(12, weight: .bold)
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12).frame(height: 34)
-                        .background(theme.color(.accentStrong)).brutalBorder(width: 2)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Play all \(episodes.count) episodes")
-                }
-                .padding(.bottom, 6)
+                filterHeader(episodes)
                 // LazyVStack is load-bearing: with a real library, "Unplayed" can be hundreds of
                 // episodes — an eager ForEach builds every row in one main-thread layout pass and
                 // freezes the page (reported on device). Lazy matches libraryContent's grid/list.
-                LazyVStack(spacing: 0) {
-                    ForEach(episodes, id: \.guid) { ep in
-                        EpisodeRow(episode: ep,
-                                   downloadState: downloads.state(for: ep),
-                                   showLabel: ep.podcast?.title,
-                                   onPlay: { playback.play(ep) },
-                                   onDownload: {
-                                       switch downloads.state(for: ep) {
-                                       case .downloaded: pendingDownloadDelete = ep
-                                       case .failed:     downloads.retryManually(guid: ep.guid)
-                                       case .downloading: break
-                                       case .none:       downloads.download(ep)
-                                       }
-                                   },
-                                   onOpen: { detailEpisode = ep })
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(groups, id: \.show.feedURL) { group in
+                        Text(group.show.title)
+                            .brutalHeader(size: 12).foregroundStyle(theme.color(.accent))
+                            .lineLimit(1)
+                            .padding(.top, 14).padding(.bottom, 2)
+                        ForEach(group.episodes, id: \.guid) { ep in
+                            EpisodeRow(episode: ep,
+                                       downloadState: downloads.state(for: ep),
+                                       onPlay: { playback.play(ep) },
+                                       onDownload: { downloadAction(ep) },
+                                       onOpen: { detailEpisode = ep })
+                        }
                     }
                 }
             }

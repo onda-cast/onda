@@ -6,8 +6,6 @@ struct EpisodeRow: View {
     let episode: Episode
     var downloadState: DownloadState = .none
     var snippet: String?
-    /// Shown above the title in cross-show lists (library filter results); nil inside one show.
-    var showLabel: String?
     var onPlay: () -> Void = {}
     var onDownload: () -> Void = {}
     var onOpen: () -> Void = {}
@@ -35,10 +33,6 @@ struct EpisodeRow: View {
 
             Button(action: onOpen) {
                 VStack(alignment: .leading, spacing: 4) {
-                    if let showLabel {
-                        Text(showLabel).brutalHeader(size: 11).foregroundStyle(theme.color(.accent))
-                            .lineLimit(1)
-                    }
                     Text(episode.title).scaledFont(15, weight: .semibold)
                         .foregroundStyle(theme.color(.text)).lineLimit(2)
                     HStack(spacing: 8) {
