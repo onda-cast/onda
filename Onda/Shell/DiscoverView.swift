@@ -99,15 +99,21 @@ struct DiscoverView: View {
             Text(recs.isPersonalized ? "Recommended for you" : "Popular right now").brutalHeader(size: 13)
                 .foregroundStyle(theme.color(.textTertiary))
             Spacer()
-            Button {
-                Task { await recs.refresh(followedCategories: followedCategories) }
+            Menu {
+                Button {
+                    Task { await recs.refresh(followedCategories: followedCategories) }
+                } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+                Button {
+                    Task { await recs.refreshShowingDifferent(followedCategories: followedCategories) }
+                } label: { Label("Show Different Shows", systemImage: "shuffle") }
             } label: {
                 Image(systemName: "arrow.clockwise").scaledFont(14, weight: .bold)
                     .foregroundStyle(theme.color(.textSecondary))
                     .frame(width: 34, height: 34)
                     .background(theme.color(.bgElevated)).brutalBorder(width: 2)
             }
-            .buttonStyle(.plain).disabled(recs.isLoading)
+            .disabled(recs.isLoading)
+            .accessibilityLabel("Refresh recommendations")
         }
         if recs.isLoading && recs.recommendations.isEmpty {
             HStack(spacing: 8) {

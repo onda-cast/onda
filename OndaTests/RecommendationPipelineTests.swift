@@ -197,5 +197,29 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertTrue(DismissedShows(defaults: defaults).contains(chart), "dismissal persisted")
     }
 
+    func test_service_showDifferent_excludesCurrentList() async throws {
+        let ctx = try ctx()
+        let first = dto("First Show", feed: "https://first.com/f.xml")
+        let second = dto("Second Show", feed: "https://second.com/f.xml")
+        let client = StubSearch(chartIds: [1, 2], chartLookup: [first, second])
+        let feeds = StubFeeds(byURL: [
+            URL(string: "https://first.com/f.xml")!: feed("First Show", episodes: [("A", "hi")]),
+            URL(string: "https://second.com/f.xml")!: feed("Second Show", episodes: [("B", "hi")])
+        ])
+        let svc = RecommendationService(modelContext: ctx, client: client, feeds: feeds, embedding: nil,
+                                        searchLog: SearchTermLog(defaults: freshDefaults()),
+                                        dismissed: DismissedShows(defaults: freshDefaults()))
+        await svc.refresh(followedCategories: [])
+        XCTAssertEqual(Set(svc.recommendations.map(\.dto.collectionName)), ["First Show", "Second Show"])
+
+        await svc.refreshShowingDifferent(followedCategories: [])
+        XCTAssertTrue(svc.recommendations.isEmpty,
+                      "both charts shows were on screen, so a 'different' rebuild has nothing left")
+
+        // The exclusion is one-shot, not persisted: a plain refresh brings them back.
+        await svc.refresh(followedCategories: [])
+        XCTAssertEqual(svc.recommendations.count, 2, "plain refresh is unaffected by prior exclusion")
+    }
+
     private func freshDefaults() -> UserDefaults { UserDefaults(suiteName: "rec-\(UUID().uuidString)")! }
 }

@@ -54,11 +54,21 @@ final class RecommendationService {
         await refresh(followedCategories: followedCategories)
     }
 
+    /// "Show me different shows": rebuilds the list excluding everything currently displayed
+    /// (session-only — unlike dismiss, the exclusion isn't persisted, so those shows can come
+    /// back in a future refresh).
+    func refreshShowingDifferent(followedCategories: [String]) async {
+        let shown = Set(recommendations.compactMap(\.dto.feedUrl))
+        await refresh(followedCategories: followedCategories, excluding: shown)
+    }
+
     /// Rebuilds the taste profile and runs the full retrieve → re-rank funnel, replacing
     /// ``recommendations``. Mixes in top charts on a cold start / thin candidate pool.
-    /// - Parameter followedCategories: categories of the user's subscriptions, used to steer
-    ///   retrieval and the cold-start fallback.
-    func refresh(followedCategories: [String]) async {
+    /// - Parameters:
+    ///   - followedCategories: categories of the user's subscriptions, used to steer retrieval
+    ///     and the cold-start fallback.
+    ///   - excluding: feed URLs to leave out of this rebuild (on top of subscribed + dismissed).
+    func refresh(followedCategories: [String], excluding: Set<URL> = []) async {
         isLoading = true
         defer { isLoading = false }
 
@@ -72,11 +82,15 @@ final class RecommendationService {
 
         var pool = await retriever.retrieve(
             profile: profile, followedCategories: followedCategories,
-            subscribedFeeds: subscribedFeeds, isDismissed: { [dismissedStore] in dismissedStore.contains($0) })
+            subscribedFeeds: subscribedFeeds,
+            isDismissed: { [dismissedStore] dto in
+                dismissedStore.contains(dto) || dto.feedUrl.map(excluding.contains) ?? false
+            })
 
         // Cold start / thin pool: mix in the top charts so there's always something to show.
         if pool.count < 10 {
-            pool.append(contentsOf: await charts(excluding: subscribedFeeds, existing: pool))
+            pool.append(contentsOf: await charts(excluding: subscribedFeeds.union(excluding),
+                                                 existing: pool))
         }
 
         recommendations = await reranker.rank(profile: profile, candidates: pool)
