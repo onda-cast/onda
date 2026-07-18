@@ -113,8 +113,23 @@ struct DiscoverView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Discover").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
-                    .padding(.top, 56)
+                HStack {
+                    Text("Discover").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
+                    Spacer()
+                    Button { triggerShake() } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "shuffle").font(.system(size: 14, weight: .bold))
+                            Text("SHUFFLE").font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundStyle(theme.color(.textSecondary))
+                        .padding(.horizontal, 10).frame(height: 36)
+                        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Shuffle new podcasts")
+                    .accessibilityHint("Also works by shaking your phone")
+                }
+                .padding(.top, 56)
 
                 SegmentedRow(options: [("Browse", DiscoverMode.browse), ("For You", .forYou)],
                              selection: mode) { mode = $0 }
@@ -138,11 +153,7 @@ struct DiscoverView: View {
             if !new.trimmingCharacters(in: .whitespaces).isEmpty { shake = nil }
             Task { await runSearch(new) }
         }
-        .onShake {
-            mode = .browse   // shake results live in Browse
-            shakeCount += 1
-            Task { await runShake() }
-        }
+        .onShake { triggerShake() }
         .sensoryFeedback(.impact(weight: .medium), trigger: shakeCount)
         .sensoryFeedback(.success, trigger: dealID)
     }
@@ -215,6 +226,13 @@ struct DiscoverView: View {
         return "Because you follow \(names[0]) & \(names[1])"
     }
 
+    // Shared entry point for the shake gesture and the visible Shuffle button.
+    private func triggerShake() {
+        mode = .browse   // shake results live in Browse
+        shakeCount += 1
+        Task { await runShake() }
+    }
+
     private func runShake() async {
         let followed = Array(Set(subs.map(\.category))).sorted()
         var rng = SystemRandomNumberGenerator()
@@ -224,6 +242,8 @@ struct DiscoverView: View {
             subscribedFeeds: subscribedFeeds,
             using: clientBox.client,
             rng: &rng)
+        // Nothing new to show → stay on Trending rather than an empty "success" state.
+        guard !result.picks.isEmpty else { return }
         let title = Self.shakeTitles.randomElement() ?? "Shaken for you"
         withAnimation(.spring(duration: 0.35, bounce: 0.35)) {
             shake = ShakeState(picks: result.picks, categories: result.categories,

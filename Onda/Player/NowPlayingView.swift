@@ -17,7 +17,6 @@ struct NowPlayingView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                header
                 if let ep {
                     ArtworkView(url: ep.podcast?.artworkURL, seed: ep.podcast?.title ?? ep.title)
                         .frame(maxWidth: 240).aspectRatio(1, contentMode: .fit)
@@ -34,8 +33,14 @@ struct NowPlayingView: View {
                     about(ep)
                 }
             }
-            .padding(.horizontal, 24).padding(.top, 60).padding(.bottom, 20)
+            .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 20)
             .frame(maxWidth: .infinity)
+        }
+        // Header pinned so the transcript/queue/settings actions never scroll away.
+        .safeAreaInset(edge: .top) {
+            header
+                .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 8)
+                .background(theme.color(.bg))
         }
         // Scrubber + transport pinned: always on screen regardless of device height.
         .safeAreaInset(edge: .bottom) {
@@ -289,7 +294,7 @@ private struct BackToTranscriptButton: View {
             .background(theme.color(.accent)).brutalBorder(width: 2).hardShadow(offset: 3)
         }
         .buttonStyle(.plain)
-        .padding(.top, 64)
+        .padding(.top, 112)   // clear the pinned header row
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 }
