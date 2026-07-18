@@ -26,28 +26,36 @@ struct ShowSettingsSheet: View {
                         section("Article Voice") { voiceSection }
                     }
                     section("Playback") {
-                        row("Speed") {
-                            Button(speedLabel) { cycleSpeed() }
-                                .scaledFont(15, weight: .bold).foregroundStyle(theme.color(.text))
-                        }
+                        speedOverrideRow
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Voice Boost").scaledFont(16).foregroundStyle(theme.color(.text))
-                            SegmentedRow(options: [("Off", 0), ("Med", 1), ("High", 2)],
-                                         selection: s.voiceBoost ?? 0) { s.voiceBoost = $0; playback.applyAudioSettings() }
+                            SegmentedRow(options: [("Default", -1), ("Off", 0), ("Med", 1), ("High", 2)],
+                                         selection: s.voiceBoost ?? -1) {
+                                s.voiceBoost = $0 == -1 ? nil : $0; playback.applyAudioSettings()
+                            }
+                            defaultCaption(["Off", "Med", "High"][appSettings.defaultVoiceBoost],
+                                           shown: s.voiceBoost == nil)
                         }
-                        Toggle("Skip Silence", isOn: Binding(
-                            get: { s.skipSilence ?? false }, set: { s.skipSilence = $0; playback.applyAudioSettings() }))
-                            .tint(theme.color(.accent)).foregroundStyle(theme.color(.text))
+                        boolOverridePicker("Skip Silence",
+                                           defaultHint: appSettings.defaultSkipSilence ? "On" : "Off",
+                                           value: Binding(get: { s.skipSilence },
+                                                          set: { s.skipSilence = $0; playback.applyAudioSettings() }))
                     }
                     section("Ads & Downloads") {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Ad Skip").scaledFont(16).foregroundStyle(theme.color(.text))
-                            SegmentedRow(options: [("Off", "off"), ("Manual", "manual"), ("Auto", "auto")],
-                                         selection: s.adSkipMode ?? "off") { s.adSkipMode = $0 }
+                            SegmentedRow(options: [("Default", "default"), ("Off", "off"),
+                                                   ("Manual", "manual"), ("Auto", "auto")],
+                                         selection: s.adSkipMode ?? "default") {
+                                s.adSkipMode = $0 == "default" ? nil : $0
+                            }
+                            defaultCaption(appSettings.defaultAdSkipMode.capitalized,
+                                           shown: s.adSkipMode == nil)
                         }
-                        Toggle("Auto-Download New Episodes", isOn: Binding(
-                            get: { s.autoDownload ?? false }, set: { s.autoDownload = $0 }))
-                            .tint(theme.color(.accent)).foregroundStyle(theme.color(.text))
+                        boolOverridePicker("Auto-Download New Episodes",
+                                           defaultHint: appSettings.defaultAutoDownload ? "On" : "Off",
+                                           value: Binding(get: { s.autoDownload },
+                                                          set: { s.autoDownload = $0 }))
                     }
                     section("Trim Episode") {
                         stepperRow("Skip Intro", value: Binding(get: { s.introTrimSec }, set: { s.introTrimSec = $0 }))
@@ -99,13 +107,29 @@ struct ShowSettingsSheet: View {
         }
     }
 
-    private var speedLabel: String {
-        let sp = s.speed ?? 1
-        return sp == sp.rounded() ? "\(Int(sp))×" : "\(sp)×"
+    // Speed override: Default segment inherits the global; Custom reveals the cycle button
+    // seeded from the current global so tapping it starts from a familiar value.
+    @ViewBuilder private var speedOverrideRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Speed").scaledFont(16).foregroundStyle(theme.color(.text))
+                Spacer()
+                if s.speed != nil {
+                    Button(NowPlayingView.speedText(s.speed ?? 1)) { cycleSpeed() }
+                        .scaledFont(15, weight: .bold).foregroundStyle(theme.color(.text))
+                }
+            }
+            SegmentedRow(options: [("Default", 0), ("Custom", 1)],
+                         selection: s.speed == nil ? 0 : 1) {
+                s.speed = $0 == 0 ? nil : appSettings.defaultSpeed
+                playback.applyAudioSettings()
+            }
+            defaultCaption(NowPlayingView.speedText(appSettings.defaultSpeed), shown: s.speed == nil)
+        }
     }
 
     private func cycleSpeed() {
-        let i = speedSteps.firstIndex(of: s.speed ?? 1) ?? 1
+        let i = speedSteps.firstIndex(of: s.speed ?? appSettings.defaultSpeed) ?? 1
         s.speed = speedSteps[(i + 1) % speedSteps.count]
         playback.applyAudioSettings()
     }

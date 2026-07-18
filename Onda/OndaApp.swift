@@ -31,11 +31,9 @@ struct OndaApp: App {
             let subs = SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient())
             let dm = DownloadManager(persistence: PersistenceActor(modelContainer: c))
             _subscriptions = State(initialValue: subs)
-            dm.cellularAllowed = { !settings.wifiOnlyDownloads }
             _downloads = State(initialValue: dm)
             let pm = PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext,
                                      appSettings: settings)
-            pm.ensureDownloaded = { [weak dm] in dm?.download($0) }
             _playback = State(initialValue: pm)
             let engine: AudioTranscribing? = {
                 if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }
@@ -57,11 +55,7 @@ struct OndaApp: App {
             OndaApp.seedSearchIndexIfEmpty(index, context: c.mainContext)
             let cs = ClipService(modelContext: c.mainContext, index: index)
             _clips = State(initialValue: cs)
-            pm.onCaptureRequested = { [weak pm] in
-                guard let pm, let ep = pm.currentEpisode else { return }
-                cs.quickClip(episode: ep, at: pm.positionSeconds)
-                pm.showCaptureToast("Clipped last \(Int(ClipService.quickClipWindow))s")
-            }
+            OndaApp.wirePlayback(pm: pm, dm: dm, cs: cs, settings: settings)
             let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs,
                                         downloads: dm, appSettings: settings)
             rs.retention = ret
@@ -75,6 +69,17 @@ struct OndaApp: App {
             pm.restoreLastEpisode()   // cold-launch: bring back the last episode (paused) into the mini-player
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
+        }
+    }
+
+    private static func wirePlayback(pm: PlaybackManager, dm: DownloadManager,
+                                     cs: ClipService, settings: AppSettings) {
+        pm.ensureDownloaded = { [weak dm] in dm?.download($0) }
+        dm.cellularAllowed = { !settings.wifiOnlyDownloads }
+        pm.onCaptureRequested = { [weak pm] in
+            guard let pm, let ep = pm.currentEpisode else { return }
+            cs.quickClip(episode: ep, at: pm.positionSeconds)
+            pm.showCaptureToast("Clipped last \(Int(ClipService.quickClipWindow))s")
         }
     }
 

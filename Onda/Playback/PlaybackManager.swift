@@ -240,43 +240,12 @@ final class PlaybackManager {
         isPlaying.toggle()
     }
 
-    /// Smart Resume rewind: after a break, back up a little so the listener regains context.
-    /// Fixed internal thresholds (not user-tunable); the feature toggle lives in AppSettings.
-    static func smartResumeRewind(afterPauseOf pause: TimeInterval) -> TimeInterval {
-        switch pause {
-        case ..<60: 0
-        case ..<(30 * 60): 5
-        case ..<(3 * 3600): 15
-        default: 30
-        }
-    }
-
     /// Seeks relative to the current position by `seconds` (negative to go back), clamped to the
     /// episode bounds. Cancels any active clip end-bound.
     func skip(by seconds: TimeInterval) {
         clipEndBound = nil
         let target = max(0, min(durationSeconds, positionSeconds + seconds))
         engine.seek(to: target); positionSeconds = target
-    }
-
-    /// User-facing skip actions (player buttons, lock screen). Use the configured intervals —
-    /// accelerated on rapid repeat taps; internal seeks (ads, silence, chapters) call `skip(by:)`.
-    func skipForward() {
-        let mult = appSettings.seekAccelerationEnabled
-            ? seekAccelerator.multiplier(direction: 1, now: now()) : 1
-        skip(by: TimeInterval(appSettings.seekForwardSec) * mult)
-    }
-
-    func skipBack() {
-        let mult = appSettings.seekAccelerationEnabled
-            ? seekAccelerator.multiplier(direction: -1, now: now()) : 1
-        skip(by: -TimeInterval(appSettings.seekBackSec) * mult)
-    }
-
-    /// Pushes the configured intervals to the lock-screen remote commands.
-    func refreshSkipIntervals() {
-        nowPlaying.updateSkipIntervals(forward: appSettings.seekForwardSec,
-                                       back: appSettings.seekBackSec)
     }
 
     /// Seeks to a fraction `0...1` of the episode duration (the scrubber's seek path).
@@ -372,6 +341,40 @@ final class PlaybackManager {
     var sleepRemaining: TimeInterval? {
         guard let d = sleepFireDate else { return nil }
         return max(0, d.timeIntervalSinceNow)
+    }
+}
+
+// MARK: - Configured skips (seek intervals, acceleration, Smart Resume)
+extension PlaybackManager {
+    /// Smart Resume rewind: after a break, back up a little so the listener regains context.
+    /// Fixed internal thresholds (not user-tunable); the feature toggle lives in AppSettings.
+    static func smartResumeRewind(afterPauseOf pause: TimeInterval) -> TimeInterval {
+        switch pause {
+        case ..<60: 0
+        case ..<(30 * 60): 5
+        case ..<(3 * 3600): 15
+        default: 30
+        }
+    }
+
+    /// User-facing skip actions (player buttons, lock screen). Use the configured intervals —
+    /// accelerated on rapid repeat taps; internal seeks (ads, silence, chapters) call `skip(by:)`.
+    func skipForward() {
+        let mult = appSettings.seekAccelerationEnabled
+            ? seekAccelerator.multiplier(direction: 1, now: now()) : 1
+        skip(by: TimeInterval(appSettings.seekForwardSec) * mult)
+    }
+
+    func skipBack() {
+        let mult = appSettings.seekAccelerationEnabled
+            ? seekAccelerator.multiplier(direction: -1, now: now()) : 1
+        skip(by: -TimeInterval(appSettings.seekBackSec) * mult)
+    }
+
+    /// Pushes the configured intervals to the lock-screen remote commands.
+    func refreshSkipIntervals() {
+        nowPlaying.updateSkipIntervals(forward: appSettings.seekForwardSec,
+                                       back: appSettings.seekBackSec)
     }
 }
 
