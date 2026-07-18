@@ -33,6 +33,7 @@ struct LibraryView: View {
     private var layout: LibraryLayout { LibraryLayout(rawValue: layoutRaw) ?? .grid }
     @State private var showSearch = false
     @State private var showClips = false
+    @State private var showAddArticle = false
     @State private var settingsPodcast: Podcast?
     @State private var unsubscribeTarget: Podcast?
     @State private var toast: String?
@@ -54,6 +55,13 @@ struct LibraryView: View {
                             .padding(.horizontal, 10).frame(height: 36)
                             .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                         }.buttonStyle(.plain).accessibilityLabel("Clips")
+                        Button { showAddArticle = true } label: {
+                            Image(systemName: "link.badge.plus")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(theme.color(.textSecondary))
+                                .frame(width: 36, height: 36)
+                                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                        }.buttonStyle(.plain).accessibilityLabel("Add Article")
                         Button { showSearch = true } label: {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 17, weight: .semibold))
@@ -111,6 +119,7 @@ struct LibraryView: View {
             .navigationDestination(for: Podcast.self) { EpisodeListView(podcast: $0) }
             .sheet(isPresented: $showSearch) { LibrarySearchView() }
             .sheet(isPresented: $showClips) { ClipsView() }
+            .sheet(isPresented: $showAddArticle) { AddArticleSheet() }
             .sheet(item: $settingsPodcast) { ShowSettingsSheet(podcast: $0) }
             .confirmationDialog("Unsubscribe from \(unsubscribeTarget?.title ?? "")?",
                                 isPresented: Binding(get: { unsubscribeTarget != nil },

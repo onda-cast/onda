@@ -18,6 +18,7 @@ struct OndaApp: App {
     @State private var clips: ClipService
     @State private var searchIndexBox: SearchIndexBox
     @State private var recommendations: RecommendationService
+    @State private var articles: ArticleConversionService
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -65,6 +66,7 @@ struct OndaApp: App {
             _refresh = State(initialValue: rs)
             _recommendations = State(initialValue: RecommendationService(
                 modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient()))
+            _articles = State(initialValue: OndaApp.makeArticleService(context: c.mainContext, ts: ts))
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
         }
@@ -80,6 +82,15 @@ struct OndaApp: App {
             OndaApp.autoTranscribeIfEnabled(guid: guid, context: context,
                                             retention: ret, transcripts: ts)
         }
+    }
+
+    private static func makeArticleService(context: ModelContext, ts: TranscriptService) -> ArticleConversionService {
+        let extractor = ArticleExtractor()
+        return ArticleConversionService(
+            modelContext: context,
+            extract: { try await extractor.extract(from: $0) },
+            renderer: ArticleSpeechRenderer(),
+            persistTranscript: { ep, cues in ts.persist(cues: cues, for: ep, source: "tts") })
     }
 
     private static func makeChapterGenerator() -> ChapterGenerating? {
@@ -150,6 +161,7 @@ struct OndaApp: App {
                 .environment(clips)
                 .environment(searchIndexBox)
                 .environment(recommendations)
+                .environment(articles)
                 .preferredColorScheme(theme.colorScheme)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {

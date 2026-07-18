@@ -148,6 +148,7 @@
 		ED63B54DE41FB02973EB229B /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 30A2540F9C13B4E709BA6570 /* libsqlite3.tbd */; };
 		EE0DD6B7A6CAB3E4DF728838 /* uitest-audio.aiff in Resources */ = {isa = PBXBuildFile; fileRef = 3F65138271FBACF93B441DAA /* uitest-audio.aiff */; };
 		F339BE46425621A1A28C19E7 /* AdWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1167AF2050B72699C1A53695 /* AdWindow.swift */; };
+		F355B50995E50BD922CAE0BE /* AddArticleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0080ED4EBE0E4CA668C71C /* AddArticleSheet.swift */; };
 		F62F7E968FAA1FB666FE6430 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 323028D4CD592C6D201924EF /* AppSettings.swift */; };
 		F7CF1015743F959F1007190D /* MarkdownExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2C9426A2C0D555EDB039598 /* MarkdownExportTests.swift */; };
 		F7D496C5C54E8FE48330ECA2 /* CandidateRetriever.swift in Sources */ = {isa = PBXBuildFile; fileRef = E186AA80E676DA5698482EA0 /* CandidateRetriever.swift */; };
@@ -316,6 +317,7 @@
 		E60E9938DD85518ACBD94F9F /* chapters.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = chapters.json; sourceTree = "<group>"; };
 		E805DE0D40D2B33E85D10F1F /* ActiveCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveCue.swift; sourceTree = "<group>"; };
 		EA5CFAF270CB840561A8A523 /* PodcastEpisodeSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastEpisodeSearch.swift; sourceTree = "<group>"; };
+		EF0080ED4EBE0E4CA668C71C /* AddArticleSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddArticleSheet.swift; sourceTree = "<group>"; };
 		EFA828C6EE830C3B05D66ECD /* article_basic.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = article_basic.html; sourceTree = "<group>"; };
 		F054A4C32FC6891BC6555A06 /* DownloadsStorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadsStorageView.swift; sourceTree = "<group>"; };
 		F195A2C7A6F56903489DE7F7 /* SmartQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueue.swift; sourceTree = "<group>"; };
@@ -576,6 +578,7 @@
 		D694F7B5AA7E58E42241CF0C /* Article */ = {
 			isa = PBXGroup;
 			children = (
+				EF0080ED4EBE0E4CA668C71C /* AddArticleSheet.swift */,
 				E5CFFFDD20A0013457DA9C07 /* ArticleConversionService.swift */,
 				27966D66ED838121B8DF2928 /* ArticleExtractor.swift */,
 				0CCAE772148CAAD909064824 /* ArticleSpeechRenderer.swift */,
@@ -868,6 +871,7 @@
 			files = (
 				28497CC078C08533CF32F0BD /* ActiveCue.swift in Sources */,
 				F339BE46425621A1A28C19E7 /* AdWindow.swift in Sources */,
+				F355B50995E50BD922CAE0BE /* AddArticleSheet.swift in Sources */,
 				F62F7E968FAA1FB666FE6430 /* AppSettings.swift in Sources */,
 				C5304B0E2E5DFB6F0310C145 /* ArticleConversionService.swift in Sources */,
 				B0228DFAE18C44398B412D9F /* ArticleExtractor.swift in Sources */,
