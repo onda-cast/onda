@@ -430,3 +430,33 @@ with a fake feed fetcher, and service cold-start/dismiss/TTL.
 
 **Out of scope:** cross-user CF, ML training, any on-device model beyond Apple's bundled NLEmbedding,
 episode-level recommendations.
+
+## Post-v0.6 Addendum — Discover, Library shaping, UX/accessibility hardening (added 2026-07-18)
+
+Features shipped since the Recommendations addendum, each with its own design/plan doc under
+`docs/superpowers/`; recorded here so this master spec stays a complete index.
+
+- **Recommendations as a Discover sub-tab.** "For You" (recommender) and "Browse" (search/trending)
+  became sibling sub-tabs inside Discover rather than a top section. Header is honest — "Recommended
+  for you" only when the taste profile has signal, "Popular right now" otherwise.
+- **Shake-to-Discover** (`specs/2026-07-17-shake-to-discover-design.md`): a shake gesture (and a
+  visible Shuffle button) deals in a fresh set of candidate shows.
+- **Per-podcast episode search** (`specs/2026-07-17-per-podcast-episode-search-design.md`).
+- **Private/paid podcast feeds** (`specs/2026-07-17-private-podcast-feeds-design.md`): subscribe by
+  tokenized feed URL via an Add-by-URL sheet in Discover; `Podcast.isPrivateFeed` keeps those shows
+  (whose URL holds a secret) out of anything that leaves the device — notably the taste profile.
+- **Library shaping.** Layout options (grid / compact / text-only) and sort options (alphabetical /
+  newest episode / most listened / recently played), persisted in `@AppStorage`, chosen from the
+  Library header's view-options menu; the menu's section headers name the active values. Subscribing
+  auto-downloads the newest episode.
+- **UX + accessibility pass** (this master spec + `docs/BUGS.md` #3). One shared `BrutalSearchField`
+  across Library/Discover/transcript search (with a clear button). Dynamic Type support via a
+  `scaledFont` helper across all fixed font sizes, capped at `.accessibility1`; big display titles
+  shrink-to-fit rather than wrap. Selected segments/filter chips carry a checkmark (non-color cue);
+  small white text on accent uses a darker `accentStrong` token to clear 4.5:1 AA in dark mode.
+  Assorted polish: overflow-aware chip fade, omit "0 min" durations, resolved "Default" hints in
+  per-show settings, compact/text row titles truncate instead of colliding with the chevron,
+  instant Downloads & Storage recompute on delete.
+- **Device-only playback crash fixed** (`docs/BUGS.md` #3): the `MPMediaItemArtwork` request handler
+  inherited `@MainActor` under `SWIFT_DEFAULT_ACTOR_ISOLATION` and crashed when MediaPlayer rendered
+  lock-screen art off-main; fixed by building it in a `nonisolated` helper.

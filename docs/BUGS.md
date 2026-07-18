@@ -81,3 +81,31 @@ constantly (not just flakily), reboot the simulator or check network — the ass
 recover on their own. Observed 2026-07-17: wedged at 09:57 (6 failures), fully recovered by
 10:01 on the same booted simulator with zero code change — a `NLTagger.requestAssets` call in
 a diagnostic run in between may have triggered the re-fetch.
+
+## #3 — Hard crash on play, lock-screen artwork (FIXED 2026-07-18, commit `18e4e38`)
+
+**Symptom:** app hard-crashes when playing audio. **DEVICE-ONLY** — every simulator play-path
+probe passed, because the simulator never exercises MediaPlayer's lock-screen artwork rendering.
+Reproduced from two `.ips` reports the user pulled off the device.
+
+**Root cause (same family as #1):** the project builds with `SWIFT_DEFAULT_ACTOR_ISOLATION =
+MainActor`, so the `MPMediaItemArtwork` request-handler closure `{ _ in image }` — formed in
+`@MainActor` code in `NowPlayingCenter.prepareArtwork` — is inferred MainActor-isolated. But
+MediaPlayer invokes that handler on its own background `accessQueue` (`jpegDataWithSize:`) to draw
+the lock-screen/Control-Center art, tripping the Swift runtime executor check
+(`_swift_task_checkIsolatedSwift` → `dispatch_assert_queue` → EXC_BREAKPOINT / `swift_release`).
+The first `.ips` showed the release-side of the same machinery; the decisive `.ips` had the
+**triggered** thread on `*/accessQueue` with the top Onda frame inside `prepareArtwork`.
+
+**Fix:** build the artwork in a `nonisolated static` helper that takes `Data` (Sendable) in and
+returns the `MPMediaItemArtwork`, so the handler carries no actor isolation and is callable from
+any queue. Also force-decode via `UIImage.byPreparingForDisplay()` so MediaPlayer's render never
+triggers a lazy CGImage decode racing with the main actor. Verified on device.
+
+**General rule (see also the onda-swift6-concurrency memory):** any closure handed to a non-SwiftUI
+framework callback that can fire off-main (TCC, MediaPlayer, `MTAudioProcessingTap`, CoreAnimation)
+must be formed in a `nonisolated` context / marked `@Sendable` — never let it inherit `@MainActor`.
+Audited 2026-07-18: every other such callback already routes correctly (`queue: .main` +
+`MainActor.assumeIsolated`, `DispatchQueue.main.async`, `Task { @MainActor }`, or `@Sendable`);
+the artwork handler was the sole offender. Diagnose device-only crashes from the `.ips` by finding
+the TRIGGERED thread's queue and its top Onda frame.
