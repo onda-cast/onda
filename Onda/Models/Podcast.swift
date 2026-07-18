@@ -11,6 +11,7 @@ final class Podcast {
     var category: String
     var itunesId: Int?
     var isSubscribed: Bool
+    var isLocal: Bool = false   // synthetic show (e.g. "Articles") — no feed to refresh
 
     @Relationship(deleteRule: .cascade, inverse: \Episode.podcast)
     var episodes: [Episode] = []

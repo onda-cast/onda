@@ -17,6 +17,7 @@ final class ShowSettings {
     var autoDeleteListenedAfterDaysOverride: Int?   // -1 = explicitly off, 0 = immediately
     var autoTranscribeOnDownloadOverride: Bool?
     var keepTranscriptsOverride: Bool?
+    var ttsVoiceIdentifier: String?   // Articles show only; nil = system default voice
     var podcast: Podcast?
 
     init(speed: Double, voiceBoost: Int, skipSilence: Bool, adSkipMode: String,

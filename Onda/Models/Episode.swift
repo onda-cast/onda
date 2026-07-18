@@ -14,6 +14,7 @@ final class Episode {
     var played: Bool
     var playedDate: Date?   // stamped when marked played; drives the auto-delete-after-N-days rule
     var isArchived: Bool = false   // soft-deleted: hidden everywhere, clips/transcript may remain
+    var sourceType: String = "feed"   // "feed" | "article" — mirrors Chapter.source tagging
     var chaptersURL: URL?
     var transcriptURL: URL?
     var transcriptType: String?
@@ -28,6 +29,9 @@ final class Episode {
 
     @Relationship(deleteRule: .cascade, inverse: \Transcript.episode)
     var transcript: Transcript?
+
+    @Relationship(deleteRule: .cascade, inverse: \ArticleSource.episode)
+    var articleSource: ArticleSource?
 
     @Relationship(deleteRule: .cascade, inverse: \Clip.episode)
     var clips: [Clip] = []
