@@ -30,7 +30,10 @@ struct LibraryView: View {
 
     private let cols = [GridItem(.flexible(), spacing: 18), GridItem(.flexible(), spacing: 18)]
     @AppStorage("libraryLayout") private var layoutRaw = LibraryLayout.grid.rawValue
+    @AppStorage("librarySort") private var sortRaw = LibrarySort.alphabetical.rawValue
     private var layout: LibraryLayout { LibraryLayout(rawValue: layoutRaw) ?? .grid }
+    private var sort: LibrarySort { LibrarySort(rawValue: sortRaw) ?? .alphabetical }
+    private var sortedShows: [Podcast] { sort.sorted(shows) }
     @State private var showSearch = false
     @State private var showClips = false
     @State private var settingsPodcast: Podcast?
@@ -141,21 +144,26 @@ struct LibraryView: View {
                     Label(l.label, systemImage: l.icon).tag(l.rawValue)
                 }
             }
+            Picker("Sort", selection: $sortRaw) {
+                ForEach(LibrarySort.allCases, id: \.rawValue) { s in
+                    Label(s.label, systemImage: s.icon).tag(s.rawValue)
+                }
+            }
         } label: {
-            Image(systemName: layout.icon)
+            Image(systemName: "slider.horizontal.3")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(theme.color(.textSecondary))
                 .frame(width: 36, height: 36)
                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
         }
-        .accessibilityLabel("Library layout")
+        .accessibilityLabel("Library view options")
     }
 
     @ViewBuilder private var libraryContent: some View {
         switch layout {
         case .grid:
             LazyVGrid(columns: cols, spacing: 18) {
-                ForEach(shows) { show in
+                ForEach(sortedShows) { show in
                     NavigationLink(value: show) { ShowCard(podcast: show) }
                         .buttonStyle(.plain)
                         .contextMenu { contextMenu(for: show) }
@@ -163,7 +171,7 @@ struct LibraryView: View {
             }
         case .compact, .text:
             LazyVStack(spacing: 10) {
-                ForEach(shows) { show in
+                ForEach(sortedShows) { show in
                     NavigationLink(value: show) { rowCard(show, showArt: layout == .compact) }
                         .buttonStyle(.plain)
                         .contextMenu { contextMenu(for: show) }

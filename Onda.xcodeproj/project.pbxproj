@@ -10,6 +10,7 @@
 		00CCB3C9EC4EF568C89F1E15 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8CB6A8C8BE847F612F95699 /* LibraryView.swift */; };
 		01A56AC5527E7BEA7773B980 /* SmartQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C2283DA18F5EA37D53EFBB /* SmartQuery.swift */; };
 		029DFFBB6A70763A48064350 /* RSSFeedParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E24483CC8707435EC6912901 /* RSSFeedParser.swift */; };
+		0637D74E7FCCF172E74E0B53 /* LibrarySort.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02CC59D6F9385B3EF735B13B /* LibrarySort.swift */; };
 		07D5638371C4F282BED2F0B2 /* TranscriptParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FA5F027F92CA348778CADB /* TranscriptParserTests.swift */; };
 		08C87F980E4A5740C6FB4DC8 /* SmartQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A988A4AC118620951E2E4927 /* SmartQueueTests.swift */; };
 		0EF858DBCF0C958D90B463D7 /* ModelSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4981733BFE82B20F4431CC7B /* ModelSchema.swift */; };
@@ -75,6 +76,7 @@
 		80B349B3C8D9F8D4B1EB2735 /* Episode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 325070FC3907EFEC82D6435F /* Episode.swift */; };
 		823EE68AB440D457D02413F5 /* transcript.vtt in Resources */ = {isa = PBXBuildFile; fileRef = 7B9EF093482D7A3CB1420F55 /* transcript.vtt */; };
 		83FD313D2C17026BAE890110 /* AudioTranscribing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D8FD0B68F0BA4837E28DBCD /* AudioTranscribing.swift */; };
+		86DF40D69DFFD1FC3D08F7B9 /* LibrarySortTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93761B856854CB1C03BA35F0 /* LibrarySortTests.swift */; };
 		8749A1ED18DCA2188C4CB47E /* ClipServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FBD6DA4529DE65939254E12 /* ClipServiceTests.swift */; };
 		889D0D426FACDAB562C39601 /* PodcastEpisodeSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5CFAF270CB840561A8A523 /* PodcastEpisodeSearch.swift */; };
 		88DB78A54954DC820E58FFF8 /* ShowTranscriptsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6CF58B66ECECE89E8E768CE /* ShowTranscriptsView.swift */; };
@@ -167,6 +169,7 @@
 /* Begin PBXFileReference section */
 		01AA17CA2E65778F63487C7A /* DownloadManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManagerTests.swift; sourceTree = "<group>"; };
 		027D2498D259920B8FD7659E /* SpeechEngineReproTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechEngineReproTests.swift; sourceTree = "<group>"; };
+		02CC59D6F9385B3EF735B13B /* LibrarySort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySort.swift; sourceTree = "<group>"; };
 		038C26F4DBED21BB7B7008BE /* SilenceDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SilenceDetector.swift; sourceTree = "<group>"; };
 		097BB2EF5DA616773F62F1C3 /* TranscriptServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptServiceTests.swift; sourceTree = "<group>"; };
 		0D8FD0B68F0BA4837E28DBCD /* AudioTranscribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTranscribing.swift; sourceTree = "<group>"; };
@@ -232,6 +235,7 @@
 		8A3E4D37A3BFC845DD61B2DA /* ChapterGenerating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterGenerating.swift; sourceTree = "<group>"; };
 		8C1426D72C602B5DCF50A4F7 /* OndaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OndaApp.swift; sourceTree = "<group>"; };
 		8E57A3975734FA3AB29AA4CF /* ChapterGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterGenerationService.swift; sourceTree = "<group>"; };
+		93761B856854CB1C03BA35F0 /* LibrarySortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySortTests.swift; sourceTree = "<group>"; };
 		93942D719E2A7F24435D23FB /* ClipEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEditSheet.swift; sourceTree = "<group>"; };
 		93E1B51E3A6C164EC3CC2A61 /* transcript_pc20.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = transcript_pc20.json; sourceTree = "<group>"; };
 		95F89E1D02C358AFACCB68FE /* RetentionSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetentionSettingsSection.swift; sourceTree = "<group>"; };
@@ -448,6 +452,7 @@
 			isa = PBXGroup;
 			children = (
 				CBEC28D305C0AF9EB03669B1 /* DiscoverView.swift */,
+				02CC59D6F9385B3EF735B13B /* LibrarySort.swift */,
 				B8CB6A8C8BE847F612F95699 /* LibraryView.swift */,
 				20505A324537A29B2E603405 /* ProfileView.swift */,
 				0D98EBBD5A1C251BF9D3E293 /* RootView.swift */,
@@ -630,6 +635,7 @@
 				F212AF2CD929ECE56DDA5488 /* EpisodeRetentionServiceTests.swift */,
 				A438C9713DECE88526A93F4D /* FeedRefreshServiceTests.swift */,
 				AB38DA8A4E82A891E4D93ACD /* ITunesSearchClientTests.swift */,
+				93761B856854CB1C03BA35F0 /* LibrarySortTests.swift */,
 				E2C9426A2C0D555EDB039598 /* MarkdownExportTests.swift */,
 				CB7D89A90138AEE75E6CA063 /* ModelTests.swift */,
 				A2AC269F8B3F5991E1C14136 /* PlaybackManagerTests.swift */,
@@ -850,6 +856,7 @@
 				BA5A213ABE3A407DB6C4B4E8 /* ITunesSearchClient.swift in Sources */,
 				79124B9489A4D77E1F6D7025 /* ITunesSearchClientBox.swift in Sources */,
 				CEA0C709ED719C46D943F3E3 /* LibrarySearchView.swift in Sources */,
+				0637D74E7FCCF172E74E0B53 /* LibrarySort.swift in Sources */,
 				00CCB3C9EC4EF568C89F1E15 /* LibraryView.swift in Sources */,
 				C61DA16DE661C17ACFAE2B9E /* MarkdownExport.swift in Sources */,
 				7BEAC7BA90BBA4D79BF4E562 /* MiniPlayerView.swift in Sources */,
@@ -921,6 +928,7 @@
 				C9F3A50AD0F28D5E152E7487 /* EpisodeRetentionServiceTests.swift in Sources */,
 				6F663B2EBE40D001D9C4CD7A /* FeedRefreshServiceTests.swift in Sources */,
 				C72934F09B99AF20E74BB6F6 /* ITunesSearchClientTests.swift in Sources */,
+				86DF40D69DFFD1FC3D08F7B9 /* LibrarySortTests.swift in Sources */,
 				F7CF1015743F959F1007190D /* MarkdownExportTests.swift in Sources */,
 				7A6EAA5D11DC0D5777865B37 /* ModelTests.swift in Sources */,
 				FE6348117ECF5D6A5DC58060 /* PlaybackManagerTests.swift in Sources */,
