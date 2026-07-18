@@ -11,10 +11,7 @@ struct DiscoverView: View {
 
     @State private var query = ""
     @State private var results: [PodcastDTO] = []
-    @State private var trending: [PodcastDTO] = []
-    @State private var loading = false
     @State private var searching = false
-    @State private var trendingFailed = false
     @State private var searchFailed = false
     @State private var shake: ShakeState?
     @State private var shakeCount = 0
@@ -46,6 +43,9 @@ struct DiscoverView: View {
     }
 
     private var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var trending: [PodcastDTO] { clientBox.trending }
+    private var loading: Bool { clientBox.trendingLoading }
+    private var trendingFailed: Bool { clientBox.trendingFailed }
 
     // MARK: Browse sub-tab (search, categories, trending, shake)
 
@@ -81,7 +81,7 @@ struct DiscoverView: View {
             if loading {
                 loadingRow("Loading trending…")
             } else if trendingFailed {
-                errorRetry("Couldn't load trending") { Task { await loadTrending(force: true) } }
+                errorRetry("Couldn't load trending") { Task { await clientBox.loadTrendingIfNeeded(force: true) } }
             }
         }
     }
@@ -194,7 +194,7 @@ struct DiscoverView: View {
         .simultaneousGesture(TapGesture().onEnded { searchFocused = false })
         .scrollDismissesKeyboard(.immediately)
         .background(theme.color(.bg))
-        .task { await loadTrending() }
+        .task { await clientBox.loadTrendingIfNeeded() }
         .task { await recs.refreshIfStale(followedCategories: followedCategories) }
         .onChange(of: query) { _, new in
             if !new.trimmingCharacters(in: .whitespaces).isEmpty { shake = nil }
@@ -299,17 +299,6 @@ extension DiscoverView {
             shake = ShakeState(picks: result.picks, categories: result.categories,
                                usedFallback: result.usedFallback, title: title)
             dealID += 1   // re-deals the cards and fires the landing haptic
-        }
-    }
-
-    func loadTrending(force: Bool = false) async {
-        guard force || trending.isEmpty else { return }
-        loading = true; trendingFailed = false; defer { loading = false }
-        do {
-            let ids = try await clientBox.client.topChartIds(limit: 25)
-            trending = try await clientBox.client.lookup(ids: Array(ids.prefix(20)))
-        } catch {
-            trending = []; trendingFailed = true
         }
     }
 

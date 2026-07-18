@@ -87,7 +87,8 @@ struct DownloadsStorageView: View {
         BrutalCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("Storage Used").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
+                    Text("Downloads & Transcripts").brutalHeader(size: 13)
+                        .foregroundStyle(theme.color(.textTertiary))
                     Spacer()
                     Text(sizeStr(bd.totalBytes)).font(.system(size: 15, weight: .bold)).monospacedDigit()
                         .foregroundStyle(theme.color(.text))
@@ -96,7 +97,7 @@ struct DownloadsStorageView: View {
                 HStack(spacing: 16) {
                     legend(color: theme.color(.accent), label: "Audio", bytes: bd.audioBytes)
                     legend(color: theme.color(.accent).opacity(0.45), label: "Transcripts",
-                           bytes: bd.transcriptBytes)
+                           bytes: bd.transcriptBytes, approx: true)
                 }
                 HStack(spacing: 10) {
                     smallButton("Clear Audio") { confirmClearAudio = true }
@@ -123,10 +124,10 @@ struct DownloadsStorageView: View {
         .frame(height: 16).brutalBorder(width: 2)
     }
 
-    private func legend(color: Color, label: String, bytes: Int64) -> some View {
+    private func legend(color: Color, label: String, bytes: Int64, approx: Bool = false) -> some View {
         HStack(spacing: 6) {
             Rectangle().fill(color).frame(width: 12, height: 12).brutalBorder(width: 1.5)
-            Text("\(label) \(sizeStr(bytes))").font(.system(size: 12, weight: .semibold))
+            Text("\(label) \(approx ? "~" : "")\(sizeStr(bytes))").font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(theme.color(.textSecondary))
         }
     }
@@ -139,7 +140,7 @@ struct DownloadsStorageView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(row.title).font(.system(size: 15, weight: .bold)).lineLimit(1)
                         .foregroundStyle(theme.color(.text))
-                    Text("Audio \(sizeStr(row.audioBytes)) · Transcripts \(sizeStr(row.transcriptBytes))")
+                    Text("Audio \(sizeStr(row.audioBytes)) · Transcripts ~\(sizeStr(row.transcriptBytes))")
                         .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
                 }
                 Spacer()

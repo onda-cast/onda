@@ -115,6 +115,29 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertTrue(pm.isPlaying)
     }
 
+    func test_playFromQueue_removesTappedAndEverythingAbove() throws {
+        let ctx = try makeContext()
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        let a = makeEpisode(in: ctx, guid: "a")
+        let b = makeEpisode(in: ctx, guid: "b")
+        let c = makeEpisode(in: ctx, guid: "c")
+        pm.enqueue(a); pm.enqueue(b); pm.enqueue(c)
+        pm.playFromQueue(b)
+        XCTAssertEqual(pm.currentEpisode?.guid, "b")
+        XCTAssertEqual(pm.queue.map(\.guid), ["c"], "tapped item and everything above it leave the queue")
+    }
+
+    func test_sleepTimer_reportsRemaining_andClearsOnOff() throws {
+        let ctx = try makeContext()
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        pm.setSleepTimer(.duration(600))
+        let remaining = try XCTUnwrap(pm.sleepRemaining)
+        XCTAssertGreaterThan(remaining, 590)
+        XCTAssertLessThanOrEqual(remaining, 600)
+        pm.setSleepTimer(.off)
+        XCTAssertNil(pm.sleepRemaining, "turning the timer off clears the remaining time")
+    }
+
     func test_removeFromQueue_dropsEpisode() throws {
         let ctx = try makeContext()
         let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)

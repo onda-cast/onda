@@ -68,6 +68,33 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertTrue(profile.isEmpty)
     }
 
+    func test_profile_displayVocabulary_excludesTranscriptAndClipTokens() throws {
+        let ctx = try ctx()
+        let pod = Podcast(feedURL: URL(string: "https://a.com/f.xml")!, title: "Show",
+                          author: "Dev", artworkURL: nil, category: "Technology", itunesId: 1)
+        ctx.insert(pod)
+        let ep = Episode(guid: "e", title: "E", publishDate: .now, duration: 10,
+                         audioURL: URL(string: "https://a.com/e.mp3")!, notes: "")
+        ep.podcast = pod; pod.episodes.append(ep); ctx.insert(ep)
+        let tr = Transcript(source: "published", language: "en"); tr.episode = ep; ep.transcript = tr
+        let cue = TranscriptCue(startTime: 0, endTime: 5, text: "a shocking murder", speaker: nil)
+        cue.transcript = tr; tr.cues = [cue]; ctx.insert(tr); ctx.insert(cue)
+        let clip = Clip(startTime: 0, endTime: 5, text: "espresso portafilter", note: nil,
+                        createdAt: .now, needsReview: false)
+        clip.episode = ep; ctx.insert(clip)
+
+        let profile = TasteProfileBuilder.build(subscriptions: [pod], clips: [clip],
+                                                searchTerms: ["swift concurrency"])
+        XCTAssertTrue(profile.displayVocabulary.contains("technology"), "category is showable")
+        XCTAssertTrue(profile.displayVocabulary.contains("swift"), "search term is showable")
+        XCTAssertTrue(profile.displayVocabulary.contains("dev"), "author is showable")
+        XCTAssertFalse(profile.displayVocabulary.contains("murder"), "transcript token not shown")
+        XCTAssertFalse(profile.displayVocabulary.contains("espresso"), "clip token not shown")
+        // …but transcript/clip tokens still drive scoring.
+        XCTAssertTrue(profile.terms.terms.contains("murder"))
+        XCTAssertTrue(profile.terms.terms.contains("espresso"))
+    }
+
     // MARK: Retriever query construction + exclusions
 
     func test_retriever_coldStartUsesFollowedCategories() {

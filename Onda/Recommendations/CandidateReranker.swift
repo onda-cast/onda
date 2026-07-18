@@ -53,7 +53,9 @@ struct CandidateReranker {
 
     private func reasons(for dto: PodcastDTO, candidate: TermVector, profile: TasteProfile) -> [String] {
         var out: [String] = []
-        let shared = profile.terms.overlap(with: candidate, limit: 3)
+        // Only surface clean vocabulary (genres/authors/searches), never raw transcript tokens.
+        let vocab = TermVector(profile.displayVocabulary.reduce(into: [:]) { $0[$1] = 1 })
+        let shared = candidate.overlap(with: vocab, limit: 3)
         if !shared.isEmpty { out.append("Matches your interest in \(shared.joined(separator: ", "))") }
         if let genre = dto.primaryGenreName, profile.categories[genre] != nil {
             out.append("More \(genre) like you follow")

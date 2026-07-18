@@ -250,6 +250,13 @@ final class PlaybackManager {
     enum SleepMode: Equatable { case off, duration(TimeInterval), endOfEpisode }
     var sleepMode: SleepMode = .off
     fileprivate var sleepTimer: Timer?
+    private(set) var sleepFireDate: Date?
+
+    /// Seconds left on a duration sleep timer, or nil when none is armed.
+    var sleepRemaining: TimeInterval? {
+        guard let d = sleepFireDate else { return nil }
+        return max(0, d.timeIntervalSinceNow)
+    }
 }
 
 // MARK: - Queue + sleep timer
@@ -281,6 +288,14 @@ extension PlaybackManager {
             items.first { $0.episode?.guid == ep.element.guid }?.position = ep.offset
         }
         try? modelContext.save()
+    }
+
+    /// Tapping a queue item skips ahead to it: the item and everything above it leave the queue.
+    func playFromQueue(_ episode: Episode) {
+        if let idx = queue.firstIndex(where: { $0.guid == episode.guid }) {
+            for ep in Array(queue.prefix(idx + 1)) { removeFromQueue(ep) }
+        }
+        play(episode)
     }
 
     func playNextInQueue() {
@@ -321,14 +336,20 @@ extension PlaybackManager {
     func setSleepTimer(_ mode: SleepMode) {
         sleepMode = mode
         sleepTimer?.invalidate(); sleepTimer = nil
+        sleepFireDate = nil
         if case let .duration(seconds) = mode {
+            sleepFireDate = Date().addingTimeInterval(seconds)
             sleepTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { _ in
-                Task { @MainActor [weak self] in
-                    guard let self, self.isPlaying else { return }
-                    self.togglePlayPause()
-                    self.sleepMode = .off
-                }
+                Task { @MainActor [weak self] in self?.fireSleepTimer() }
             }
         }
+    }
+
+    // Always clears the armed state (even if paused when it fires) so the icon never lies.
+    private func fireSleepTimer() {
+        if isPlaying { togglePlayPause() }
+        sleepMode = .off
+        sleepFireDate = nil
+        sleepTimer = nil
     }
 }
