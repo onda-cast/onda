@@ -54,9 +54,18 @@ struct EpisodeRow: View {
             Spacer(minLength: 8)
             Button(action: onDownload) {
                 downloadIcon
-            }.buttonStyle(.plain)
+            }.buttonStyle(.plain).accessibilityLabel(downloadAccessibilityLabel)
         }
         .padding(.vertical, 12)
+    }
+
+    private var downloadAccessibilityLabel: String {
+        switch downloadState {
+        case .none: return "Download episode"
+        case .downloading(let p): return "Downloading, \(Int(p * 100)) percent"
+        case .downloaded: return "Downloaded, delete"
+        case .failed: return "Download failed, retry"
+        }
     }
 
     @ViewBuilder private var downloadIcon: some View {

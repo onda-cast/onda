@@ -10,13 +10,17 @@ struct SegmentedRow<T: Hashable>: View {
     var body: some View {
         HStack(spacing: 8) {
             ForEach(options, id: \.value) { opt in
+                let isSelected = opt.value == selection
                 Button { onChange(opt.value) } label: {
                     Text(opt.label).font(.system(size: 13.5, weight: .semibold))
-                        .frame(maxWidth: .infinity).padding(.vertical, 10)
-                        .foregroundStyle(opt.value == selection ? .white : theme.color(.textSecondary))
-                        .background(opt.value == selection ? theme.color(.accent) : theme.color(.bg))
+                        .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 2)
+                        .foregroundStyle(isSelected ? .white : theme.color(.textSecondary))
+                        .background(isSelected ? theme.color(.accent) : theme.color(.bg))
                         .brutalBorder(width: 2)
-                }.buttonStyle(.plain)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(opt.label)
+                .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
             }
         }
     }
