@@ -8,6 +8,9 @@ struct TasteProfile: Equatable {
     var terms = TermVector()
     var categories: [String: Double] = [:]
     var authors: [String: Double] = [:]
+    /// Terms safe to show a user in a "why" reason — from genres, authors, and searches, NOT raw
+    /// transcript tokens (which can read like "murder, elon"). Scoring still uses `terms`.
+    var displayVocabulary: Set<String> = []
 
     var isEmpty: Bool { terms.isEmpty && categories.isEmpty && authors.isEmpty }
 
@@ -38,11 +41,18 @@ enum TasteProfileBuilder {
 
         for term in searchTerms {
             profile.terms.add(text: term, weight: Weight.search)
+            profile.displayVocabulary.formUnion(RecTokenizer.terms(in: term))
         }
 
         for pod in subscriptions {
-            if !pod.category.isEmpty { profile.categories[pod.category, default: 0] += Weight.tally }
-            if !pod.author.isEmpty { profile.authors[pod.author, default: 0] += Weight.tally }
+            if !pod.category.isEmpty {
+                profile.categories[pod.category, default: 0] += Weight.tally
+                profile.displayVocabulary.formUnion(RecTokenizer.terms(in: pod.category))
+            }
+            if !pod.author.isEmpty {
+                profile.authors[pod.author, default: 0] += Weight.tally
+                profile.displayVocabulary.formUnion(RecTokenizer.terms(in: pod.author))
+            }
             profile.terms.add(text: pod.title, weight: Weight.showTitle)
 
             for ep in pod.episodes where ep.played {
