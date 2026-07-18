@@ -143,6 +143,8 @@ struct EpisodeListView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                    .accessibilityLabel("Show settings")
+                    .accessibilityIdentifier("show-settings-button")
             }
         }
         .sheet(isPresented: $showSettings) { ShowSettingsSheet(podcast: podcast) }

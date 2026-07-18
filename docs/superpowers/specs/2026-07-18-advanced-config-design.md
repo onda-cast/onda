@@ -1,7 +1,7 @@
 # Advanced Configuration (Overcast-inspired) — Design
 
 **Date:** 2026-07-18
-**Status:** Approved
+**Status:** Implemented
 **Scope:** Sub-project 1 of 3 (global playback defaults + Nitpicky Details + download policy).
 Sub-project 2 (smart playlists + priorities) gets its own spec later.
 
