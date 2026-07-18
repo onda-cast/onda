@@ -402,6 +402,65 @@ final class ArticleConversionServiceTests: XCTestCase {
         }
     }
 
+    /// Pins the stale-snapshot bug: the old implementation read `queue.entries()` once at the
+    /// top of the loop. If a URL later in that snapshot finishes via a concurrent foreground
+    /// conversion while the background pass is still awaiting an earlier entry, the loop would
+    /// reach the (now-stale) entry, see its in-flight guard cleared, and convert it a second
+    /// time — duplicating the episode. The fix re-reads the queue every iteration.
+    func test_processQueueForBackground_staleSnapshotDoesNotReconvertConcurrentlyCompletedEntry() async throws {
+        let ctx = try makeContext()
+        let queue = tempQueue()
+        let aURL = URL(string: "https://example.com/bg-stale-a")!
+        let bURL = URL(string: "https://example.com/bg-stale-b")!
+        queue.append(aURL)
+        queue.append(bURL)
+
+        // Two independent gates, keyed by URL, so the test can control exactly when each
+        // conversion's extract() call is allowed to proceed.
+        let gateA = Gate()
+        let gateB = Gate()
+        let extractFn: ArticleConversionService.Extract = { url in
+            let gate = url == aURL ? gateA : gateB
+            await gate.enter()
+            while await !gate.isReleased {
+                try Task.checkCancellation()
+                try await Task.sleep(nanoseconds: 5_000_000)
+            }
+            return self.article
+        }
+        let svc = makeService(ctx: ctx, extract: extractFn, queue: queue)
+
+        svc.add(url: bURL)          // B's foreground conversion starts, blocked inside extract()
+        await gateB.waitForEntry()  // confirm B is genuinely in flight before the bg pass starts
+
+        let bg = Task { await svc.processQueueForBackground() }
+        await gateA.waitForEntry() // the bg pass skipped in-flight B and picked A, now blocked
+
+        // Let B's foreground conversion finish while the background pass is still awaiting A —
+        // this is the exact race the old single-snapshot loop got wrong.
+        await gateB.release()
+        let bDone = await pollAsync { (try? ctx.fetch(FetchDescriptor<Episode>()))?.isEmpty == false }
+        XCTAssertTrue(bDone, "B's foreground conversion did not complete within the timeout")
+        XCTAssertFalse(queue.entries().map(\.url).contains(bURL),
+                       "B must be removed from the durable queue once its foreground conversion succeeds")
+
+        await gateA.release()   // now let the background pass's conversion of A finish
+        await bg.value
+
+        let eps = try ctx.fetch(FetchDescriptor<Episode>())
+        let bEpisodes = eps.filter { $0.articleSource?.sourceURL == bURL }
+        XCTAssertEqual(bEpisodes.count, 1,
+                       "a stale queue snapshot must not re-convert a URL a concurrent foreground " +
+                       "pass already finished")
+        XCTAssertEqual(eps.count, 2, "A and B should each have exactly one episode")
+        XCTAssertTrue(queue.entries().isEmpty)
+
+        for ep in eps {
+            try? FileManager.default.removeItem(
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+        }
+    }
+
     func test_processQueueForBackground_skipsInFlightURL() async throws {
         let ctx = try makeContext()
         let queue = tempQueue()

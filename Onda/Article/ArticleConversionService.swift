@@ -139,9 +139,17 @@ final class ArticleConversionService {
     /// an in-flight attempt — a foreground conversion suspended mid-render resumes
     /// concurrently with a background wake, and double-converting duplicates episodes.
     func processQueueForBackground() async {
-        for entry in queue.entries() where entry.attempts < Self.maxAutoAttempts {
-            guard !Task.isCancelled else { return }
-            guard inFlight[entry.url] == nil else { continue }
+        var attempted: Set<URL> = []
+        while !Task.isCancelled {
+            // Fresh read each iteration: an entry can be satisfied (or added) by a
+            // concurrent foreground conversion while we await the previous one — a
+            // stale snapshot here re-converted finished URLs and duplicated episodes.
+            guard let entry = queue.entries().first(where: {
+                $0.attempts < Self.maxAutoAttempts
+                    && inFlight[$0.url] == nil
+                    && !attempted.contains($0.url)
+            }) else { return }
+            attempted.insert(entry.url)
             await convert(entry.url)
         }
     }
@@ -193,31 +201,54 @@ final class ArticleConversionService {
     /// enough for typical articles. If it expires, the conversion freezes with the app;
     /// its queue entry survives for the BGProcessingTask window.
     #if canImport(UIKit)
-    private static func beginBackgroundContinuation() -> UIBackgroundTaskIdentifier {
+    private static func beginBackgroundContinuation() -> ContinuationHolder {
         let holder = ContinuationHolder()
         let id = UIApplication.shared.beginBackgroundTask(withName: "article-conversion") {
             holder.end()
         }
-        holder.id = id
-        return id
+        holder.started(id)
+        return holder
     }
 
-    private static func endBackgroundContinuation(_ id: UIBackgroundTaskIdentifier) {
-        guard id != .invalid else { return }
-        UIApplication.shared.endBackgroundTask(id)
+    private static func endBackgroundContinuation(_ holder: ContinuationHolder) {
+        holder.end()
     }
 
-    /// beginBackgroundTask's expiration handler needs the identifier the call returns —
-    /// this box breaks the chicken-and-egg without capturing a mutated local. The handler
-    /// runs off the main thread, so `end()` hops to the main actor before touching
-    /// UIApplication.
+    /// Single gatekeeper for one background-task assertion: begin stores the id, and
+    /// BOTH completion (the `defer` in add()) and expiration route through end(), which is
+    /// idempotent behind the lock — UIKit treats a second endBackgroundTask on the same
+    /// (possibly recycled) identifier as an over-release. Expiration handlers are documented
+    /// to arrive on the main thread, and the conversion Task in add() is MainActor-inherited
+    /// (it's an unstructured Task created synchronously from this @MainActor-isolated class),
+    /// so assumeIsolated is sound on both the expiration path and the defer path.
     private final class ContinuationHolder: @unchecked Sendable {
-        var id: UIBackgroundTaskIdentifier = .invalid
+        private let lock = NSLock()
+        private var id: UIBackgroundTaskIdentifier = .invalid
+        private var ended = false
+
+        /// Records the identifier returned by beginBackgroundTask. If the expiration handler
+        /// already fired (racing ahead of this call, before `id` was known), `end()` no-oped
+        /// against `.invalid` and set `ended` — so this catches up by ending immediately.
+        func started(_ id: UIBackgroundTaskIdentifier) {
+            let endNow: Bool = lock.withLock {
+                self.id = id
+                return ended
+            }
+            if endNow { finish(id) }
+        }
+
         func end() {
-            Task { @MainActor in
-                guard self.id != .invalid else { return }
-                UIApplication.shared.endBackgroundTask(self.id)
-                self.id = .invalid
+            let target: UIBackgroundTaskIdentifier? = lock.withLock {
+                if ended { return nil }
+                ended = true
+                return id == .invalid ? nil : id
+            }
+            if let target { finish(target) }
+        }
+
+        private func finish(_ id: UIBackgroundTaskIdentifier) {
+            MainActor.assumeIsolated {
+                UIApplication.shared.endBackgroundTask(id)
             }
         }
     }
