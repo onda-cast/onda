@@ -25,6 +25,7 @@ struct LibraryView: View {
     @Environment(PlaybackManager.self) private var playback
     @Environment(SubscriptionService.self) private var subscriptions
     @Environment(DownloadManager.self) private var downloads
+    @Environment(ArticleConversionService.self) private var articles
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed },
            sort: \Podcast.title) private var shows: [Podcast]
 
@@ -105,6 +106,15 @@ struct LibraryView: View {
                         .padding(.top, 16)
                     }
 
+                    // The Articles show is only created on first successful conversion, so
+                    // in-flight/failed first-article rows would otherwise have nowhere to
+                    // render. Surface them here until the show exists; once it does, they
+                    // show only inside its episode list (no double display).
+                    if !articles.pending.isEmpty
+                        && !shows.contains(where: { $0.feedURL == ArticleConversionService.articlesFeedURL }) {
+                        pendingArticlesSection
+                    }
+
                     if shows.isEmpty {
                         Text("No shows yet — find some in Discover")
                             .foregroundStyle(theme.color(.textTertiary))
@@ -158,6 +168,17 @@ struct LibraryView: View {
                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
         }
         .accessibilityLabel("Library layout")
+    }
+
+    private var pendingArticlesSection: some View {
+        VStack(spacing: 10) {
+            ForEach(articles.pending) { item in
+                ArticlePendingRow(item: item,
+                                  onRetry: { articles.retry(url: item.id) },
+                                  onDismiss: { articles.dismiss(url: item.id) })
+            }
+        }
+        .padding(.horizontal, 20).padding(.top, 16)
     }
 
     @ViewBuilder private var libraryContent: some View {

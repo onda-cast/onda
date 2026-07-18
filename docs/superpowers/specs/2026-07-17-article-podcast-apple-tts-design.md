@@ -166,7 +166,9 @@ retention/eviction, storage accounting, and offline playback all work unmodified
   Articles show's episode list (sourced from `ArticleConversionService`'s in-memory
   state, not a real `Episode`) showing the URL/domain and current stage (fetching →
   extracting → synthesizing). On failure: inline error + Retry/Dismiss. On success:
-  replaced by the real `Episode` row once the SwiftData insert lands.
+  replaced by the real `Episode` row once the SwiftData insert lands. Until the Articles
+  show exists (i.e. before the first conversion has ever succeeded), these pending/error
+  rows are shown instead at the top of the Library, above the shows list.
 - **Articles show**: appears in the Library like any subscribed show. Episode list,
   playback, transcript view, and download management all reuse existing screens
   unchanged.

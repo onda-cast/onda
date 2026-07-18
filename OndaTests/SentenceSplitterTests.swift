@@ -20,4 +20,16 @@ final class SentenceSplitterTests: XCTestCase {
         XCTAssertEqual(SentenceSplitter.split(""), [])
         XCTAssertEqual(SentenceSplitter.split("  \n\t "), [])
     }
+
+    func test_singleNewlineWithinSentence_joinsIntoOneSentence() {
+        let text = "Arctic terns make the longest\nmigration of any animal."
+        XCTAssertEqual(SentenceSplitter.split(text),
+                       ["Arctic terns make the longest migration of any animal."])
+    }
+
+    func test_blankLineSeparatedFragments_stayAsSeparateEntries() {
+        let text = "The Long Migration\n\nBy Jordan Reyes\n\nFirst real sentence."
+        XCTAssertEqual(SentenceSplitter.split(text),
+                       ["The Long Migration", "By Jordan Reyes", "First real sentence."])
+    }
 }
