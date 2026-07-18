@@ -44,7 +44,9 @@ enum TasteProfileBuilder {
             profile.displayVocabulary.formUnion(RecTokenizer.terms(in: term))
         }
 
-        for pod in subscriptions {
+        // Private feeds are excluded entirely: profile terms become iTunes search queries,
+        // and a paid show's titles/topics shouldn't leave the device.
+        for pod in subscriptions where !pod.isPrivateFeed {
             if !pod.category.isEmpty {
                 profile.categories[pod.category, default: 0] += Weight.tally
                 profile.displayVocabulary.formUnion(RecTokenizer.terms(in: pod.category))
