@@ -39,4 +39,31 @@ final class ArticleSpeechRendererTests: XCTestCase {
             XCTAssertEqual(e, .noSentences)
         } catch { XCTFail("unexpected error \(error)") }
     }
+
+    func test_cancellingRender_throwsCancellationAndLeavesNoFile() async throws {
+        let out = FileManager.default.temporaryDirectory
+            .appendingPathComponent("render-\(UUID().uuidString).m4a")
+        defer { try? FileManager.default.removeItem(at: out) }
+
+        let sentences = (0..<50).map { "This is sentence number \($0), spoken so rendering takes a while." }
+        let renderer = ArticleSpeechRenderer()
+        let task = Task {
+            try await renderer.render(sentences: sentences, voiceIdentifier: nil, outputURL: out,
+                                      progress: { _ in })
+        }
+        // Give the render loop a moment to start (first utterance in flight) before cancelling,
+        // so this exercises the mid-render cleanup path rather than a pre-start cancellation.
+        try await Task.sleep(nanoseconds: 50_000_000)
+        task.cancel()
+
+        do {
+            _ = try await task.value
+            XCTFail("expected CancellationError")
+        } catch is CancellationError {
+            // expected
+        } catch {
+            XCTFail("unexpected error \(error)")
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: out.path))
+    }
 }

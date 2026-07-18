@@ -32,16 +32,29 @@ final class ArticleSpeechRenderer: ArticleSpeechRendering {
         var cues: [ParsedCue] = []
         cues.reserveCapacity(sentences.count)
 
-        for (i, sentence) in sentences.enumerated() {
-            let start = sink.secondsWritten
-            try await write(sentence, voice: voice, synthesizer: synthesizer, sink: sink)
-            cues.append(ParsedCue(startTime: start, endTime: sink.secondsWritten,
-                                  text: sentence, speaker: nil))
-            progress(Double(i + 1) / Double(sentences.count))
+        do {
+            for (i, sentence) in sentences.enumerated() {
+                try Task.checkCancellation()
+                let start = sink.secondsWritten
+                try await write(sentence, voice: voice, synthesizer: synthesizer, sink: sink)
+                cues.append(ParsedCue(startTime: start, endTime: sink.secondsWritten,
+                                      text: sentence, speaker: nil))
+                progress(Double(i + 1) / Double(sentences.count))
+            }
+        } catch {
+            // Leave no partial file behind when a mid-render failure (or cancellation) aborts.
+            sink.close()
+            try? FileManager.default.removeItem(at: outputURL)
+            throw error
         }
         sink.close()
         return RenderedArticleAudio(fileURL: outputURL, duration: sink.secondsWritten, cues: cues)
     }
+
+    /// Per-utterance timeout: offline synthesis of one sentence normally finishes in well under
+    /// a few seconds, so this is generously safe while still bounding a stalled/truncated
+    /// callback stream (e.g. an audio-session interruption that never delivers the terminator).
+    private static let utteranceWatchdogNanoseconds: UInt64 = 30_000_000_000
 
     private func write(_ text: String, voice: AVSpeechSynthesisVoice?,
                        synthesizer: AVSpeechSynthesizer, sink: AudioFileSink) async throws {
@@ -49,18 +62,32 @@ final class ArticleSpeechRenderer: ArticleSpeechRendering {
         utterance.voice = voice
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             let done = OnceFlag()
+            let watchdog = Task {
+                try? await Task.sleep(nanoseconds: Self.utteranceWatchdogNanoseconds)
+                guard !Task.isCancelled else { return }
+                if done.trip() { cont.resume(throwing: ArticleRenderError.synthesisFailed) }
+            }
             synthesizer.write(utterance) { buffer in
                 guard !done.isTripped else { return }   // late buffers after an error
                 guard let pcm = buffer as? AVAudioPCMBuffer else {
-                    if done.trip() { cont.resume(throwing: ArticleRenderError.synthesisFailed) }
+                    if done.trip() {
+                        watchdog.cancel()
+                        cont.resume(throwing: ArticleRenderError.synthesisFailed)
+                    }
                     return
                 }
                 if pcm.frameLength == 0 {   // zero-length buffer marks end of utterance
-                    if done.trip() { cont.resume() }
+                    if done.trip() {
+                        watchdog.cancel()
+                        cont.resume()
+                    }
                     return
                 }
                 do { try sink.append(pcm) } catch {
-                    if done.trip() { cont.resume(throwing: ArticleRenderError.fileWriteFailed) }
+                    if done.trip() {
+                        watchdog.cancel()
+                        cont.resume(throwing: ArticleRenderError.fileWriteFailed)
+                    }
                 }
             }
         }
