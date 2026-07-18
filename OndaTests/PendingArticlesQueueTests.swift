@@ -11,36 +11,26 @@ final class PendingArticlesQueueTests: XCTestCase {
         return PendingArticlesQueue(containerURL: dir)
     }
 
-    func test_appendThenDrain_returnsURLsInOrderAndClears() {
-        let q = tempQueue()
-        let a = URL(string: "https://ex.com/a")!
-        let b = URL(string: "https://ex.com/b")!
-        q.append(a)
-        q.append(b)
-        XCTAssertEqual(q.drain(), [a, b])
-        XCTAssertEqual(q.drain(), [], "drain must clear the file")
-    }
-
     func test_append_dedupesIdenticalURL() {
         let q = tempQueue()
         let a = URL(string: "https://ex.com/a")!
         q.append(a)
         q.append(a)
-        XCTAssertEqual(q.drain(), [a])
+        XCTAssertEqual(q.entries().map(\.url), [a])
     }
 
     func test_nilContainer_isSafeNoOp() {
         let q = PendingArticlesQueue(containerURL: nil)
         q.append(URL(string: "https://ex.com/a")!)
-        XCTAssertEqual(q.drain(), [])
+        XCTAssertEqual(q.entries(), [])
     }
 
-    func test_corruptFile_drainsEmpty() {
+    func test_corruptFile_entriesEmpty() {
         let q = tempQueue()
         q.append(URL(string: "https://ex.com/a")!)
         let file = q.containerURL!.appendingPathComponent("pending-articles.json")
         try! Data("not json".utf8).write(to: file)
-        XCTAssertEqual(q.drain(), [])
+        XCTAssertEqual(q.entries(), [])
     }
 
     func test_entries_appendCreatesZeroAttemptEntriesInOrder() {

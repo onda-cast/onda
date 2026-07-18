@@ -1,4 +1,5 @@
 //  ArticleConversionServiceTests.swift
+// swiftlint:disable force_try
 import XCTest
 import SwiftData
 @testable import Onda
@@ -105,13 +106,22 @@ final class ArticleConversionServiceTests: XCTestCase {
 
     private func makeService(ctx: ModelContext,
                              extract: @escaping ArticleConversionService.Extract,
-                             renderer: ArticleSpeechRendering = FakeRenderer())
+                             renderer: ArticleSpeechRendering = FakeRenderer(),
+                             queue: PendingArticlesQueue = PendingArticlesQueue(containerURL: nil))
         -> ArticleConversionService {
         let ts = TranscriptService(modelContext: ctx, engine: nil,
                                    fetch: { _ in Data() }, localURL: { _ in nil })
         return ArticleConversionService(
             modelContext: ctx, extract: extract, renderer: renderer,
-            persistTranscript: { ep, cues in ts.persist(cues: cues, for: ep, source: "tts") })
+            persistTranscript: { ep, cues in ts.persist(cues: cues, for: ep, source: "tts") },
+            queue: queue)
+    }
+
+    private func tempQueue() -> PendingArticlesQueue {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("svc-queue-\(UUID().uuidString)")
+        try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return PendingArticlesQueue(containerURL: dir)
     }
 
     private let article = ExtractedArticle(title: "The Long Migration", byline: "By Jordan Reyes",
@@ -295,5 +305,77 @@ final class ArticleConversionServiceTests: XCTestCase {
         XCTAssertTrue(svc.pending.isEmpty, "a cancelled conversion must not resurrect the dismissed row")
         XCTAssertTrue(try ctx.fetch(FetchDescriptor<Episode>()).isEmpty,
                       "a cancelled conversion must not create an episode")
+    }
+
+    func test_successfulConversion_removesURLFromPersistentQueue() async throws {
+        let ctx = try makeContext()
+        let queue = tempQueue()
+        let svc = makeService(ctx: ctx, extract: { _ in self.article }, queue: queue)
+        let url = URL(string: "https://example.com/persist-ok")!
+        queue.append(url)
+
+        await svc.convert(url)
+
+        XCTAssertTrue(queue.entries().isEmpty, "success must clear the durable entry")
+        let ep = try ctx.fetch(FetchDescriptor<Episode>()).first
+        try? FileManager.default.removeItem(
+            at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep?.guid ?? "")))
+    }
+
+    func test_failedConversion_recordsAttemptAndKeepsEntry() async throws {
+        let ctx = try makeContext()
+        let queue = tempQueue()
+        let svc = makeService(ctx: ctx,
+                              extract: { _ in throw ArticleExtractionError.fetchFailed },
+                              queue: queue)
+        let url = URL(string: "https://example.com/persist-fail")!
+        svc.add(url: url)   // add() must append to the queue itself
+        // Wait for the fire-and-forget task to finish (bounded poll).
+        for _ in 0..<100 where svc.pending.first?.failure == nil {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertEqual(queue.entries(), [.init(url: url, attempts: 1)])
+    }
+
+    func test_dismiss_removesEntryFromQueue() async throws {
+        let ctx = try makeContext()
+        let queue = tempQueue()
+        let svc = makeService(ctx: ctx,
+                              extract: { _ in throw ArticleExtractionError.fetchFailed },
+                              queue: queue)
+        let url = URL(string: "https://example.com/persist-dismiss")!
+        svc.add(url: url)
+        for _ in 0..<100 where svc.pending.first?.failure == nil {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        svc.dismiss(url: url)
+        XCTAssertTrue(queue.entries().isEmpty)
+    }
+
+    func test_resumePersisted_convertsSubCapAndFlagsCappedEntries() async throws {
+        let ctx = try makeContext()
+        let queue = tempQueue()
+        let fresh = URL(string: "https://example.com/fresh")!
+        let capped = URL(string: "https://example.com/capped")!
+        queue.append(fresh)
+        queue.append(capped)
+        for _ in 0..<ArticleConversionService.maxAutoAttempts { queue.recordAttempt(capped) }
+
+        let svc = makeService(ctx: ctx, extract: { _ in self.article }, queue: queue)
+        svc.resumePersisted()
+
+        // capped: failed row immediately, no conversion started for it
+        XCTAssertEqual(svc.pending.first(where: { $0.id == capped })?.failure,
+                       "Conversion failed 3 times — retry to try again.")
+        // fresh: converts to an episode; wait bounded for the async add() task
+        for _ in 0..<200 {
+            if (try? ctx.fetch(FetchDescriptor<Episode>()))?.isEmpty == false { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let eps = try ctx.fetch(FetchDescriptor<Episode>())
+        XCTAssertEqual(eps.count, 1, "only the sub-cap entry converts")
+        XCTAssertEqual(queue.entries().map(\.url), [capped], "fresh removed on success; capped kept")
+        try? FileManager.default.removeItem(
+            at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: eps[0].guid)))
     }
 }

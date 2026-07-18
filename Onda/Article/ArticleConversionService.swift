@@ -3,9 +3,10 @@ import Foundation
 import SwiftData
 
 /// Orchestrates URL → extracted article → sentences → rendered TTS audio → SwiftData rows.
-/// In-flight state is ephemeral (app-kill loses it; the user re-adds the link). Rows are
-/// only inserted after the full pipeline succeeds, so a half-finished conversion never
-/// shows up as a broken episode.
+/// Not-yet-converted URLs persist in the shared PendingArticlesQueue (App Group JSON) so
+/// conversions survive app termination; visible progress state (`pending`) remains
+/// ephemeral. Rows are only inserted after the full pipeline succeeds, so a half-finished
+/// conversion never shows up as a broken episode.
 @MainActor
 @Observable
 final class ArticleConversionService {
@@ -20,11 +21,13 @@ final class ArticleConversionService {
     typealias Extract = @MainActor @Sendable (URL) async throws -> ExtractedArticle
 
     static let articlesFeedURL = URL(string: "onda-local:articles")!
+    static let maxAutoAttempts = 3
 
     private let modelContext: ModelContext
     private let extract: Extract
     private let renderer: ArticleSpeechRendering
     private let persistTranscript: (Episode, [ParsedCue]) -> Void
+    private let queue: PendingArticlesQueue
 
     var pending: [Pending] = []
 
@@ -43,16 +46,19 @@ final class ArticleConversionService {
 
     init(modelContext: ModelContext, extract: @escaping Extract,
          renderer: ArticleSpeechRendering,
-         persistTranscript: @escaping (Episode, [ParsedCue]) -> Void) {
+         persistTranscript: @escaping (Episode, [ParsedCue]) -> Void,
+         queue: PendingArticlesQueue = .standard) {
         self.modelContext = modelContext
         self.extract = extract
         self.renderer = renderer
         self.persistTranscript = persistTranscript
+        self.queue = queue
     }
 
     func add(url: URL) {
         // Idempotent while in flight; re-adding a failed URL restarts it.
         if inFlight[url] != nil { return }
+        queue.append(url)
         pending.removeAll { $0.id == url }
         pending.insert(Pending(id: url), at: 0)
         let id = UUID()
@@ -73,9 +79,27 @@ final class ArticleConversionService {
     }
 
     func dismiss(url: URL) {
+        queue.remove(url)
         inFlight[url]?.task?.cancel()
         inFlight[url] = nil
         pending.removeAll { $0.id == url }
+    }
+
+    /// Foreground reconciliation: restart every durable entry under the auto-retry cap
+    /// (idempotent — add() ignores URLs already in flight) and surface capped entries as
+    /// failed rows that only a manual RETRY will run again. Replaces the old drain-once
+    /// handoff: entries persist until success or explicit dismiss.
+    func resumePersisted() {
+        for entry in queue.entries() {
+            if entry.attempts < Self.maxAutoAttempts {
+                add(url: entry.url)
+            } else if inFlight[entry.url] == nil,
+                      !pending.contains(where: { $0.id == entry.url }) {
+                pending.append(Pending(
+                    id: entry.url,
+                    failure: "Conversion failed \(entry.attempts) times — retry to try again."))
+            }
+        }
     }
 
     /// Find-or-create the synthetic Articles show. Re-subscribes a previously "deleted"
@@ -162,6 +186,7 @@ final class ArticleConversionService {
                 return
             }
             insertEpisode(guid: guid, url: url, article: article, rendered: rendered)
+            queue.remove(url)
             pending.removeAll { $0.id == url }
         } catch {
             // The extractor maps cancellation to .timeout and the renderer throws
@@ -171,6 +196,7 @@ final class ArticleConversionService {
                 if isCurrentGeneration(url, id) { pending.removeAll { $0.id == url } }
                 return
             }
+            if isCurrentGeneration(url, id) { queue.recordAttempt(url) }
             setFailure(url, message: (error as? LocalizedError)?.errorDescription
                        ?? "Conversion failed: \(error.localizedDescription)", generation: id)
         }

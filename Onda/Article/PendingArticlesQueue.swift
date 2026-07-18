@@ -2,9 +2,10 @@
 import Foundation
 
 /// Share-extension → app handoff: the extension appends shared URLs to a JSON file in
-/// the App Group container; the app drains it on foreground. This file is the one piece
-/// of feature state persisted outside SwiftData — the two processes share no database,
-/// and the app may not be running when a share happens.
+/// the App Group container; the app reconciles it on foreground (ArticleConversionService.
+/// resumePersisted()), removing an entry only on success or explicit dismiss. This file is
+/// the one piece of feature state persisted outside SwiftData — the two processes share no
+/// database, and the app may not be running when a share happens.
 ///
 /// NOTE: compiled into BOTH the Onda app target and OndaShareExtension (see project.yml) —
 /// keep it dependency-free (Foundation only).
@@ -50,15 +51,6 @@ struct PendingArticlesQueue: Sendable {
         guard let i = all.firstIndex(where: { $0.url == url }) else { return }
         all[i].attempts += 1
         save(all)
-    }
-
-    /// Transitional: read-and-clear used by the pre-persistent-queue foreground drain.
-    /// Deleted in the service-integration task along with its last caller.
-    func drain() -> [URL] {
-        guard let fileURL else { return [] }
-        let urls = loadEntries().map(\.url)
-        try? FileManager.default.removeItem(at: fileURL)
-        return urls
     }
 
     private func loadEntries() -> [Entry] {
