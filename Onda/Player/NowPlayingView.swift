@@ -83,14 +83,14 @@ struct NowPlayingView: View {
     }
 
     private var header: some View {
-        HStack {
-            Button { dismiss() } label: { Image(systemName: "chevron.down").scaledFont(16, weight: .bold) }
+        HStack(spacing: 2) {
+            Button { dismiss() } label: { headerIcon("chevron.down") }
             Spacer()
             SleepTimerMenu()
-            Button { showTranscript = true } label: { Image(systemName: "text.quote").scaledFont(16, weight: .bold) }
+            Button { showTranscript = true } label: { headerIcon("text.quote") }
                 .accessibilityIdentifier("transcript-button")
-            Button { showQueue = true } label: { Image(systemName: "list.bullet").scaledFont(16, weight: .bold) }
-            Button { showSettings = true } label: { Image(systemName: "ellipsis").scaledFont(16, weight: .bold) }
+            Button { showQueue = true } label: { headerIcon("list.bullet") }
+            Button { showSettings = true } label: { headerIcon("ellipsis") }
         }
         .foregroundStyle(theme.color(.textSecondary))
     }
@@ -278,6 +278,12 @@ struct NowPlayingView: View {
 
 // MARK: - Audio-effect chips
 extension NowPlayingView {
+    // Bigger glyph + a full 44pt tap target — the header controls were cramped and hard to hit.
+    func headerIcon(_ symbol: String) -> some View {
+        Image(systemName: symbol).scaledFont(18, weight: .bold)
+            .frame(width: 44, height: 44).contentShape(Rectangle())
+    }
+
     static let speedSteps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
 
     /// Tap: advance to the next speed step (wrapping).
