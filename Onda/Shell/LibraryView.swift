@@ -2,6 +2,24 @@
 import SwiftUI
 import SwiftData
 
+enum LibraryLayout: String, CaseIterable {
+    case grid, compact, text
+    var label: String {
+        switch self {
+        case .grid: return "Grid"
+        case .compact: return "Compact"
+        case .text: return "Text Only"
+        }
+    }
+    var icon: String {
+        switch self {
+        case .grid: return "square.grid.2x2"
+        case .compact: return "rectangle.grid.1x2"
+        case .text: return "text.justify"
+        }
+    }
+}
+
 struct LibraryView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(PlaybackManager.self) private var playback
@@ -11,6 +29,8 @@ struct LibraryView: View {
            sort: \Podcast.title) private var shows: [Podcast]
 
     private let cols = [GridItem(.flexible(), spacing: 18), GridItem(.flexible(), spacing: 18)]
+    @AppStorage("libraryLayout") private var layoutRaw = LibraryLayout.grid.rawValue
+    private var layout: LibraryLayout { LibraryLayout(rawValue: layoutRaw) ?? .grid }
     @State private var showSearch = false
     @State private var showClips = false
     @State private var settingsPodcast: Podcast?
@@ -41,6 +61,7 @@ struct LibraryView: View {
                                 .frame(width: 36, height: 36)
                                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                         }.buttonStyle(.plain)
+                        layoutMenu
                     }
                     .padding(.horizontal, 20).padding(.top, 56)
 
@@ -81,14 +102,8 @@ struct LibraryView: View {
                             .foregroundStyle(theme.color(.textTertiary))
                             .frame(maxWidth: .infinity).padding(.top, 80)
                     } else {
-                        LazyVGrid(columns: cols, spacing: 18) {
-                            ForEach(shows) { show in
-                                NavigationLink(value: show) { ShowCard(podcast: show) }
-                                    .buttonStyle(.plain)
-                                    .contextMenu { contextMenu(for: show) }
-                            }
-                        }
-                        .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 120)
+                        libraryContent
+                            .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 120)
                     }
                 }
             }
@@ -117,6 +132,66 @@ struct LibraryView: View {
                 }
             }
         }
+    }
+
+    private var layoutMenu: some View {
+        Menu {
+            Picker("Layout", selection: $layoutRaw) {
+                ForEach(LibraryLayout.allCases, id: \.rawValue) { l in
+                    Label(l.label, systemImage: l.icon).tag(l.rawValue)
+                }
+            }
+        } label: {
+            Image(systemName: layout.icon)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(theme.color(.textSecondary))
+                .frame(width: 36, height: 36)
+                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+        }
+        .accessibilityLabel("Library layout")
+    }
+
+    @ViewBuilder private var libraryContent: some View {
+        switch layout {
+        case .grid:
+            LazyVGrid(columns: cols, spacing: 18) {
+                ForEach(shows) { show in
+                    NavigationLink(value: show) { ShowCard(podcast: show) }
+                        .buttonStyle(.plain)
+                        .contextMenu { contextMenu(for: show) }
+                }
+            }
+        case .compact, .text:
+            LazyVStack(spacing: 10) {
+                ForEach(shows) { show in
+                    NavigationLink(value: show) { rowCard(show, showArt: layout == .compact) }
+                        .buttonStyle(.plain)
+                        .contextMenu { contextMenu(for: show) }
+                }
+            }
+        }
+    }
+
+    private func rowCard(_ show: Podcast, showArt: Bool) -> some View {
+        HStack(spacing: 12) {
+            if showArt {
+                ArtworkView(url: show.artworkURL, seed: show.title)
+                    .frame(width: 52, height: 52).brutalBorder(width: 2)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(show.title).brutalHeader(size: 14).foregroundStyle(theme.color(.text))
+                    .lineLimit(1)
+                Text(show.episodes.first?.title ?? "No episodes")
+                    .font(.system(size: 12.5)).foregroundStyle(theme.color(.textTertiary))
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right").font(.system(size: 13))
+                .foregroundStyle(theme.color(.textTertiary))
+        }
+        .padding(showArt ? 10 : 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
     }
 
     @ViewBuilder private func contextMenu(for show: Podcast) -> some View {
