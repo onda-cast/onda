@@ -31,6 +31,34 @@ final class SubscriptionService {
             modelContext.insert(p)
             return p
         }()
+        try await activateSubscription(podcast)
+        return podcast
+    }
+
+    /// Fetches and parses a feed without persisting anything — the AddFeedSheet preview step.
+    func previewFeed(_ url: URL) async throws -> ParsedFeed {
+        try await feeds.fetchFeed(url)
+    }
+
+    /// Subscribe to a feed directly by URL (private/paid tokenized feeds). Show metadata comes
+    /// from the feed channel itself; nothing is persisted if the fetch fails.
+    @discardableResult
+    func subscribeToFeedURL(_ url: URL) async throws -> Podcast {
+        let parsed = try await feeds.fetchFeed(url)   // validate before inserting anything
+        let podcast = try existingPodcast(feedURL: url) ?? {
+            let p = Podcast(feedURL: url, title: parsed.title, author: parsed.author,
+                            artworkURL: parsed.artworkURL, category: parsed.category,
+                            itunesId: nil, isPrivateFeed: true)
+            modelContext.insert(p)
+            return p
+        }()
+        try await activateSubscription(podcast)
+        return podcast
+    }
+
+    /// Shared subscribe tail for both the iTunes and direct-URL paths: mark subscribed, ensure
+    /// settings, pull episodes, and prime the newest episode for offline.
+    private func activateSubscription(_ podcast: Podcast) async throws {
         podcast.isSubscribed = true
         if podcast.settings == nil {
             let s = ShowSettings.makeDefault(); s.podcast = podcast; podcast.settings = s
@@ -42,7 +70,6 @@ final class SubscriptionService {
         if let newest = podcast.episodes.max(by: { $0.publishDate < $1.publishDate }) {
             downloadEpisode?(newest)   // idempotent in DownloadManager
         }
-        return podcast
     }
 
     func setPlayed(_ episode: Episode, _ played: Bool) {
