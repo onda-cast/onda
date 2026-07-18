@@ -14,9 +14,18 @@ struct EpisodeListView: View {
     let podcast: Podcast
     @State private var showSettings = false
     @State private var showTranscripts = false
-    @State private var filter: EpisodeFilter = .downloaded
+    @State private var filter: EpisodeFilter
     @State private var query = ""
     @State private var results: [EpisodeSearchResult] = []
+    @State private var pendingUnsubscribe = false
+    @State private var pendingDownloadDelete: Episode?
+
+    init(podcast: Podcast) {
+        self.podcast = podcast
+        // Don't open a freshly-subscribed show onto an empty "no downloads" screen.
+        let hasDownloads = podcast.episodes.contains { $0.downloadedFile != nil }
+        _filter = State(initialValue: hasDownloads ? .downloaded : .all)
+    }
 
     private var isSearching: Bool {
         !query.trimmingCharacters(in: .whitespaces).isEmpty
@@ -46,9 +55,11 @@ struct EpisodeListView: View {
                                  selection: filter) { filter = $0 }
                 }
                 if !isSearching && episodes.isEmpty && filter == .downloaded {
-                    Text("No downloaded episodes — switch to All or Newest 10")
-                        .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
-                        .frame(maxWidth: .infinity).padding(.top, 24)
+                    Button { filter = .all } label: {
+                        Text("No downloads yet — show all episodes")
+                            .font(.system(size: 13, weight: .semibold)).foregroundStyle(theme.color(.accent))
+                            .frame(maxWidth: .infinity).padding(.top, 24)
+                    }.buttonStyle(.plain)
                 }
                 if isSearching && results.isEmpty {
                     Text("No episodes match “\(query)”")
@@ -66,7 +77,7 @@ struct EpisodeListView: View {
                            onPlay: { play(ep) },
                            onDownload: {
                                switch downloads.state(for: ep) {
-                               case .downloaded: downloads.delete(ep)
+                               case .downloaded: pendingDownloadDelete = ep   // confirm, don't delete on tap
                                case .failed:     downloads.retryManually(guid: ep.guid)
                                case .downloading: break
                                case .none:       downloads.download(ep)
@@ -124,6 +135,20 @@ struct EpisodeListView: View {
         .sheet(isPresented: $showSettings) { ShowSettingsSheet(podcast: podcast) }
         .sheet(isPresented: $showTranscripts) { ShowTranscriptsView(podcast: podcast) }
         .onChange(of: query) { _, _ in runSearch() }
+        .confirmationDialog("Unsubscribe from \(podcast.title)?", isPresented: $pendingUnsubscribe,
+                            titleVisibility: .visible) {
+            Button("Unsubscribe", role: .destructive) { subscriptions.unsubscribe(podcast); dismiss() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
+        }
+        .confirmationDialog("Delete this download?",
+                            isPresented: Binding(get: { pendingDownloadDelete != nil },
+                                                 set: { if !$0 { pendingDownloadDelete = nil } }),
+                            titleVisibility: .visible, presenting: pendingDownloadDelete) { ep in
+            Button("Delete Download", role: .destructive) { downloads.delete(ep) }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in Text("Frees the audio file. You can stream or re-download it later.") }
     }
 
     private var searchBar: some View {
@@ -174,10 +199,8 @@ struct EpisodeListView: View {
                 Text(podcast.title).brutalHeader(size: 20).foregroundStyle(theme.color(.text))
                 Text(podcast.category).font(.system(size: 13))
                     .foregroundStyle(theme.color(.textTertiary))
-                Button("Unsubscribe") {
-                    subscriptions.unsubscribe(podcast); dismiss()
-                }
-                .font(.system(size: 13, weight: .bold)).foregroundStyle(theme.color(.accent))
+                Button("Unsubscribe") { pendingUnsubscribe = true }
+                    .font(.system(size: 13, weight: .bold)).foregroundStyle(.red)
             }
             Spacer()
         }

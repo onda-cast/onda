@@ -39,6 +39,7 @@ struct LibraryView: View {
     @State private var settingsPodcast: Podcast?
     @State private var unsubscribeTarget: Podcast?
     @State private var toast: String?
+    @State private var pendingSmartQueue: [Episode]?
 
     var body: some View {
         NavigationStack {
@@ -75,7 +76,7 @@ struct LibraryView: View {
                                 ForEach(SmartQueue.allCases, id: \.self) { sq in
                                     let isEmpty = !sq.hasMatches(in: allEpisodes)
                                     Button {
-                                        playback.startSmartQueue(sq.apply(to: allEpisodes))
+                                        startSmartQueue(sq.apply(to: allEpisodes))
                                     } label: {
                                         Text(sq.label.uppercased())
                                             .font(.system(size: 12, weight: .bold))
@@ -124,6 +125,17 @@ struct LibraryView: View {
             } message: { _ in
                 Text("Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
             }
+            .confirmationDialog("Replace your queue?",
+                                isPresented: Binding(get: { pendingSmartQueue != nil },
+                                                     set: { if !$0 { pendingSmartQueue = nil } }),
+                                titleVisibility: .visible, presenting: pendingSmartQueue) { eps in
+                Button("Replace \(playback.queue.count) queued", role: .destructive) {
+                    playback.startSmartQueue(eps)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { eps in
+                Text("Starts \(eps.count) episode\(eps.count == 1 ? "" : "s") and clears your current queue.")
+            }
             .overlay(alignment: .bottom) {
                 if let toast {
                     Text(toast)
@@ -134,6 +146,15 @@ struct LibraryView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+        }
+    }
+
+    // Only confirm when there's a hand-built queue to lose; otherwise start straight away.
+    private func startSmartQueue(_ episodes: [Episode]) {
+        if playback.queue.isEmpty {
+            playback.startSmartQueue(episodes)
+        } else {
+            pendingSmartQueue = episodes
         }
     }
 

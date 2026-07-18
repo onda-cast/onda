@@ -78,10 +78,6 @@ struct ShowSettingsSheet: View {
                                            value: Binding(get: { s.keepTranscriptsOverride },
                                                           set: { s.keepTranscriptsOverride = $0 }))
                     }
-                    section("Notifications") {
-                        SegmentedRow(options: [("All", "all"), ("Important", "important"), ("None", "none")],
-                                     selection: s.notifMode) { s.notifMode = $0 }
-                    }
                 }
                 .padding(20)
             }
