@@ -5,8 +5,10 @@ import SwiftData
 
 // Minimal fake: DownloadManager tests drive completion via handleFinished/handleFailed.
 final class FakeURLSession: URLSessionProtocol {
-    func downloadTask(with url: URL) -> URLSessionDownloadTask {
-        URLSession(configuration: .default).downloadTask(with: url)
+    private(set) var lastRequest: URLRequest?
+    func downloadTask(with request: URLRequest) -> URLSessionDownloadTask {
+        lastRequest = request
+        return URLSession(configuration: .default).downloadTask(with: request)
     }
 }
 
@@ -37,6 +39,23 @@ final class DownloadManagerTests: XCTestCase {
         let dm = DownloadManager(persistence: env.persistence, session: FakeURLSession())
         dm.download(env.episode)
         if case .downloading = dm.state(for: env.episode) {} else { XCTFail("expected downloading") }
+    }
+
+    func test_download_disallowsCellular_whenWifiOnly() throws {
+        let env = try makeEnv()
+        let session = FakeURLSession()
+        let dm = DownloadManager(persistence: env.persistence, session: session)
+        dm.cellularAllowed = { false }
+        dm.download(env.episode)
+        XCTAssertEqual(session.lastRequest?.allowsCellularAccess, false)
+    }
+
+    func test_download_allowsCellular_byDefault() throws {
+        let env = try makeEnv()
+        let session = FakeURLSession()
+        let dm = DownloadManager(persistence: env.persistence, session: session)
+        dm.download(env.episode)
+        XCTAssertEqual(session.lastRequest?.allowsCellularAccess, true)
     }
 
     func test_finished_writesFileAndMarksDownloaded() async throws {

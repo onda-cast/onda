@@ -19,6 +19,7 @@ import UIKit
 final class PlaybackManager {
     private let engine: PlayerEngine
     private let modelContext: ModelContext
+    private let appSettings: AppSettings
 
     /// The episode currently loaded in the player, or `nil` before anything has played.
     var currentEpisode: Episode?
@@ -35,15 +36,18 @@ final class PlaybackManager {
     var adActive: Bool = false
     private var silence = SilenceDetector()
     private var lastSilenceDiagAt: Double = 0
+    private var seekAccelerator = SeekAccelerator()
+    private var pausedAt: Date?
 
-    init(engine: PlayerEngine, modelContext: ModelContext) {
+    init(engine: PlayerEngine, modelContext: ModelContext, appSettings: AppSettings) {
         self.engine = engine
         self.modelContext = modelContext
+        self.appSettings = appSettings
         engine.onTimeUpdate = { [weak self] t in self?.handleTimeUpdate(t) }
         engine.onEndOfItem = { [weak self] in self?.handleEndOfItem() }
         engine.onRMS = { [weak self] rms, secs in
             guard let self else { return }
-            guard self.settings?.skipSilence == true else {
+            guard self.resolved.skipSilence else {
                 if CFAbsoluteTimeGetCurrent() - self.lastSilenceDiagAt > 10 {
                     self.lastSilenceDiagAt = CFAbsoluteTimeGetCurrent()
                     tapLog.notice("silence detector idle: skipSilence setting is OFF for this show")
@@ -66,9 +70,10 @@ final class PlaybackManager {
         nowPlaying.configureRemoteCommands(
             play: { [weak self] in self?.resumeExternally() },
             pause: { [weak self] in self?.pauseExternally() },
-            skipForward: { [weak self] in self?.skip(by: 30) },
-            skipBack: { [weak self] in self?.skip(by: -15) })
+            skipForward: { [weak self] in self?.skipForward() },
+            skipBack: { [weak self] in self?.skipBack() })
         nowPlaying.configureBookmarkCommand { [weak self] in self?.onCaptureRequested?() }
+        refreshSkipIntervals()
     }
 
     // Wired in OndaApp: streaming an un-downloaded episode also saves it for offline (idempotent).
@@ -128,6 +133,12 @@ final class PlaybackManager {
     }
 
     private var settings: ShowSettings? { currentEpisode?.podcast?.settings }
+    /// Effective playback settings for the current episode: per-show override ?? global default.
+    var resolved: ResolvedPlaybackSettings {
+        ResolvedPlaybackSettings(show: settings, app: appSettings)
+    }
+    /// Injectable clock (Smart Resume + seek acceleration are time-window behaviors).
+    var now: () -> Date = { .now }
     /// Playback progress as a fraction `0...1` (position ÷ duration); `0` when nothing is loaded.
     var progressFraction: Double {
         guard durationSeconds > 0 else { return 0 }
@@ -152,6 +163,7 @@ final class PlaybackManager {
     ///   also saved for offline in the background via the wired `ensureDownloaded`.
     func play(_ episode: Episode, autoDownload: Bool = true) {
         clipEndBound = nil
+        pausedAt = nil                    // a new episode isn't a resume — no Smart Resume rewind
         returnToTranscriptEpisode = nil   // a new episode invalidates the pending transcript return
         currentEpisode = episode
         UserDefaults.standard.set(episode.guid, forKey: Self.lastEpisodeKey)  // restored on next launch
@@ -162,7 +174,7 @@ final class PlaybackManager {
         let local = localURL(for: episode)
         let url = local ?? episode.audioURL
         engine.load(url: url, startAt: start)
-        engine.rate = Float(settings?.speed ?? 1.0)
+        engine.rate = Float(resolved.speed)
         positionSeconds = start
         applyAudioSettings()
         silence.reset()
@@ -188,18 +200,19 @@ final class PlaybackManager {
         positionSeconds = start
         nowPlaying.prepareArtwork(url: episode.podcast?.artworkURL)
         engine.load(url: localURL(for: episode) ?? episode.audioURL, startAt: start)
-        engine.rate = Float(settings?.speed ?? 1.0)
+        engine.rate = Float(resolved.speed)
         // Intentionally paused: isPlaying stays false until the user taps play.
     }
 
     func applyAudioSettings() {
-        engine.rate = Float(settings?.speed ?? 1.0)
-        let boost = BoostLevel(clamping: settings?.voiceBoost ?? 0)
+        let r = resolved
+        engine.rate = Float(r.speed)
+        let boost = BoostLevel(clamping: r.voiceBoost)
         engine.setBoostGain(boost.gain)
-        if settings?.skipSilence != true { silence.reset() }
+        if !r.skipSilence { silence.reset() }
         tapLog.notice("""
-            audio settings applied: speed=\(self.settings?.speed ?? 1.0) \
-            boost=\(boost.rawValue) skipSilence=\(self.settings?.skipSilence == true)
+            audio settings applied: speed=\(r.speed) \
+            boost=\(boost.rawValue) skipSilence=\(r.skipSilence)
             """)
     }
 
@@ -210,8 +223,32 @@ final class PlaybackManager {
     /// Toggles between play and pause for the current episode (no-op when nothing is loaded).
     func togglePlayPause() {
         guard currentEpisode != nil else { return }
-        if isPlaying { engine.pause(); persistPosition() } else { engine.play() }
+        if isPlaying {
+            engine.pause(); persistPosition()
+            pausedAt = now()
+        } else {
+            if appSettings.smartResumeEnabled, let pausedAt {
+                let rewind = Self.smartResumeRewind(afterPauseOf: now().timeIntervalSince(pausedAt))
+                if rewind > 0 {
+                    let target = max(0, positionSeconds - rewind)
+                    engine.seek(to: target); positionSeconds = target
+                }
+            }
+            pausedAt = nil
+            engine.play()
+        }
         isPlaying.toggle()
+    }
+
+    /// Smart Resume rewind: after a break, back up a little so the listener regains context.
+    /// Fixed internal thresholds (not user-tunable); the feature toggle lives in AppSettings.
+    static func smartResumeRewind(afterPauseOf pause: TimeInterval) -> TimeInterval {
+        switch pause {
+        case ..<60: 0
+        case ..<(30 * 60): 5
+        case ..<(3 * 3600): 15
+        default: 30
+        }
     }
 
     /// Seeks relative to the current position by `seconds` (negative to go back), clamped to the
@@ -220,6 +257,26 @@ final class PlaybackManager {
         clipEndBound = nil
         let target = max(0, min(durationSeconds, positionSeconds + seconds))
         engine.seek(to: target); positionSeconds = target
+    }
+
+    /// User-facing skip actions (player buttons, lock screen). Use the configured intervals —
+    /// accelerated on rapid repeat taps; internal seeks (ads, silence, chapters) call `skip(by:)`.
+    func skipForward() {
+        let mult = appSettings.seekAccelerationEnabled
+            ? seekAccelerator.multiplier(direction: 1, now: now()) : 1
+        skip(by: TimeInterval(appSettings.seekForwardSec) * mult)
+    }
+
+    func skipBack() {
+        let mult = appSettings.seekAccelerationEnabled
+            ? seekAccelerator.multiplier(direction: -1, now: now()) : 1
+        skip(by: -TimeInterval(appSettings.seekBackSec) * mult)
+    }
+
+    /// Pushes the configured intervals to the lock-screen remote commands.
+    func refreshSkipIntervals() {
+        nowPlaying.updateSkipIntervals(forward: appSettings.seekForwardSec,
+                                       back: appSettings.seekBackSec)
     }
 
     /// Seeks to a fraction `0...1` of the episode duration (the scrubber's seek path).
@@ -258,7 +315,7 @@ final class PlaybackManager {
         if !ep.chapters.isEmpty {
             let w = adWindow(for: ep)
             adActive = w.isAd(at: t)
-            if adActive, settings?.adSkipMode == "auto", let end = w.adEnd(at: t), end > t {
+            if adActive, resolved.adSkipMode == "auto", let end = w.adEnd(at: t), end > t {
                 engine.seek(to: end); positionSeconds = end; adActive = false
             }
         } else {
@@ -275,7 +332,7 @@ final class PlaybackManager {
         }
         nowPlaying.update(title: ep.title, show: ep.podcast?.title ?? "",
                           position: positionSeconds, duration: durationSeconds,
-                          rate: isPlaying ? Float(settings?.speed ?? 1.0) : 0)
+                          rate: isPlaying ? Float(resolved.speed) : 0)
     }
 
     private func persistPosition() {
@@ -293,6 +350,10 @@ final class PlaybackManager {
         if sleepMode == .endOfEpisode {
             isPlaying = false
             sleepMode = .off
+            return
+        }
+        if !appSettings.autoplayNext {
+            isPlaying = false
             return
         }
         playNextInQueue()

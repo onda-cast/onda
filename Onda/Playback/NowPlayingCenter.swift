@@ -31,6 +31,13 @@ final class NowPlayingCenter {
         center.skipBackwardCommand.addTarget { _ in Task { @MainActor in skipBack() }; return .success }
     }
 
+    /// Re-registers the lock-screen skip button intervals (called at startup and when the
+    /// user changes the seek-interval setting).
+    func updateSkipIntervals(forward: Int, back: Int) {
+        center.skipForwardCommand.preferredIntervals = [NSNumber(value: forward)]
+        center.skipBackwardCommand.preferredIntervals = [NSNumber(value: back)]
+    }
+
     func configureBookmarkCommand(_ handler: @escaping @MainActor () -> Void) {
         let cmd = MPRemoteCommandCenter.shared().bookmarkCommand
         cmd.isEnabled = true

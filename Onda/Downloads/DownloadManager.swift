@@ -2,7 +2,7 @@
 import Foundation
 import SwiftData
 
-protocol URLSessionProtocol { func downloadTask(with url: URL) -> URLSessionDownloadTask }
+protocol URLSessionProtocol { func downloadTask(with request: URLRequest) -> URLSessionDownloadTask }
 extension URLSession: URLSessionProtocol {}
 
 @MainActor
@@ -18,6 +18,10 @@ final class DownloadManager: NSObject {
     /// Fired (with the episode guid) after a download lands on disk and is recorded.
     /// Wired in OndaApp to kick off auto-transcription when the resolved setting is on.
     var onDownloadCompleted: ((String) -> Void)?
+
+    /// Wired in OndaApp to the Wi-Fi-only setting; consulted per download request so
+    /// flipping the toggle applies immediately without recreating the background session.
+    var cellularAllowed: () -> Bool = { true }
 
     nonisolated static let downloadsSubdir = "Downloads"
 
@@ -45,8 +49,14 @@ final class DownloadManager: NSObject {
         states[guid] = .downloading(progress: 0)
         urlByGuid[guid] = episode.audioURL
         guidByTaskURL[episode.audioURL] = guid
-        let task = session.downloadTask(with: episode.audioURL)
+        let task = session.downloadTask(with: makeRequest(for: episode.audioURL))
         task.resume()
+    }
+
+    private func makeRequest(for url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.allowsCellularAccess = cellularAllowed()
+        return request
     }
 
     func delete(_ episode: Episode) {
@@ -80,7 +90,7 @@ final class DownloadManager: NSObject {
         retries[guid] = attempts
         if attempts <= 1, let url = urlByGuid[guid] {
             states[guid] = .downloading(progress: 0)   // auto-retry once
-            session.downloadTask(with: url).resume()
+            session.downloadTask(with: makeRequest(for: url)).resume()
         } else {
             states[guid] = .failed
         }
@@ -90,7 +100,7 @@ final class DownloadManager: NSObject {
         retries[guid] = 0
         if let url = urlByGuid[guid] {
             states[guid] = .downloading(progress: 0)
-            session.downloadTask(with: url).resume()
+            session.downloadTask(with: makeRequest(for: url)).resume()
         }
     }
 

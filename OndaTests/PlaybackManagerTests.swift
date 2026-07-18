@@ -31,12 +31,19 @@ final class PlaybackManagerTests: XCTestCase {
                                    configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         return ModelContext(c)
     }
+    private func makeAppSettings() -> AppSettings {
+        let suite = "PMTests-\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: suite)!
+        d.removePersistentDomain(forName: suite)
+        return AppSettings(defaults: d)
+    }
     private func makeEpisode(in ctx: ModelContext, guid: String = "g", duration: TimeInterval = 1000,
-                             intro: Int = 0, outro: Int = 0, speed: Double = 1.0,
+                             intro: Int = 0, outro: Int = 0, speed: Double? = nil,
                              position: TimeInterval = 0) -> Episode {
         let pod = Podcast(feedURL: URL(string: "https://ex.com/\(guid)-feed.xml")!, title: "S", author: "A",
                           artworkURL: nil, category: "Tech", itunesId: 1)
-        let s = ShowSettings.makeDefault(); s.introTrimSec = intro; s.outroTrimSec = outro; s.speed = speed
+        let s = ShowSettings.makeDefault(); s.introTrimSec = intro; s.outroTrimSec = outro
+        if let speed { s.speed = speed }
         s.podcast = pod; pod.settings = s
         let ep = Episode(guid: guid, title: "E", publishDate: .now, duration: duration,
                          audioURL: URL(string: "https://ex.com/\(guid).mp3")!, notes: "", playbackPosition: position)
@@ -48,7 +55,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_play_streamsAudio_appliesSpeed_andStartsAtIntroTrim() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx, intro: 30, speed: 1.5)
         pm.play(ep)
         XCTAssertEqual(engine.loadedURL, ep.audioURL)
@@ -59,7 +66,7 @@ final class PlaybackManagerTests: XCTestCase {
 
     func test_play_streamingEpisode_triggersBackgroundDownload() throws {
         let ctx = try makeContext()
-        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
         var downloaded: [String] = []
         pm.ensureDownloaded = { downloaded.append($0.guid) }
         let ep = makeEpisode(in: ctx, guid: "stream-me")
@@ -69,7 +76,7 @@ final class PlaybackManagerTests: XCTestCase {
 
     func test_playClip_doesNotTriggerDownload() throws {
         let ctx = try makeContext()
-        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
         var downloaded: [String] = []
         pm.ensureDownloaded = { downloaded.append($0.guid) }
         let ep = makeEpisode(in: ctx, guid: "clip-src", duration: 1000)
@@ -83,7 +90,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_play_resumesFromSavedPositionWhenPastIntro() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx, intro: 30, position: 200)
         pm.play(ep)
         XCTAssertEqual(engine.startAt, 200)
@@ -92,7 +99,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_timeUpdate_persistsPosition_andMarksPlayedNear95pct() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx, duration: 1000)
         pm.play(ep)
         engine.emitTime(500)
@@ -105,7 +112,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_endOfItem_advancesToNextQueueItem() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep1 = makeEpisode(in: ctx, guid: "g")
         let ep2 = makeEpisode(in: ctx, guid: "g2")
         pm.play(ep1)
@@ -117,7 +124,7 @@ final class PlaybackManagerTests: XCTestCase {
 
     func test_playFromQueue_removesTappedAndEverythingAbove() throws {
         let ctx = try makeContext()
-        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
         let a = makeEpisode(in: ctx, guid: "a")
         let b = makeEpisode(in: ctx, guid: "b")
         let c = makeEpisode(in: ctx, guid: "c")
@@ -129,7 +136,7 @@ final class PlaybackManagerTests: XCTestCase {
 
     func test_sleepTimer_reportsRemaining_andClearsOnOff() throws {
         let ctx = try makeContext()
-        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
         pm.setSleepTimer(.duration(600))
         let remaining = try XCTUnwrap(pm.sleepRemaining)
         XCTAssertGreaterThan(remaining, 590)
@@ -140,7 +147,7 @@ final class PlaybackManagerTests: XCTestCase {
 
     func test_removeFromQueue_dropsEpisode() throws {
         let ctx = try makeContext()
-        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx)
         pm.enqueue(ep)
         XCTAssertEqual(pm.queue.count, 1)
@@ -151,7 +158,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_sleepEndOfEpisode_pausesInsteadOfAdvancing() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep1 = makeEpisode(in: ctx, guid: "g")
         let ep2 = makeEpisode(in: ctx, guid: "g2")
         pm.play(ep1); pm.enqueue(ep2)
@@ -164,7 +171,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_skipSilenceSetting_seeksOnDetectedSilence() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx, duration: 1000)
         ep.podcast?.settings?.skipSilence = true
         pm.play(ep)
@@ -177,7 +184,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_adActive_trueInsideAdChapter_whenChaptersPresent() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx, duration: 2292)
         let c1 = Chapter(title: "Intro", startTime: 0, isAd: false)
         let c2 = Chapter(title: "Sponsor", startTime: 600, isAd: true)
@@ -192,7 +199,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_applyAudioSettings_pushesSpeedChangeToEngine_midPlayback() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx, speed: 1.0)
         pm.play(ep)
         XCTAssertEqual(engine.rate, 1.0)
@@ -204,7 +211,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_playApplyingBoost_setsEngineGain() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx)
         ep.podcast?.settings?.voiceBoost = 2
         pm.play(ep)
@@ -214,7 +221,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_playClip_startsAtClipStart_andPausesAtClipEnd() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx, duration: 1000)
         let clip = Clip(startTime: 100, endTime: 160, text: "", note: nil,
                         createdAt: .now, needsReview: false)
@@ -230,7 +237,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_manualSeek_clearsClipBound() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx, duration: 1000)
         let clip = Clip(startTime: 100, endTime: 160, text: "", note: nil,
                         createdAt: .now, needsReview: false)
@@ -244,7 +251,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_skip_movesPositionInFeedTime() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let ep = makeEpisode(in: ctx)
         pm.play(ep)
         engine.emitTime(100)
@@ -257,7 +264,7 @@ final class PlaybackManagerTests: XCTestCase {
     func test_startSmartQueue_playsFirst_queuesRest_replacesExistingQueue() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         let stale = makeEpisode(in: ctx, guid: "stale")
         pm.enqueue(stale)
         XCTAssertEqual(pm.queue.count, 1)
@@ -279,10 +286,107 @@ final class PlaybackManagerTests: XCTestCase {
     func test_startSmartQueue_emptyList_isNoOp() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
-        let pm = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         pm.startSmartQueue([])
         XCTAssertNil(engine.loadedURL)
         XCTAssertFalse(pm.isPlaying)
+    }
+}
+
+// MARK: - Global defaults, seek intervals, Smart Resume, autoplay
+extension PlaybackManagerTests {
+    func test_play_usesGlobalDefaultSpeed_whenShowHasNoOverride() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let app = makeAppSettings()
+        app.defaultSpeed = 1.75
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: app)
+        let ep = makeEpisode(in: ctx)          // makeDefault() → all-nil overrides
+        pm.play(ep)
+        XCTAssertEqual(engine.rate, 1.75)
+    }
+
+    func test_skipForwardAndBack_useConfiguredIntervals() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let app = makeAppSettings()
+        app.seekForwardSec = 45; app.seekBackSec = 10
+        app.seekAccelerationEnabled = false
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: app)
+        let ep = makeEpisode(in: ctx, duration: 1000, position: 100)
+        pm.play(ep)
+        pm.skipForward()
+        XCTAssertEqual(pm.positionSeconds, 145, accuracy: 0.01)
+        pm.skipBack()
+        XCTAssertEqual(pm.positionSeconds, 135, accuracy: 0.01)
+    }
+
+    func test_rapidSkips_accelerate_whenEnabled() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let app = makeAppSettings()      // acceleration on by default; forward = 30
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: app)
+        var clock = Date(timeIntervalSinceReferenceDate: 0)
+        pm.now = { clock }
+        let ep = makeEpisode(in: ctx, duration: 10_000, position: 100)
+        pm.play(ep)
+        pm.skipForward()                                   // 30 → 130
+        clock = clock.addingTimeInterval(0.5)
+        pm.skipForward()                                   // 60 → 190
+        XCTAssertEqual(pm.positionSeconds, 190, accuracy: 0.01)
+    }
+
+    func test_smartResumeRewind_scalesWithPauseLength() {
+        XCTAssertEqual(PlaybackManager.smartResumeRewind(afterPauseOf: 30), 0)
+        XCTAssertEqual(PlaybackManager.smartResumeRewind(afterPauseOf: 5 * 60), 5)
+        XCTAssertEqual(PlaybackManager.smartResumeRewind(afterPauseOf: 60 * 60), 15)
+        XCTAssertEqual(PlaybackManager.smartResumeRewind(afterPauseOf: 5 * 3600), 30)
+    }
+
+    func test_resumeAfterLongPause_rewindsWhenSmartResumeOn() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let app = makeAppSettings()   // smartResumeEnabled defaults to true
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: app)
+        var clock = Date(timeIntervalSinceReferenceDate: 0)
+        pm.now = { clock }
+        let ep = makeEpisode(in: ctx, duration: 1000, position: 500)
+        pm.play(ep)
+        pm.togglePlayPause()                      // pause at 500
+        clock = clock.addingTimeInterval(10 * 60) // 10 minutes later
+        pm.togglePlayPause()                      // resume
+        XCTAssertEqual(pm.positionSeconds, 495, accuracy: 0.01)   // 5s rewind
+    }
+
+    func test_resumeAfterShortPause_doesNotRewind() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        var clock = Date(timeIntervalSinceReferenceDate: 0)
+        pm.now = { clock }
+        let ep = makeEpisode(in: ctx, duration: 1000, position: 500)
+        pm.play(ep)
+        pm.togglePlayPause()
+        clock = clock.addingTimeInterval(20)
+        pm.togglePlayPause()
+        XCTAssertEqual(pm.positionSeconds, 500, accuracy: 0.01)
+    }
+
+    func test_episodeEnd_stopsInsteadOfAdvancing_whenAutoplayOff() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let app = makeAppSettings()
+        app.autoplayNext = false
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: app)
+        let ep1 = makeEpisode(in: ctx, guid: "a")
+        let ep2 = makeEpisode(in: ctx, guid: "b")
+        pm.play(ep1)
+        pm.enqueue(ep2)
+        engine.emitEnd()
+        XCTAssertFalse(pm.isPlaying)
+        XCTAssertTrue(ep1.played)
+        XCTAssertEqual(pm.queue.count, 1)          // queue untouched
+        XCTAssertEqual(pm.currentEpisode?.guid, "a")
     }
 }
 
@@ -292,13 +396,13 @@ extension PlaybackManagerTests {
         let ctx = try makeContext()
         let ep = makeEpisode(in: ctx, guid: "resume-me", position: 120)
         // Prior session: play() records the guid; pause persists the position.
-        let pm1 = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        let pm1 = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
         pm1.play(ep)
         pm1.togglePlayPause()
 
         // Fresh launch over the same store: restore brings it back, paused, at the saved position.
         let engine = FakeEngine()
-        let pm2 = PlaybackManager(engine: engine, modelContext: ctx)
+        let pm2 = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         pm2.restoreLastEpisode()
         XCTAssertEqual(pm2.currentEpisode?.guid, "resume-me")
         XCTAssertFalse(pm2.isPlaying, "restore must never autoplay")
@@ -311,7 +415,7 @@ extension PlaybackManagerTests {
     func test_restoreLastEpisode_noOpWhenAlreadyPlaying() throws {
         let ctx = try makeContext()
         let ep = makeEpisode(in: ctx, guid: "current")
-        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
         pm.play(ep)
         _ = makeEpisode(in: ctx, guid: "other")
         UserDefaults.standard.set("other", forKey: "lastPlayedEpisodeGuid")

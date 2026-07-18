@@ -6,6 +6,7 @@ struct NowPlayingView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(DownloadManager.self) private var downloads
     @Environment(ChapterGenerationService.self) private var chapterGen
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.dismiss) private var dismiss
     @State private var showQueue = false
     @State private var showSettings = false
@@ -106,8 +107,8 @@ struct NowPlayingView: View {
     // Sized for the smallest supported screens (375pt wide): 60 + 96 + 60 + spacing + padding.
     private var transport: some View {
         HStack(spacing: 20) {
-            Button { playback.skip(by: -15) } label: { skipLabel("gobackward.15") }
-                .accessibilityLabel("Skip back 15 seconds")
+            Button { playback.skipBack() } label: { skipLabel("gobackward.\(appSettings.seekBackSec)") }
+                .accessibilityLabel("Skip back \(appSettings.seekBackSec) seconds")
             Button { playback.togglePlayPause() } label: {
                 Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
                     .scaledFont(36).foregroundStyle(.white)
@@ -115,8 +116,8 @@ struct NowPlayingView: View {
                     .brutalBorder(width: 3).hardShadow(offset: 5)
             }
             .accessibilityLabel(playback.isPlaying ? "Pause" : "Play")
-            Button { playback.skip(by: 30) } label: { skipLabel("goforward.30") }
-                .accessibilityLabel("Skip forward 30 seconds")
+            Button { playback.skipForward() } label: { skipLabel("goforward.\(appSettings.seekForwardSec)") }
+                .accessibilityLabel("Skip forward \(appSettings.seekForwardSec) seconds")
         }.buttonStyle(.plain)
     }
 

@@ -28,12 +28,13 @@ struct OndaApp: App {
             AudioSession.activate()
             let settings = AppSettings()
             _appSettings = State(initialValue: settings)
-            ShowSettingsMigrator.normalizeAll(in: c.mainContext)
             let subs = SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient())
             let dm = DownloadManager(persistence: PersistenceActor(modelContainer: c))
             _subscriptions = State(initialValue: subs)
+            dm.cellularAllowed = { !settings.wifiOnlyDownloads }
             _downloads = State(initialValue: dm)
-            let pm = PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext)
+            let pm = PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext,
+                                     appSettings: settings)
             pm.ensureDownloaded = { [weak dm] in dm?.download($0) }
             _playback = State(initialValue: pm)
             let engine: AudioTranscribing? = {
@@ -61,7 +62,8 @@ struct OndaApp: App {
                 cs.quickClip(episode: ep, at: pm.positionSeconds)
                 pm.showCaptureToast("Clipped last \(Int(ClipService.quickClipWindow))s")
             }
-            let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs, downloads: dm)
+            let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs,
+                                        downloads: dm, appSettings: settings)
             rs.retention = ret
             rs.registerBackgroundTask()
             _refresh = State(initialValue: rs)
@@ -79,6 +81,8 @@ struct OndaApp: App {
     private static func wireRetention(subs: SubscriptionService, dm: DownloadManager,
                                       ret: EpisodeRetentionService, ts: TranscriptService,
                                       context: ModelContext) {
+        // One-time normalization of pre-override ShowSettings rows (no-op after first launch).
+        ShowSettingsMigrator.normalizeAll(in: context)
         subs.retention = ret
         subs.deleteDownload = { [weak dm] in dm?.delete($0) }
         subs.downloadEpisode = { [weak dm] in dm?.download($0) }

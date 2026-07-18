@@ -10,16 +10,19 @@ final class FeedRefreshService {
     private let modelContext: ModelContext
     private let subscriptions: SubscriptionService
     private let downloads: DownloadManager
+    private let appSettings: AppSettings
     // Wired post-init in OndaApp; the refresh cycle doubles as the periodic retention sweep
     // (catches day-based expiry, which has no event of its own).
     var retention: EpisodeRetentionService?
     private var lastRefresh: Date = .distantPast
     static let minRefreshInterval: TimeInterval = 15 * 60
 
-    init(modelContext: ModelContext, subscriptions: SubscriptionService, downloads: DownloadManager) {
+    init(modelContext: ModelContext, subscriptions: SubscriptionService, downloads: DownloadManager,
+         appSettings: AppSettings) {
         self.modelContext = modelContext
         self.subscriptions = subscriptions
         self.downloads = downloads
+        self.appSettings = appSettings
     }
 
     func newEpisodesAfterRefresh(for podcast: Podcast, knownGuids: Set<String>) -> [Episode] {
@@ -36,7 +39,7 @@ final class FeedRefreshService {
             let known = Set(podcast.episodes.map(\.guid))
             do {
                 try await subscriptions.refreshEpisodes(for: podcast)
-                if podcast.settings?.autoDownload == true {
+                if ResolvedPlaybackSettings(show: podcast.settings, app: appSettings).autoDownload {
                     for ep in newEpisodesAfterRefresh(for: podcast, knownGuids: known) {
                         downloads.download(ep)
                     }
