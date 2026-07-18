@@ -17,6 +17,7 @@ struct DiscoverView: View {
     @State private var shakeCount = 0
     @State private var dealID = 0   // bumps when shake results land; replays the deal-in animation
     @State private var mode: DiscoverMode = .browse
+    @State private var showAddFeed = false
     @FocusState private var searchFocused: Bool
 
     private enum DiscoverMode: Hashable { case browse, forYou }
@@ -50,7 +51,7 @@ struct DiscoverView: View {
     // MARK: Browse sub-tab (search, categories, trending, shake)
 
     @ViewBuilder private var browseTab: some View {
-        searchField
+        searchRow
         categoryChips
         listHeader
         browseStatus
@@ -193,6 +194,9 @@ struct DiscoverView: View {
         // Tapping anywhere (simultaneous so buttons still work) or scrolling dismisses the keyboard.
         .simultaneousGesture(TapGesture().onEnded { searchFocused = false })
         .scrollDismissesKeyboard(.immediately)
+        .sheet(isPresented: $showAddFeed) {
+            AddFeedSheet().presentationDetents([.medium, .large])
+        }
         .background(theme.color(.bg))
         .task { await clientBox.loadTrendingIfNeeded() }
         .task { await recs.refreshIfStale(followedCategories: followedCategories) }
@@ -203,17 +207,6 @@ struct DiscoverView: View {
         .onShake { triggerShake() }
         .sensoryFeedback(.impact(weight: .medium), trigger: shakeCount)
         .sensoryFeedback(.success, trigger: dealID)
-    }
-
-    private var searchField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
-            TextField("Search shows & episodes", text: $query)
-                .textInputAutocapitalization(.never)
-                .focused($searchFocused)
-        }
-        .padding(.horizontal, 14).frame(height: 48)
-        .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
     }
 
     private var categoryChips: some View {
@@ -271,6 +264,36 @@ struct DiscoverView: View {
         if shake.usedFallback || names.isEmpty { return "A random mix by topic" }
         if names.count == 1 { return "Because you follow \(names[0])" }
         return "Because you follow \(names[0]) & \(names[1])"
+    }
+}
+
+// MARK: - Search & add-feed row
+extension DiscoverView {
+    var searchRow: some View {
+        HStack(spacing: 10) {
+            searchField
+            Button { showAddFeed = true } label: {
+                Image(systemName: "link.badge.plus")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(theme.color(.textSecondary))
+                    .frame(width: 48, height: 48)
+                    .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Add show by feed URL")
+            .accessibilityHint("For private or paid podcast feeds")
+        }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
+            TextField("Search shows & episodes", text: $query)
+                .textInputAutocapitalization(.never)
+                .focused($searchFocused)
+        }
+        .padding(.horizontal, 14).frame(height: 48)
+        .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
     }
 }
 
