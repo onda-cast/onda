@@ -18,6 +18,7 @@ struct EpisodeListView: View {
     @State private var filter: EpisodeFilter = .downloaded
     @State private var query = ""
     @State private var results: [EpisodeSearchResult] = []
+    @State private var showUnsubscribeConfirm = false
 
     private var isSearching: Bool {
         !query.trimmingCharacters(in: .whitespaces).isEmpty
@@ -135,6 +136,20 @@ struct EpisodeListView: View {
         .sheet(isPresented: $showSettings) { ShowSettingsSheet(podcast: podcast) }
         .sheet(isPresented: $showTranscripts) { ShowTranscriptsView(podcast: podcast) }
         .onChange(of: query) { _, _ in runSearch() }
+        .confirmationDialog(podcast.isLocal
+                            ? "Delete \(podcast.title)?"
+                            : "Unsubscribe from \(podcast.title)?",
+                            isPresented: $showUnsubscribeConfirm,
+                            titleVisibility: .visible) {
+            Button(podcast.isLocal ? "Delete" : "Unsubscribe", role: .destructive) {
+                subscriptions.unsubscribe(podcast); dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(podcast.isLocal
+                 ? "Permanently deletes every converted article in this show. This can't be undone."
+                 : "Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
+        }
     }
 
     private var searchBar: some View {
@@ -187,7 +202,7 @@ struct EpisodeListView: View {
                 Text(podcast.category).font(.system(size: 13))
                     .foregroundStyle(theme.color(.textTertiary))
                 Button(podcast.isLocal ? "Delete Show" : "Unsubscribe") {
-                    subscriptions.unsubscribe(podcast); dismiss()
+                    showUnsubscribeConfirm = true
                 }
                 .font(.system(size: 13, weight: .bold)).foregroundStyle(theme.color(.accent))
             }

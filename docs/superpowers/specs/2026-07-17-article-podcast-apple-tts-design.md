@@ -48,7 +48,9 @@ created lazily (on first successful article conversion) with:
 
 UI treats `isLocal` shows specially: no "Check for Updates" action (there's no feed to
 poll), "Unsubscribe" is relabeled "Delete Articles Show" (destructive, removes all
-converted articles).
+converted articles). This is a real, permanent row deletion (not the usual archive/
+unsubscribe soft-delete), so it ignores the keep-transcripts setting entirely — every
+transcript goes with its episode regardless of that preference.
 
 **`Episode`** — add `sourceType: String = "feed"`, set to `"article"` for converted
 episodes. Mirrors the existing `Chapter.source` (`"feed" | "generated"`) tagging

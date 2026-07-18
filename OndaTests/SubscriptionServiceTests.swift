@@ -130,9 +130,10 @@ final class SubscriptionServiceTests: XCTestCase {
 
     func test_unsubscribe_localShow_deletesEpisodesAndArticleSources_keepsPodcastAndSettings() async throws {
         let ctx = try context()
+        // No mocked deleteDownload: local-show deletion must not depend on that async closure
+        // (see SubscriptionService.unsubscribe) — proving the row deletions below succeed
+        // without it is part of the point.
         let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
-        var deleted: [String] = []
-        svc.deleteDownload = { deleted.append($0.guid) }
         let pod = Podcast(feedURL: URL(string: "onda-local:articles")!, title: "Articles",
                           author: "You", artworkURL: nil, category: "Articles", itunesId: nil,
                           isSubscribed: true)
@@ -147,15 +148,24 @@ final class SubscriptionServiceTests: XCTestCase {
         let source = ArticleSource(sourceURL: URL(string: "https://example.com/article")!,
                                    siteName: "Example", addedAt: .now)
         source.episode = ep; ep.articleSource = source
-        let file = DownloadedFile(localFileName: "art-1.m4a", fileSizeBytes: 100, downloadedAt: .now)
+        let fileName = "art-1.m4a"
+        let file = DownloadedFile(localFileName: fileName, fileSizeBytes: 100, downloadedAt: .now)
         file.episode = ep; ep.downloadedFile = file
         let tr = Transcript(source: "ondevice", language: "en"); tr.episode = ep; ep.transcript = tr
         ctx.insert(ep); ctx.insert(source); ctx.insert(file); ctx.insert(tr)
         try ctx.save()
 
+        // Write a real file at the path DownloadManager would use, so we exercise the actual
+        // file-removal path (not a mock) and can prove it disappears from disk.
+        let fileURL = DownloadManager.fileURL(named: fileName)
+        try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try Data("fake audio".utf8).write(to: fileURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path), "precondition: file exists on disk")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+
         svc.unsubscribe(pod)
 
-        XCTAssertEqual(deleted, ["art-1"], "download-freeing closure was invoked before the row was deleted")
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<Episode>()).count, 0, "episode row is gone, not just archived")
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<ArticleSource>()).count, 0,
                        "ArticleSource cascades away with its Episode")
@@ -163,6 +173,15 @@ final class SubscriptionServiceTests: XCTestCase {
         XCTAssertEqual(pods.count, 1, "the Podcast row survives so re-adding an article finds it again")
         XCTAssertFalse(pods[0].isSubscribed)
         XCTAssertNotNil(pods[0].settings, "ShowSettings (voice preference) survives")
+
+        // File removal happens off-main in a detached Task — poll (bounded) instead of asserting
+        // immediately.
+        var stillExists = FileManager.default.fileExists(atPath: fileURL.path)
+        for _ in 0..<100 where stillExists {
+            try await Task.sleep(for: .milliseconds(20))
+            stillExists = FileManager.default.fileExists(atPath: fileURL.path)
+        }
+        XCTAssertFalse(stillExists, "downloaded audio file removed from disk on local-show delete")
     }
 
     func test_unsubscribe_nonLocalShow_episodesSurvive() async throws {

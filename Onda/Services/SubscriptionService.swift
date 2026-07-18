@@ -94,8 +94,24 @@ final class SubscriptionService {
         podcast.isSubscribed = false
         let keepTranscripts = retention?.resolvedKeepTranscripts(for: podcast) ?? true
         let episodes = podcast.episodes
+        // Local shows: collect downloaded-audio file names BEFORE deleting rows, then remove the
+        // files ourselves after the save. We can't route through `deleteDownload`
+        // (DownloadManager.delete) here — it only captures the guid and enqueues an async
+        // PersistenceActor.deleteDownload(episodeGuid:) that re-fetches the Episode by guid; by
+        // the time that task runs, modelContext.delete(ep) below has already cascaded the row
+        // (and its DownloadedFile) away, so the re-fetch finds nothing and the guard no-ops —
+        // the .m4a leaks on disk forever. Capturing the name now and deleting by path sidesteps
+        // the race entirely.
+        var localFileNamesToRemove: [String] = []
         for ep in episodes {
-            if ep.downloadedFile != nil { deleteDownload?(ep) }
+            if podcast.isLocal {
+                if let name = ep.downloadedFile?.localFileName { localFileNamesToRemove.append(name) }
+            } else if ep.downloadedFile != nil {
+                deleteDownload?(ep)
+            }
+            // keepTranscripts is honored for non-local shows, but it's moot for local ones: the
+            // delete-show dialog promises full, permanent deletion, and modelContext.delete(ep)
+            // below cascades the Transcript away regardless of this setting.
             if !keepTranscripts, let tr = ep.transcript {
                 ep.transcript = nil
                 modelContext.delete(tr)   // cascades cues
@@ -105,6 +121,12 @@ final class SubscriptionService {
             }
         }
         try? modelContext.save()
+        guard !localFileNamesToRemove.isEmpty else { return }
+        Task.detached {
+            for name in localFileNamesToRemove {
+                try? FileManager.default.removeItem(at: DownloadManager.fileURL(named: name))
+            }
+        }
     }
 
     func refreshEpisodes(for podcast: Podcast) async throws {
