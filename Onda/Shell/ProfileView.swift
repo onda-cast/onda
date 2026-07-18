@@ -10,6 +10,7 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Profile").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
+                        .lineLimit(1).minimumScaleFactor(0.6)
                         .padding(.top, 56)
 
                     Text("Appearance").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))

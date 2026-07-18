@@ -60,6 +60,7 @@ struct LibraryView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack {
                         Text("Library").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
+                            .lineLimit(1).minimumScaleFactor(0.6)
                         Spacer()
                         Button { showClips = true } label: {
                             HStack(spacing: 5) {
@@ -247,6 +248,9 @@ struct LibraryView: View {
                     .scaledFont(12.5).foregroundStyle(theme.color(.textTertiary))
                     .lineLimit(1)
             }
+            // Claim the row's free width so a long title truncates here instead of sliding under
+            // the chevron (the overlap seen in compact/text layouts).
+            .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 8)
             Image(systemName: "chevron.right").scaledFont(13)
                 .foregroundStyle(theme.color(.textTertiary))

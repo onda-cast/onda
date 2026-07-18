@@ -9,6 +9,7 @@ struct DownloadsStorageView: View {
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }) private var podcasts: [Podcast]
 
     @State private var refreshKey = 0
+    @State private var bumpTask: Task<Void, Never>?
     @State private var confirmClearAudio = false
     @State private var confirmClearTranscripts = false
     @State private var pendingDelete: PendingDelete?
@@ -206,9 +207,17 @@ struct DownloadsStorageView: View {
         modelContext.delete(tr)   // cascades cues
     }
 
-    // Download deletes happen on a background actor; nudge the view to recompute sizes after.
+    // Recompute sizes right away — breakdown reads fileSizeBytes off the model, and the delete is
+    // already applied+saved by the time we're here, so there's no need to wait 150ms (that fixed
+    // guess is what let a stale size flash through). A single coalesced follow-up catches the
+    // background actor's on-disk settle without stacking overlapping timers on fast re-entry.
     private func bump() {
-        Task { try? await Task.sleep(for: .milliseconds(150)); refreshKey += 1 }
+        refreshKey += 1
+        bumpTask?.cancel()
+        bumpTask = Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            if !Task.isCancelled { refreshKey += 1 }
+        }
     }
 
     private func sizeStr(_ bytes: Int64) -> String {

@@ -142,6 +142,7 @@ struct DiscoverView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text("Discover").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
+                        .lineLimit(1).minimumScaleFactor(0.6)
                     Spacer()
                     Button { triggerShake() } label: {
                         HStack(spacing: 5) {
