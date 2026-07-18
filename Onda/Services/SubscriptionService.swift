@@ -2,6 +2,11 @@
 import Foundation
 import SwiftData
 
+/// Owns the subscription lifecycle: subscribing (via iTunes result or a direct/private feed URL),
+/// pulling new episodes from feeds, marking played, archiving, and unsubscribing (which is also the
+/// show-delete action). Wired app-wide as an `@Observable` singleton; the retention sweep and
+/// download cleanup are injected post-init (`retention`, `deleteDownload`, `downloadEpisode`) to
+/// avoid a dependency cycle.
 @MainActor
 @Observable
 final class SubscriptionService {
@@ -18,6 +23,9 @@ final class SubscriptionService {
         self.feeds = feeds
     }
 
+    /// Subscribes to an iTunes search result: creates (or reuses) the `Podcast`, marks it
+    /// subscribed, pulls its episodes, and auto-downloads the newest one.
+    /// - Throws: when the search result carries no RSS feed URL.
     @discardableResult
     func subscribe(to dto: PodcastDTO) async throws -> Podcast {
         guard let feedURL = dto.feedUrl else {
@@ -72,6 +80,8 @@ final class SubscriptionService {
         }
     }
 
+    /// Toggles an episode's played state (clearing its resume position) and, when marking played,
+    /// runs the retention sweep so an "auto-delete immediately" rule fires without waiting.
     func setPlayed(_ episode: Episode, _ played: Bool) {
         episode.played = played
         episode.playedDate = played ? .now : nil
@@ -121,6 +131,9 @@ final class SubscriptionService {
         try? modelContext.save()
     }
 
+    /// Re-fetches the show's feed and inserts only episodes whose guid isn't already stored,
+    /// extending the relationship in one batch (per-item appends to a SwiftData relationship are
+    /// quadratic). Archived episodes are not resurrected.
     func refreshEpisodes(for podcast: Podcast) async throws {
         let feed = try await feeds.fetchFeed(podcast.feedURL)
         let existing = Set(podcast.episodes.map(\.guid))

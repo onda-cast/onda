@@ -6,6 +6,11 @@
 import Foundation
 import SwiftData
 
+/// Resolves the app's download/retention rules — global defaults (``AppSettings``) overridden
+/// per-show (`ShowSettings`) — and applies them with a deliberately conservative sweep: the count
+/// cap and the listened-age rule only ever touch **played** downloaded episodes, so an unplayed
+/// download is never auto-deleted. Wired app-wide as an `@Observable` singleton; the sweep runs
+/// reactively on mark-played and periodically from `FeedRefreshService`.
 @MainActor
 @Observable
 final class EpisodeRetentionService {
@@ -25,28 +30,37 @@ final class EpisodeRetentionService {
 
     // MARK: Resolution — override ?? global default
 
-    /// 0 = no limit.
+    /// Per-show cap on total downloaded episodes, override falling back to the global default.
+    /// `0` means no limit.
     func resolvedMaxDownloadsKept(for podcast: Podcast) -> Int {
         podcast.settings?.maxDownloadsKeptOverride ?? appSettings.defaultMaxDownloadsKept
     }
 
-    /// -1 = off, 0 = immediately.
+    /// Days after which a *listened* episode is auto-deleted, override falling back to the global
+    /// default. `-1` means off; `0` means immediately on being marked played.
     func resolvedAutoDeleteAfterDays(for podcast: Podcast) -> Int {
         podcast.settings?.autoDeleteListenedAfterDaysOverride
             ?? appSettings.defaultAutoDeleteListenedAfterDays
     }
 
+    /// Whether to auto-start on-device transcription when a download finishes, override falling
+    /// back to the global default.
     func resolvedAutoTranscribe(for podcast: Podcast) -> Bool {
         podcast.settings?.autoTranscribeOnDownloadOverride
             ?? appSettings.defaultAutoTranscribeOnDownload
     }
 
+    /// Whether an episode's transcript survives when its audio is deleted/unsubscribed, override
+    /// falling back to the global default.
     func resolvedKeepTranscripts(for podcast: Podcast) -> Bool {
         podcast.settings?.keepTranscriptsOverride ?? appSettings.keepTranscriptsOnDelete
     }
 
     // MARK: Sweep
 
+    /// Applies both retention rules to one show — delete listened-past-age episodes, then free the
+    /// oldest played downloads beyond the cap — and saves. Safe to call often; it's a no-op when
+    /// nothing is eligible.
     func evictEligibleEpisodes(for podcast: Podcast) {
         evictListenedPastAge(for: podcast)
         evictBeyondDownloadCap(for: podcast)

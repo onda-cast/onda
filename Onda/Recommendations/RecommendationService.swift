@@ -3,10 +3,16 @@
 import Foundation
 import SwiftData
 
+/// Drives the on-device "For You" recommender: builds a taste profile from the user's own signals,
+/// runs the retrieve → re-rank funnel, caches the result with a TTL, and exposes the ranked list.
+/// Everything is computed on-device (no backend, no cross-user data). Wired app-wide as an
+/// `@Observable` singleton; Discover reads ``recommendations``/``isLoading``/``isPersonalized``.
 @MainActor
 @Observable
 final class RecommendationService {
+    /// The current ranked recommendations (empty until the first refresh completes).
     var recommendations: [Recommendation] = []
+    /// True while a refresh is in flight — lets the UI show a spinner without blocking the tab.
     var isLoading = false
     /// False when the profile had no signal and the list is just top charts — lets the UI avoid
     /// over-promising ("Recommended for you" vs "Popular right now").
@@ -35,15 +41,23 @@ final class RecommendationService {
         self.now = now
     }
 
+    /// True when the cached list is older than the TTL (or nothing has been computed yet).
     var isStale: Bool { lastComputed.map { now().timeIntervalSince($0) > Self.ttl } ?? true }
 
+    /// Records a Discover search term into the taste-profile signal log (a bounded ring buffer).
     func recordSearch(_ term: String) { searchLog.record(term) }
 
+    /// Recomputes recommendations only if the cache is stale and no refresh is already running —
+    /// the cheap "on Discover appear" entry point.
     func refreshIfStale(followedCategories: [String]) async {
         guard isStale, !isLoading else { return }
         await refresh(followedCategories: followedCategories)
     }
 
+    /// Rebuilds the taste profile and runs the full retrieve → re-rank funnel, replacing
+    /// ``recommendations``. Mixes in top charts on a cold start / thin candidate pool.
+    /// - Parameter followedCategories: categories of the user's subscriptions, used to steer
+    ///   retrieval and the cold-start fallback.
     func refresh(followedCategories: [String]) async {
         isLoading = true
         defer { isLoading = false }
@@ -69,6 +83,8 @@ final class RecommendationService {
         lastComputed = now()
     }
 
+    /// Marks a recommendation "not interested": adds it to the persistent dismissed set (so it
+    /// won't return) and removes it from the current list.
     func dismiss(_ rec: Recommendation) {
         dismissedStore.dismiss(rec.dto)
         recommendations.removeAll { $0.id == rec.id }
