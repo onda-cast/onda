@@ -346,14 +346,7 @@ extension DiscoverView {
     }
 
     private var searchField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
-            TextField("Search shows & episodes", text: $query)
-                .textInputAutocapitalization(.never)
-                .focused($searchFocused)
-        }
-        .padding(.horizontal, 14).frame(height: 48)
-        .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
+        BrutalSearchField("Search shows & episodes", text: $query, focus: $searchFocused)
     }
 }
 

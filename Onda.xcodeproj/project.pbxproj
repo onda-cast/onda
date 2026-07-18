@@ -24,6 +24,7 @@
 		1E538B298E30CE4E89A8033C /* TranscriptService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154B53D75F0E31F37EEBAA9B /* TranscriptService.swift */; };
 		1E685B05282CE25807E43C13 /* EpisodeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27845D9408FFD9F14078875D /* EpisodeListView.swift */; };
 		1E8AB667ED8824B30B554CA9 /* feed_basic.xml in Resources */ = {isa = PBXBuildFile; fileRef = C5A676C4BB0A69A0343594E4 /* feed_basic.xml */; };
+		2622AF207821F1A3F46610C3 /* BrutalSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653E106F8E234CC794FACBA7 /* BrutalSearchField.swift */; };
 		27584798B97AA15CE864F386 /* BrutalStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D11CA7EC934C9F4DA99381A /* BrutalStyle.swift */; };
 		280C6D9DB18FE8750A416F70 /* TranscriptSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5096BC65F569A4F6CCCC7E34 /* TranscriptSearch.swift */; };
 		28497CC078C08533CF32F0BD /* ActiveCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = E805DE0D40D2B33E85D10F1F /* ActiveCue.swift */; };
@@ -217,6 +218,7 @@
 		5E11F07C519566716B0038C8 /* ITunesSearchClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ITunesSearchClient.swift; sourceTree = "<group>"; };
 		614D7FDBFE03DB9BE928110D /* ClipShareUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipShareUITests.swift; sourceTree = "<group>"; };
 		64BB3761E9D6DB90106AE150 /* feed_messy.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = feed_messy.xml; sourceTree = "<group>"; };
+		653E106F8E234CC794FACBA7 /* BrutalSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrutalSearchField.swift; sourceTree = "<group>"; };
 		67CE2B1E3EF1BFC12BF71E97 /* ParsedCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsedCue.swift; sourceTree = "<group>"; };
 		6FCCE1D7FDB9301A8625C3FE /* ChapterGenerationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterGenerationServiceTests.swift; sourceTree = "<group>"; };
 		706BE42C701B0693B6E11502 /* DownloadStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadStateTests.swift; sourceTree = "<group>"; };
@@ -616,6 +618,7 @@
 			isa = PBXGroup;
 			children = (
 				323028D4CD592C6D201924EF /* AppSettings.swift */,
+				653E106F8E234CC794FACBA7 /* BrutalSearchField.swift */,
 				7D11CA7EC934C9F4DA99381A /* BrutalStyle.swift */,
 				C56597246CCC6EC9FC34A3C6 /* Palette.swift */,
 				3D08E840362422D0CB05A96C /* Theme.swift */,
@@ -832,6 +835,7 @@
 				A88A2927E10B55F59D1EBE1A /* AudioTap.swift in Sources */,
 				83FD313D2C17026BAE890110 /* AudioTranscribing.swift in Sources */,
 				BDDE61D7C5F26A0326671EE6 /* BoostLevel.swift in Sources */,
+				2622AF207821F1A3F46610C3 /* BrutalSearchField.swift in Sources */,
 				27584798B97AA15CE864F386 /* BrutalStyle.swift in Sources */,
 				C9FAF33D15B690EA7BB6BA52 /* CandidateReranker.swift in Sources */,
 				F7D496C5C54E8FE48330ECA2 /* CandidateRetriever.swift in Sources */,

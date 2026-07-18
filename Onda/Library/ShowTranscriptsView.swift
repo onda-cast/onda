@@ -59,13 +59,7 @@ struct ShowTranscriptsView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
-            TextField("Search transcripts", text: $query)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
-        }
-        .padding(.horizontal, 14).frame(height: 48)
-        .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
+        BrutalSearchField("Search transcripts", text: $query)
     }
 
     private func card(_ ep: Episode, snippet: String?) -> some View {
