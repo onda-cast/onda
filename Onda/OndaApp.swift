@@ -28,6 +28,7 @@ struct OndaApp: App {
             AudioSession.activate()
             let settings = AppSettings()
             _appSettings = State(initialValue: settings)
+            ShowSettingsMigrator.normalizeAll(in: c.mainContext)
             let subs = SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient())
             let dm = DownloadManager(persistence: PersistenceActor(modelContainer: c))
             _subscriptions = State(initialValue: subs)

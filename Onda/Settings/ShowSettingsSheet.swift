@@ -33,20 +33,20 @@ struct ShowSettingsSheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Voice Boost").scaledFont(16).foregroundStyle(theme.color(.text))
                             SegmentedRow(options: [("Off", 0), ("Med", 1), ("High", 2)],
-                                         selection: s.voiceBoost) { s.voiceBoost = $0; playback.applyAudioSettings() }
+                                         selection: s.voiceBoost ?? 0) { s.voiceBoost = $0; playback.applyAudioSettings() }
                         }
                         Toggle("Skip Silence", isOn: Binding(
-                            get: { s.skipSilence }, set: { s.skipSilence = $0; playback.applyAudioSettings() }))
+                            get: { s.skipSilence ?? false }, set: { s.skipSilence = $0; playback.applyAudioSettings() }))
                             .tint(theme.color(.accent)).foregroundStyle(theme.color(.text))
                     }
                     section("Ads & Downloads") {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Ad Skip").scaledFont(16).foregroundStyle(theme.color(.text))
                             SegmentedRow(options: [("Off", "off"), ("Manual", "manual"), ("Auto", "auto")],
-                                         selection: s.adSkipMode) { s.adSkipMode = $0 }
+                                         selection: s.adSkipMode ?? "off") { s.adSkipMode = $0 }
                         }
                         Toggle("Auto-Download New Episodes", isOn: Binding(
-                            get: { s.autoDownload }, set: { s.autoDownload = $0 }))
+                            get: { s.autoDownload ?? false }, set: { s.autoDownload = $0 }))
                             .tint(theme.color(.accent)).foregroundStyle(theme.color(.text))
                     }
                     section("Trim Episode") {
@@ -100,12 +100,12 @@ struct ShowSettingsSheet: View {
     }
 
     private var speedLabel: String {
-        let sp = s.speed
+        let sp = s.speed ?? 1
         return sp == sp.rounded() ? "\(Int(sp))×" : "\(sp)×"
     }
 
     private func cycleSpeed() {
-        let i = speedSteps.firstIndex(of: s.speed) ?? 1
+        let i = speedSteps.firstIndex(of: s.speed ?? 1) ?? 1
         s.speed = speedSteps[(i + 1) % speedSteps.count]
         playback.applyAudioSettings()
     }

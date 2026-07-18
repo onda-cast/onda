@@ -328,7 +328,7 @@ extension NowPlayingView {
     func cycleSpeed() {
         guard let s = settings else { return }
         let steps = Self.speedSteps
-        let i = steps.firstIndex(of: s.speed) ?? 1
+        let i = steps.firstIndex(of: s.speed ?? 1) ?? 1
         setSpeed(steps[(i + 1) % steps.count])
     }
 
@@ -338,11 +338,11 @@ extension NowPlayingView {
         playback.applyAudioSettings()
     }
     func toggleBoost() {
-        settings.map { $0.voiceBoost = ($0.voiceBoost + 1) % 3 }
+        settings.map { $0.voiceBoost = (($0.voiceBoost ?? 0) + 1) % 3 }
         playback.applyAudioSettings()
     }
     func toggleSilence() {
-        settings.map { $0.skipSilence.toggle() }
+        settings.map { $0.skipSilence = !($0.skipSilence ?? false) }
         playback.applyAudioSettings()
     }
 
