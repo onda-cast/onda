@@ -28,9 +28,18 @@ final class ArticleConversionService {
 
     var pending: [Pending] = []
 
-    /// Tracks the in-flight conversion Task per URL so dismiss() can cancel it and add() can
-    /// tell "already converting" apart from "failed, needs a fresh attempt".
-    private var tasks: [URL: Task<Void, Never>] = [:]
+    /// Identifies the current attempt for a URL, alongside its Task handle (nil when the
+    /// generation was registered by a direct convert(_:) call rather than add()). Cleanup code
+    /// throughout convert(_:generation:) compares its own id against `inFlight[url]?.id` before
+    /// mutating shared state, so a superseded (cancelled/replaced) attempt can never clobber a
+    /// newer one's task handle or Pending row — closing the URL-only-keyed race where a stale
+    /// task's cleanup wiped out a replacement's bookkeeping.
+    private struct InFlight {
+        let id: UUID
+        let task: Task<Void, Never>?
+    }
+
+    private var inFlight: [URL: InFlight] = [:]
 
     init(modelContext: ModelContext, extract: @escaping Extract,
          renderer: ArticleSpeechRendering,
@@ -43,20 +52,29 @@ final class ArticleConversionService {
 
     func add(url: URL) {
         // Idempotent while in flight; re-adding a failed URL restarts it.
-        if tasks[url] != nil { return }
+        if inFlight[url] != nil { return }
         pending.removeAll { $0.id == url }
         pending.insert(Pending(id: url), at: 0)
-        tasks[url] = Task { [weak self] in await self?.convert(url) }
+        let id = UUID()
+        let task: Task<Void, Never> = Task { [weak self] in
+            await self?.convert(url, generation: id)
+        }
+        inFlight[url] = InFlight(id: id, task: task)
     }
 
     func retry(url: URL) {
+        // A conversion already in flight owns the row; retrying it would either duplicate the
+        // work (if we restarted) or strand a running conversion with no row (if we just cleared
+        // it, since add() early-returns while something is in flight). Only a failed/absent row
+        // is safe to clear and re-add.
+        if inFlight[url] != nil { return }
         pending.removeAll { $0.id == url }
         add(url: url)
     }
 
     func dismiss(url: URL) {
-        tasks[url]?.cancel()
-        tasks[url] = nil
+        inFlight[url]?.task?.cancel()
+        inFlight[url] = nil
         pending.removeAll { $0.id == url }
     }
 
@@ -85,31 +103,62 @@ final class ArticleConversionService {
                                   options: .regularExpression) + ".m4a"
     }
 
+    /// Thin wrapper preserving the original test-facing signature: convert() can be invoked
+    /// directly (tests, queue drain) without a prior add(). It mints its own generation id and
+    /// registers it (with no Task handle, since it's running inline on the caller's Task) so the
+    /// generation guards inside convert(_:generation:) behave identically to the add() path —
+    /// and so a concurrent add() for the same URL correctly sees "already converting".
     func convert(_ url: URL) async {
-        // Clears the in-flight marker on every exit path (success, failure, or cancellation),
-        // including when convert() is invoked directly (tests, queue drain) without add().
-        defer { tasks[url] = nil }
-        setStage(url, .fetching)
+        let id: UUID
+        if let existing = inFlight[url] {
+            id = existing.id
+        } else {
+            id = UUID()
+            inFlight[url] = InFlight(id: id, task: nil)
+        }
+        await convert(url, generation: id)
+    }
+
+    // MARK: - private
+
+    private func isCurrentGeneration(_ url: URL, _ id: UUID) -> Bool {
+        inFlight[url]?.id == id
+    }
+
+    private func convert(_ url: URL, generation id: UUID) async {
+        // Clears the in-flight marker on every exit path (success, failure, or cancellation) —
+        // but only if this generation is still the current one for the URL. If a newer
+        // generation has already replaced this entry (dismiss() + add() raced with this task's
+        // cleanup), clearing it here would wipe out the replacement's task handle.
+        defer { if isCurrentGeneration(url, id) { inFlight[url] = nil } }
+        setStage(url, .fetching, generation: id)
         do {
             let article = try await extract(url)
             let sentences = SentenceSplitter.split(article.textContent)
             guard !sentences.isEmpty else { throw ArticleExtractionError.noReadableContent }
 
-            setStage(url, .synthesizing(0))
+            setStage(url, .synthesizing(0), generation: id)
             let guid = "article-\(UUID().uuidString)"
             let out = DownloadManager.fileURL(named: Self.audioFileName(for: guid))
             let rendered = try await renderer.render(
                 sentences: sentences, voiceIdentifier: currentVoiceIdentifier(),
                 outputURL: out,
                 progress: { [weak self] p in
-                    Task { @MainActor in self?.updateStage(url, .synthesizing(p)) }
+                    Task { @MainActor in self?.updateStage(url, .synthesizing(p), generation: id) }
                 })
             // A dismiss() may have cancelled this Task while render() was finishing up; don't
             // resurrect the dismissed row with a freshly-inserted episode. render() already
             // succeeded, so clean up the now-orphaned audio file it wrote.
             guard !Task.isCancelled else {
                 try? FileManager.default.removeItem(at: out)
-                pending.removeAll { $0.id == url }
+                if isCurrentGeneration(url, id) { pending.removeAll { $0.id == url } }
+                return
+            }
+            // Not cancelled, but a newer generation may have already taken over the row (e.g.
+            // this convert() was invoked directly while add() also started a fresh attempt).
+            // Don't let a superseded generation insert an episode into a row it no longer owns.
+            guard isCurrentGeneration(url, id) else {
+                try? FileManager.default.removeItem(at: out)
                 return
             }
             insertEpisode(guid: guid, url: url, article: article, rendered: rendered)
@@ -119,15 +168,13 @@ final class ArticleConversionService {
             // CancellationError, so check Task.isCancelled directly rather than the error type.
             // A cancelled conversion must not resurrect or fail-mark a dismissed row.
             guard !Task.isCancelled else {
-                pending.removeAll { $0.id == url }
+                if isCurrentGeneration(url, id) { pending.removeAll { $0.id == url } }
                 return
             }
             setFailure(url, message: (error as? LocalizedError)?.errorDescription
-                       ?? "Conversion failed: \(error.localizedDescription)")
+                       ?? "Conversion failed: \(error.localizedDescription)", generation: id)
         }
     }
-
-    // MARK: - private
 
     private func insertEpisode(guid: String, url: URL, article: ExtractedArticle,
                                rendered: RenderedArticleAudio) {
@@ -166,8 +213,11 @@ final class ArticleConversionService {
     }
 
     /// Upserts: convert(_:) can be entered without a prior add(url:) (tests, queue drain),
-    /// so the entry is created here if missing.
-    private func setStage(_ url: URL, _ stage: Stage) {
+    /// so the entry is created here if missing. Generation-guarded: a task suspended in
+    /// extract() can resume after dismiss() + add() replaced it with a newer generation, and
+    /// must not resurrect/overwrite the replacement's row.
+    private func setStage(_ url: URL, _ stage: Stage, generation id: UUID) {
+        guard isCurrentGeneration(url, id) else { return }
         if let i = pending.firstIndex(where: { $0.id == url }) {
             pending[i].stage = stage
             pending[i].failure = nil
@@ -178,14 +228,17 @@ final class ArticleConversionService {
 
     /// Update-only: for progress ticks, which must never resurrect a row that dismiss() already
     /// removed (unlike setStage's upsert, used only for the two stage transitions in convert()).
-    private func updateStage(_ url: URL, _ stage: Stage) {
-        guard let i = pending.firstIndex(where: { $0.id == url }) else { return }
+    /// Generation-guarded for the same reason as setStage.
+    private func updateStage(_ url: URL, _ stage: Stage, generation id: UUID) {
+        guard isCurrentGeneration(url, id), let i = pending.firstIndex(where: { $0.id == url })
+        else { return }
         pending[i].stage = stage
         pending[i].failure = nil
     }
 
-    private func setFailure(_ url: URL, message: String) {
-        guard let i = pending.firstIndex(where: { $0.id == url }) else { return }
+    private func setFailure(_ url: URL, message: String, generation id: UUID) {
+        guard isCurrentGeneration(url, id), let i = pending.firstIndex(where: { $0.id == url })
+        else { return }
         pending[i].failure = message
     }
 }

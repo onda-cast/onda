@@ -26,10 +26,15 @@ private struct FakeRenderer: ArticleSpeechRendering {
 /// Task.checkCancellation() in its poll loop) without needing an explicit release.
 private actor Gate {
     private(set) var isReleased = false
+    /// Counts every render() call that has reached the gate, including repeat entries after the
+    /// first (unlike `entered`/`waitForEntry`, which only track the first). Tests use this to
+    /// assert a conversion attempt did or didn't start a new renderer invocation.
+    private(set) var enterCount = 0
     private var entered = false
     private var entryContinuation: CheckedContinuation<Void, Never>?
 
     func enter() {
+        enterCount += 1
         entered = true
         entryContinuation?.resume()
         entryContinuation = nil
@@ -78,6 +83,18 @@ final class ArticleConversionServiceTests: XCTestCase {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
         return condition()
+    }
+
+    /// Same as poll(), but for conditions that read actor-isolated state (e.g. a Gate's
+    /// enterCount) and so must themselves be async.
+    @discardableResult
+    private func pollAsync(timeout: TimeInterval = 1.0, _ condition: () async -> Bool) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if await condition() { return true }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        return await condition()
     }
 
     private func makeContext() throws -> ModelContext {
@@ -195,15 +212,63 @@ final class ArticleConversionServiceTests: XCTestCase {
         await gate.waitForEntry()   // task A is genuinely in flight, blocked inside render()
         svc.dismiss(url: url)
         svc.add(url: url)          // task B starts concurrently while A is still unwinding
+
+        let bEntered = await pollAsync { await gate.enterCount == 2 }
+        XCTAssertTrue(bEntered, "task B did not reach render() within the timeout")
+
+        // An ordinary third add() while B is still gated must see "already converting" and be a
+        // no-op — previously the URL-keyed cleanup let a stale task A clobber B's handle here,
+        // opening a window where this add() would start a third, duplicate-producing task.
+        svc.add(url: url)
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        let countBeforeRelease = await gate.enterCount
+        XCTAssertEqual(countBeforeRelease, 2,
+                       "a third add() while a conversion is in flight must not start another one")
+
         await gate.release()       // lets both A (which self-cancels) and B proceed
 
         let settled = await poll { svc.pending.isEmpty }
         XCTAssertTrue(settled, "conversion did not settle within the timeout")
 
         let eps = try ctx.fetch(FetchDescriptor<Episode>())
-        XCTAssertEqual(eps.count, 1, "dismiss + re-add during an in-flight conversion must not duplicate the episode")
+        XCTAssertEqual(eps.count, 1, "dismiss + re-add + a concurrent add() must not duplicate the episode")
         XCTAssertTrue(svc.pending.isEmpty)
         XCTAssertNil(svc.pending.first(where: { $0.id == url })?.failure)
+
+        if let ep = eps.first {
+            try? FileManager.default.removeItem(
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+        }
+    }
+
+    func test_retry_whileConversionInFlight_isNoOpAndKeepsPendingRow() async throws {
+        let ctx = try makeContext()
+        let gate = Gate()
+        let svc = makeService(ctx: ctx, extract: { _ in self.article },
+                              renderer: GatedRenderer(gate: gate))
+        let url = URL(string: "https://example.com/retry-in-flight")!
+
+        svc.add(url: url)
+        await gate.waitForEntry()   // conversion is genuinely in flight, blocked inside render()
+
+        svc.retry(url: url)         // retry while in flight must be a no-op, not remove the row
+
+        XCTAssertEqual(svc.pending.count, 1, "retry while in flight must not remove the active row")
+        XCTAssertEqual(svc.pending.first?.id, url)
+        XCTAssertNil(svc.pending.first?.failure)
+
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        let countBeforeRelease = await gate.enterCount
+        XCTAssertEqual(countBeforeRelease, 1, "retry while in flight must not start a second conversion")
+
+        await gate.release()
+
+        let settled = await poll { svc.pending.isEmpty }
+        XCTAssertTrue(settled, "conversion did not settle within the timeout")
+
+        let eps = try ctx.fetch(FetchDescriptor<Episode>())
+        XCTAssertEqual(eps.count, 1)
+        XCTAssertTrue(svc.pending.isEmpty)
 
         if let ep = eps.first {
             try? FileManager.default.removeItem(
