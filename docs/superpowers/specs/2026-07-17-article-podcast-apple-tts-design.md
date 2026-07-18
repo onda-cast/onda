@@ -30,9 +30,9 @@ consistent with the rest of Onda.
   "Articles" show only.
 - Word-level transcript highlighting for articles — sentence-level only (see
   "TTS rendering" below for why).
-- Surviving app termination mid-conversion — an in-flight conversion is lost if the app
-  is killed; the user re-adds the link. (The share-extension *handoff queue* does
-  survive termination — see "Share Extension".)
+- ~~Surviving app termination mid-conversion~~ — **reversed 2026-07-18**: conversions now
+  survive suspension and termination via a persistent queue + background processing. See
+  "Addendum: Background conversion pipeline" at the end of this document.
 - Editing/curating extracted article text before synthesis.
 
 ## Data model changes
@@ -224,3 +224,42 @@ Every failure mode surfaces as a dismissible/retryable state; nothing fails sile
 - Manual/UI: add an article in the simulator, verify playback, transcript tap-to-seek,
   and the voice picker end-to-end. The share sheet itself needs a device or a second
   simulator app to exercise for real.
+
+## Addendum: Background conversion pipeline (2026-07-18)
+
+Reverses the original "conversions don't survive termination" non-goal.
+
+**Persistent queue as source of truth.** The App Group file `pending-articles.json`
+(`PendingArticlesQueue`) stops being a drain-once handoff and becomes the durable record
+of every not-yet-converted URL. Entry format changes from `[URL]` to
+`[{url, attempts}]` (legacy plain-URL arrays still decode, mapping to `attempts: 0`;
+the JSON object format is extensible — e.g. a future `extractedText` field for
+extract-at-add-time — without another migration). The share extension keeps appending
+exactly as before.
+
+Queue lifecycle: `add(url:)` appends; a successful conversion or a user DISMISS removes;
+each failure increments `attempts`. On every foreground activation the service
+*reconciles* instead of draining: entries with `attempts < 3` restart conversion
+automatically (idempotent against in-flight work); entries at the cap surface as failed
+rows with manual RETRY only. Restart-from-scratch is safe because episodes are inserted
+only on full success and partial audio files are cleaned up on failure.
+
+**Background execution, two layers:**
+1. *Continuation:* each conversion wraps itself in `UIApplication.beginBackgroundTask`,
+   so leaving the app grants ~30s of continued execution — enough for typical articles.
+2. *`BGProcessingTask`* (identifier `com.onda.articles.convert`, added to
+   `BGTaskSchedulerPermittedIdentifiers` beside `com.onda.refresh`): scheduled on
+   scene-background whenever the queue holds sub-cap entries, with
+   `requiresNetworkConnectivity = true`. The handler processes queue entries
+   sequentially (skipping URLs that already have an in-flight attempt — a suspended
+   foreground conversion resumes alongside the background wake); its expiration handler
+   cancels the current conversion, whose queue entry survives for the next window.
+
+**Known risk:** Readability extraction runs in a `WKWebView`. During active
+`BGProcessingTask` runtime the process is running, so web content should execute, but
+this is the least-documented corner of the design; the extensible queue-entry format
+exists precisely so extraction can move to add-time if this proves unreliable.
+
+**Failure observability:** conversion failures are logged via `os.Logger`
+(subsystem `com.chasegilliam.Onda`, category `articles`) in addition to the UI row —
+previously a failure existed only as ephemeral UI state.
