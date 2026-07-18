@@ -8,6 +8,9 @@ import SwiftData
 final class RecommendationService {
     var recommendations: [Recommendation] = []
     var isLoading = false
+    /// False when the profile had no signal and the list is just top charts — lets the UI avoid
+    /// over-promising ("Recommended for you" vs "Popular right now").
+    private(set) var isPersonalized = false
     private var lastComputed: Date?
     static let ttl: TimeInterval = 6 * 3600
 
@@ -50,6 +53,7 @@ final class RecommendationService {
         let clips = (try? modelContext.fetch(FetchDescriptor<Clip>())) ?? []
         let profile = TasteProfileBuilder.build(subscriptions: subs, clips: clips,
                                                 searchTerms: searchLog.terms)
+        isPersonalized = !profile.isEmpty
         let subscribedFeeds = Set(subs.map(\.feedURL))
 
         var pool = await retriever.retrieve(

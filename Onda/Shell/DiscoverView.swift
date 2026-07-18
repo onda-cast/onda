@@ -17,6 +17,8 @@ struct DiscoverView: View {
     @State private var shakeCount = 0
     @State private var dealID = 0   // bumps when shake results land; replays the deal-in animation
     @State private var mode: DiscoverMode = .browse
+    @State private var toast: String?
+    @State private var unfollowTarget: PodcastDTO?
     @FocusState private var searchFocused: Bool
 
     private enum DiscoverMode: Hashable { case browse, forYou }
@@ -42,6 +44,11 @@ struct DiscoverView: View {
         dto.feedUrl.map(subscribedFeeds.contains) ?? false
     }
 
+    private func subscribedPodcast(for dto: PodcastDTO) -> Podcast? {
+        guard let feed = dto.feedUrl else { return nil }
+        return subs.first { $0.feedURL == feed }
+    }
+
     private var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
     private var trending: [PodcastDTO] { clientBox.trending }
     private var loading: Bool { clientBox.trendingLoading }
@@ -56,9 +63,7 @@ struct DiscoverView: View {
         browseStatus
         Group {
             ForEach(Array(listItems.enumerated()), id: \.element.collectionId) { i, dto in
-                let row = TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) {
-                    Task { [subscriptions] in _ = try? await subscriptions.subscribe(to: dto) }
-                }
+                let row = TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) { toggleFollow(dto) }
                 if shake != nil {
                     DealtCard(index: i) { row }
                 } else {
@@ -86,35 +91,11 @@ struct DiscoverView: View {
         }
     }
 
-    private func loadingRow(_ text: String) -> some View {
-        HStack(spacing: 8) {
-            ProgressView().tint(theme.color(.accent))
-            Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
-        }.frame(maxWidth: .infinity).padding(.top, 40)
-    }
-
-    private func statusNote(_ text: String) -> some View {
-        Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
-            .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 40)
-    }
-
-    private func errorRetry(_ text: String, action: @escaping () -> Void) -> some View {
-        VStack(spacing: 10) {
-            Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
-                .multilineTextAlignment(.center)
-            Button(action: action) {
-                Text("Retry").font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
-                    .padding(.horizontal, 20).padding(.vertical, 10)
-                    .background(theme.color(.accent)).brutalBorder(width: 2)
-            }.buttonStyle(.plain)
-        }.frame(maxWidth: .infinity).padding(.top, 36)
-    }
-
     // MARK: For You sub-tab (recommendations)
 
     @ViewBuilder private var forYouTab: some View {
         HStack {
-            Text("Recommended for you").brutalHeader(size: 13)
+            Text(recs.isPersonalized ? "Recommended for you" : "Popular right now").brutalHeader(size: 13)
                 .foregroundStyle(theme.color(.textTertiary))
             Spacer()
             Button {
@@ -140,9 +121,7 @@ struct DiscoverView: View {
         } else {
             ForEach(recs.recommendations) { rec in
                 VStack(alignment: .leading, spacing: 4) {
-                    TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) {
-                        Task { [subscriptions] in _ = try? await subscriptions.subscribe(to: rec.dto) }
-                    }
+                    TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
                     if let reason = rec.reasonLine {
                         Text(reason).font(.system(size: 11.5)).foregroundStyle(theme.color(.textTertiary))
                             .padding(.leading, 2)
@@ -203,6 +182,28 @@ struct DiscoverView: View {
         .onShake { triggerShake() }
         .sensoryFeedback(.impact(weight: .medium), trigger: shakeCount)
         .sensoryFeedback(.success, trigger: dealID)
+        .confirmationDialog("Unfollow \(unfollowTarget?.collectionName ?? "")?",
+                            isPresented: Binding(get: { unfollowTarget != nil },
+                                                 set: { if !$0 { unfollowTarget = nil } }),
+                            titleVisibility: .visible, presenting: unfollowTarget) { dto in
+            Button("Unfollow", role: .destructive) {
+                if let pod = subscribedPodcast(for: dto) {
+                    subscriptions.unsubscribe(pod)
+                    showToast("Unfollowed \(dto.collectionName)")
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in Text("Removes the show and frees its downloads.") }
+        .overlay(alignment: .bottom) {
+            if let toast {
+                Text(toast)
+                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                    .padding(.horizontal, 18).padding(.vertical, 12)
+                    .background(theme.color(.accent)).brutalBorder(width: 2).hardShadow(offset: 3)
+                    .padding(.bottom, 40)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
     }
 
     private var searchField: some View {
@@ -220,11 +221,16 @@ struct DiscoverView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(categories, id: \.self) { cat in
-                    Button { query = cat } label: {
-                        Text(cat).brutalHeader(size: 11.5).foregroundStyle(theme.color(.text))
+                    let selected = query.caseInsensitiveCompare(cat) == .orderedSame
+                    Button { query = selected ? "" : cat } label: {
+                        Text(cat).brutalHeader(size: 11.5)
+                            .foregroundStyle(selected ? .white : theme.color(.text))
                             .padding(.horizontal, 16).padding(.vertical, 9)
-                            .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                    }.buttonStyle(.plain)
+                            .background(selected ? theme.color(.accent) : theme.color(.bgElevated))
+                            .brutalBorder(width: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
                 }
             }
         }
@@ -271,6 +277,60 @@ struct DiscoverView: View {
         if shake.usedFallback || names.isEmpty { return "A random mix by topic" }
         if names.count == 1 { return "Because you follow \(names[0])" }
         return "Because you follow \(names[0]) & \(names[1])"
+    }
+}
+
+// MARK: - Status views
+extension DiscoverView {
+    func loadingRow(_ text: String) -> some View {
+        HStack(spacing: 8) {
+            ProgressView().tint(theme.color(.accent))
+            Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+        }.frame(maxWidth: .infinity).padding(.top, 40)
+    }
+
+    func statusNote(_ text: String) -> some View {
+        Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+            .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 40)
+    }
+
+    func errorRetry(_ text: String, action: @escaping () -> Void) -> some View {
+        VStack(spacing: 10) {
+            Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                .multilineTextAlignment(.center)
+            Button(action: action) {
+                Text("Retry").font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                    .padding(.horizontal, 20).padding(.vertical, 10)
+                    .background(theme.color(.accent)).brutalBorder(width: 2)
+            }.buttonStyle(.plain)
+        }.frame(maxWidth: .infinity).padding(.top, 36)
+    }
+}
+
+// MARK: - Follow / toast
+extension DiscoverView {
+    // Follow (with a confirmation toast) or, if already following, prompt to unfollow.
+    func toggleFollow(_ dto: PodcastDTO) {
+        if isSubscribed(dto) {
+            unfollowTarget = dto
+        } else {
+            Task { [subscriptions] in
+                do {
+                    _ = try await subscriptions.subscribe(to: dto)
+                    showToast("Following \(dto.collectionName)")
+                } catch {
+                    showToast("Couldn't follow \(dto.collectionName)")
+                }
+            }
+        }
+    }
+
+    func showToast(_ message: String) {
+        withAnimation { toast = message }
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation { toast = nil }
+        }
     }
 }
 
