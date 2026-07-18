@@ -6,6 +6,7 @@ enum Tab: Hashable { case library, discover, profile }
 struct RootView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(PlaybackManager.self) private var playback
+    @Environment(TranscriptService.self) private var transcripts
     @State private var tab: Tab = .library
 
     var body: some View {
@@ -26,18 +27,16 @@ struct RootView: View {
                 tabBar
             }
 
-            // Clip-capture confirmation, shown app-wide (e.g. a lock-screen quick-clip) — not just
-            // inside Now Playing where it was previously invisible at capture time.
-            if let toast = playback.captureToast {
-                Text(toast)
-                    .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
-                    .padding(.horizontal, 18).padding(.vertical, 10)
-                    .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
-                    .padding(.bottom, 150)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            // App-wide toasts (stacked so they never overlap): clip-capture confirmation and
+            // backgrounded-transcription completion.
+            VStack(spacing: 8) {
+                if let toast = playback.captureToast { toastLabel(toast) }
+                if let notice = transcripts.completionNotice { toastLabel(notice) }
             }
+            .padding(.bottom, 150)
         }
         .animation(.easeOut(duration: 0.2), value: playback.captureToast)
+        .animation(.easeOut(duration: 0.2), value: transcripts.completionNotice)
         // Dynamic Type scales the app's fonts (see scaledFont), but cap growth so the brutalist
         // fixed-height controls and two-column grid don't blow out at the largest sizes.
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
@@ -47,6 +46,14 @@ struct RootView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.hidden)   // swipe-down works; the ⌄ button stays the visual affordance
         }
+    }
+
+    private func toastLabel(_ text: String) -> some View {
+        Text(text)
+            .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
+            .padding(.horizontal, 18).padding(.vertical, 10)
+            .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     private var tabBar: some View {

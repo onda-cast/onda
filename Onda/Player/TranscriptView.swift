@@ -235,12 +235,48 @@ struct TranscriptView: View {
         }
     }
 
+    private func load() async {
+        guard transcript == nil else { return }
+        // Only auto-load the cheap published path; on-device requires an explicit tap.
+        if episode.transcript != nil || episode.transcriptURL != nil {
+            loading = true
+            transcript = await transcripts.transcript(for: episode)
+            snapshotCues()
+            loading = false
+        }
+    }
+
+    private func transcribe() async {
+        guard await TranscriptService.requestSpeechAuthorization() else { return }
+        transcribing = true
+        transcript = await transcripts.transcript(for: episode)
+        snapshotCues()
+        transcribing = false
+    }
+}
+
+// MARK: - Progress & empty states
+extension TranscriptView {
     private var progressState: some View {
         VStack(spacing: 12) {
             ProgressView(value: transcripts.progress[episode.guid] ?? 0)
                 .tint(theme.color(.accent)).frame(maxWidth: 220)
             Text(transcribing ? "Transcribing on device…" : "Loading transcript…")
                 .foregroundStyle(theme.color(.textTertiary))
+            if transcribing {
+                // The transcription task keeps running after dismissal; the service posts an
+                // app-wide toast (RootView) when it finishes.
+                Button {
+                    transcripts.notifyOnCompletion(of: episode)
+                    dismiss()
+                } label: {
+                    Text("Continue in Background")
+                        .scaledFont(14, weight: .bold).foregroundStyle(theme.color(.textSecondary))
+                        .padding(.horizontal, 16).padding(.vertical, 11)
+                        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                }
+                .buttonStyle(.plain).padding(.top, 8)
+            }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -265,24 +301,5 @@ struct TranscriptView: View {
                     .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func load() async {
-        guard transcript == nil else { return }
-        // Only auto-load the cheap published path; on-device requires an explicit tap.
-        if episode.transcript != nil || episode.transcriptURL != nil {
-            loading = true
-            transcript = await transcripts.transcript(for: episode)
-            snapshotCues()
-            loading = false
-        }
-    }
-
-    private func transcribe() async {
-        guard await TranscriptService.requestSpeechAuthorization() else { return }
-        transcribing = true
-        transcript = await transcripts.transcript(for: episode)
-        snapshotCues()
-        transcribing = false
     }
 }

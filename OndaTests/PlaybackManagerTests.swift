@@ -67,38 +67,6 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertEqual(downloaded, ["stream-me"], "streaming an un-downloaded episode saves it offline")
     }
 
-    func test_restoreLastEpisode_reloadsLastPlayedPaused() throws {
-        let ctx = try makeContext()
-        let ep = makeEpisode(in: ctx, guid: "resume-me", position: 120)
-        // Prior session: play() records the guid; pause persists the position.
-        let pm1 = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
-        pm1.play(ep)
-        pm1.togglePlayPause()
-
-        // Fresh launch over the same store: restore brings it back, paused, at the saved position.
-        let engine = FakeEngine()
-        let pm2 = PlaybackManager(engine: engine, modelContext: ctx)
-        pm2.restoreLastEpisode()
-        XCTAssertEqual(pm2.currentEpisode?.guid, "resume-me")
-        XCTAssertFalse(pm2.isPlaying, "restore must never autoplay")
-        XCTAssertFalse(engine.playing)
-        XCTAssertEqual(engine.loadedURL, ep.audioURL)
-        XCTAssertEqual(engine.startAt, 120, "resumes from the saved position")
-        UserDefaults.standard.removeObject(forKey: "lastPlayedEpisodeGuid")
-    }
-
-    func test_restoreLastEpisode_noOpWhenAlreadyPlaying() throws {
-        let ctx = try makeContext()
-        let ep = makeEpisode(in: ctx, guid: "current")
-        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
-        pm.play(ep)
-        _ = makeEpisode(in: ctx, guid: "other")
-        UserDefaults.standard.set("other", forKey: "lastPlayedEpisodeGuid")
-        pm.restoreLastEpisode()   // something is already loaded
-        XCTAssertEqual(pm.currentEpisode?.guid, "current", "restore never clobbers an active episode")
-        UserDefaults.standard.removeObject(forKey: "lastPlayedEpisodeGuid")
-    }
-
     func test_playClip_doesNotTriggerDownload() throws {
         let ctx = try makeContext()
         let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
@@ -315,5 +283,40 @@ final class PlaybackManagerTests: XCTestCase {
         pm.startSmartQueue([])
         XCTAssertNil(engine.loadedURL)
         XCTAssertFalse(pm.isPlaying)
+    }
+}
+
+// MARK: - Cold-launch restore
+extension PlaybackManagerTests {
+    func test_restoreLastEpisode_reloadsLastPlayedPaused() throws {
+        let ctx = try makeContext()
+        let ep = makeEpisode(in: ctx, guid: "resume-me", position: 120)
+        // Prior session: play() records the guid; pause persists the position.
+        let pm1 = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        pm1.play(ep)
+        pm1.togglePlayPause()
+
+        // Fresh launch over the same store: restore brings it back, paused, at the saved position.
+        let engine = FakeEngine()
+        let pm2 = PlaybackManager(engine: engine, modelContext: ctx)
+        pm2.restoreLastEpisode()
+        XCTAssertEqual(pm2.currentEpisode?.guid, "resume-me")
+        XCTAssertFalse(pm2.isPlaying, "restore must never autoplay")
+        XCTAssertFalse(engine.playing)
+        XCTAssertEqual(engine.loadedURL, ep.audioURL)
+        XCTAssertEqual(engine.startAt, 120, "resumes from the saved position")
+        UserDefaults.standard.removeObject(forKey: "lastPlayedEpisodeGuid")
+    }
+
+    func test_restoreLastEpisode_noOpWhenAlreadyPlaying() throws {
+        let ctx = try makeContext()
+        let ep = makeEpisode(in: ctx, guid: "current")
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx)
+        pm.play(ep)
+        _ = makeEpisode(in: ctx, guid: "other")
+        UserDefaults.standard.set("other", forKey: "lastPlayedEpisodeGuid")
+        pm.restoreLastEpisode()   // something is already loaded
+        XCTAssertEqual(pm.currentEpisode?.guid, "current", "restore never clobbers an active episode")
+        UserDefaults.standard.removeObject(forKey: "lastPlayedEpisodeGuid")
     }
 }
