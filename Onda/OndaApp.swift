@@ -65,6 +65,7 @@ struct OndaApp: App {
             _refresh = State(initialValue: rs)
             _recommendations = State(initialValue: RecommendationService(
                 modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient()))
+            pm.restoreLastEpisode()   // cold-launch: bring back the last episode (paused) into the mini-player
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
         }

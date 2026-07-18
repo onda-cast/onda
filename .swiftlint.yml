@@ -20,3 +20,8 @@ disabled_rules:
 line_length:
   warning: 150
   ignores_urls: true
+
+# PlaybackManager is the central transport hub (state + transport + queue + sleep + restore);
+# splitting it would force exposing private state module-wide. Small bump over the 400 default.
+file_length:
+  warning: 450

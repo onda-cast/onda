@@ -30,6 +30,7 @@ final class PlaybackManager {
     var durationSeconds: TimeInterval = 0
 
     private var lastPersistedAt: TimeInterval = -100
+    private static let lastEpisodeKey = "lastPlayedEpisodeGuid"
     private let nowPlaying = NowPlayingCenter()
     var adActive: Bool = false
     private var silence = SilenceDetector()
@@ -153,6 +154,7 @@ final class PlaybackManager {
         clipEndBound = nil
         returnToTranscriptEpisode = nil   // a new episode invalidates the pending transcript return
         currentEpisode = episode
+        UserDefaults.standard.set(episode.guid, forKey: Self.lastEpisodeKey)  // restored on next launch
         durationSeconds = episode.duration
         nowPlaying.prepareArtwork(url: episode.podcast?.artworkURL)
         let intro = TimeInterval(settings?.introTrimSec ?? 0)
@@ -172,6 +174,24 @@ final class PlaybackManager {
 
     /// Re-reads the current show's speed, Voice Boost, and skip-silence settings and applies them
     /// to the engine. Call after changing any of those while an episode is loaded.
+    /// On a cold launch, re-loads the last-played episode into the player **paused** (no autoplay),
+    /// so the mini-player reappears on the Library page ready to resume from the saved position.
+    /// No-op if something is already loaded or nothing was ever played.
+    func restoreLastEpisode() {
+        guard currentEpisode == nil,
+              let guid = UserDefaults.standard.string(forKey: Self.lastEpisodeKey) else { return }
+        let descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.guid == guid })
+        guard let episode = try? modelContext.fetch(descriptor).first else { return }
+        currentEpisode = episode
+        durationSeconds = episode.duration
+        let start = max(episode.playbackPosition, TimeInterval(settings?.introTrimSec ?? 0))
+        positionSeconds = start
+        nowPlaying.prepareArtwork(url: episode.podcast?.artworkURL)
+        engine.load(url: localURL(for: episode) ?? episode.audioURL, startAt: start)
+        engine.rate = Float(settings?.speed ?? 1.0)
+        // Intentionally paused: isPlaying stays false until the user taps play.
+    }
+
     func applyAudioSettings() {
         engine.rate = Float(settings?.speed ?? 1.0)
         let boost = BoostLevel(clamping: settings?.voiceBoost ?? 0)
