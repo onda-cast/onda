@@ -18,29 +18,63 @@ struct PendingArticlesQueue: Sendable {
 
     let containerURL: URL?   // nil when the entitlement is missing (e.g. unit tests)
 
+    struct Entry: Codable, Equatable, Sendable {
+        var url: URL
+        var attempts: Int
+    }
+
     private var fileURL: URL? {
         containerURL?.appendingPathComponent("pending-articles.json")
     }
 
     func append(_ url: URL) {
-        guard let fileURL else { return }
-        var urls = load()
-        guard !urls.contains(url) else { return }
-        urls.append(url)
-        if let data = try? JSONEncoder().encode(urls) {
-            try? data.write(to: fileURL, options: .atomic)
-        }
+        guard fileURL != nil else { return }
+        var all = loadEntries()
+        guard !all.contains(where: { $0.url == url }) else { return }
+        all.append(Entry(url: url, attempts: 0))
+        save(all)
     }
 
+    func entries() -> [Entry] {
+        loadEntries()
+    }
+
+    func remove(_ url: URL) {
+        guard fileURL != nil else { return }
+        save(loadEntries().filter { $0.url != url })
+    }
+
+    func recordAttempt(_ url: URL) {
+        guard fileURL != nil else { return }
+        var all = loadEntries()
+        guard let i = all.firstIndex(where: { $0.url == url }) else { return }
+        all[i].attempts += 1
+        save(all)
+    }
+
+    /// Transitional: read-and-clear used by the pre-persistent-queue foreground drain.
+    /// Deleted in the service-integration task along with its last caller.
     func drain() -> [URL] {
         guard let fileURL else { return [] }
-        let urls = load()
+        let urls = loadEntries().map(\.url)
         try? FileManager.default.removeItem(at: fileURL)
         return urls
     }
 
-    private func load() -> [URL] {
+    private func loadEntries() -> [Entry] {
         guard let fileURL, let data = try? Data(contentsOf: fileURL) else { return [] }
-        return (try? JSONDecoder().decode([URL].self, from: data)) ?? []
+        if let entries = try? JSONDecoder().decode([Entry].self, from: data) { return entries }
+        // Legacy format: a plain [URL] array from the drain-once era.
+        if let urls = try? JSONDecoder().decode([URL].self, from: data) {
+            return urls.map { Entry(url: $0, attempts: 0) }
+        }
+        return []
+    }
+
+    private func save(_ entries: [Entry]) {
+        guard let fileURL else { return }
+        if let data = try? JSONEncoder().encode(entries) {
+            try? data.write(to: fileURL, options: .atomic)
+        }
     }
 }
