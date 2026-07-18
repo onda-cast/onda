@@ -122,6 +122,11 @@ struct TranscriptView: View {
                     }
                     .buttonStyle(.plain).padding(16)
                     .background(theme.color(.bg))
+                } else if selecting {
+                    Text("Tap the first and last line to clip.")
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(theme.color(.textSecondary))
+                        .frame(maxWidth: .infinity).padding(.vertical, 14).padding(.horizontal, 16)
+                        .background(theme.color(.bg))
                 }
             }
             .sheet(isPresented: $showClipSheet, onDismiss: resetSelection, content: {
@@ -193,7 +198,15 @@ struct TranscriptView: View {
                 ? theme.color(.accentWash)
                 : (i == activeIndex && !selecting ? theme.color(.accentWash) : .clear))
         .contentShape(Rectangle())
-        .onTapGesture { if selecting { handleSelectionTap(i) } }
+        // Read mode: tapping anywhere on the line jumps to the player (the side button reinforces
+        // it). Select mode: tapping picks the clip range instead.
+        .onTapGesture {
+            if selecting {
+                handleSelectionTap(i)
+            } else {
+                playback.jumpFromTranscript(episode: episode, to: cue.start)
+            }
+        }
         .id(i)
     }
 

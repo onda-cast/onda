@@ -2,6 +2,7 @@
 import Foundation
 import SwiftData
 import AVFoundation
+import UIKit
 
 @MainActor
 @Observable
@@ -65,6 +66,7 @@ final class PlaybackManager {
 
     func showCaptureToast(_ text: String) {
         captureToast = text
+        UINotificationFeedbackGenerator().notificationOccurred(.success)   // felt when foregrounded
         toastTask?.cancel()
         toastTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(2))
@@ -80,12 +82,13 @@ final class PlaybackManager {
     var showNowPlaying = false
     // Bumped on a jump; TranscriptView and ShowTranscriptsView dismiss themselves when it changes.
     private(set) var transcriptJumpNonce = 0
-    // Non-nil for ~5s after a jump → the floating "Back to transcript" button shows in the player.
+    // Set after a jump → the "Back to transcript" button shows in the player. Persists until the
+    // user taps it or a different episode starts (cleared in play()); no timed disappearance.
     var returnToTranscriptEpisode: Episode?
     private var transcriptReturnTask: Task<Void, Never>?
 
     /// Jump to a transcript line and land in the player: seek 1s before the line, dismiss the
-    /// transcript sheet(s), open Now Playing, and offer a 5s "back to transcript" affordance.
+    /// transcript sheet(s), open Now Playing, and offer a persistent "back to transcript" button.
     func jumpFromTranscript(episode: Episode, to start: TimeInterval) {
         let target = max(0, start - 1)
         if currentEpisode?.guid != episode.guid { play(episode) }
@@ -97,8 +100,6 @@ final class PlaybackManager {
             // Let the transcript sheet(s) dismiss before presenting the player (podcast-screen path).
             try? await Task.sleep(for: .milliseconds(400))
             self?.showNowPlaying = true
-            try? await Task.sleep(for: .seconds(5))
-            self?.returnToTranscriptEpisode = nil
         }
     }
 
@@ -125,6 +126,7 @@ final class PlaybackManager {
 
     func play(_ episode: Episode, autoDownload: Bool = true) {
         clipEndBound = nil
+        returnToTranscriptEpisode = nil   // a new episode invalidates the pending transcript return
         currentEpisode = episode
         durationSeconds = episode.duration
         nowPlaying.prepareArtwork(url: episode.podcast?.artworkURL)

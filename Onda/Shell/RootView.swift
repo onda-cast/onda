@@ -25,7 +25,19 @@ struct RootView: View {
                     .padding(.horizontal, 10).padding(.bottom, 10)
                 tabBar
             }
+
+            // Clip-capture confirmation, shown app-wide (e.g. a lock-screen quick-clip) — not just
+            // inside Now Playing where it was previously invisible at capture time.
+            if let toast = playback.captureToast {
+                Text(toast)
+                    .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(.white)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
+                    .background(theme.color(.accent)).brutalBorder(width: 2).hardShadow(offset: 3)
+                    .padding(.bottom, 150)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(.easeOut(duration: 0.2), value: playback.captureToast)
         .sheet(isPresented: Binding(get: { playback.showNowPlaying },
                                     set: { playback.showNowPlaying = $0 })) {
             NowPlayingView()
