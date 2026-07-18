@@ -5,9 +5,10 @@
 //  touches, and disappears entirely under Reduce Motion.
 import SwiftUI
 
-/// A solid band filling the rect, whose trailing (right) edge — the leading edge of the
-/// left→right sweep — is a sine-scalloped crest. Geometry is static; the sweep animates
-/// `offset(x:)` in the parent, which keeps the shape cheap to render.
+/// A solid band whose right edge (the crest leading the left→right sweep) and left edge (the
+/// tail that exits last) are both sine-scalloped, phase-shifted so they don't mirror each
+/// other. Geometry is static; the sweep animates `offset(x:)` in the parent, which keeps the
+/// shape cheap to render.
 struct WaveBandShape: Shape {
     var amplitude: CGFloat
     var wavelength: CGFloat
@@ -15,18 +16,24 @@ struct WaveBandShape: Shape {
 
     func path(in rect: CGRect) -> Path {
         var p = Path()
-        let crestX = rect.maxX - amplitude
-        func x(at y: CGFloat) -> CGFloat {
-            crestX + sin(phase + y / wavelength * 2 * .pi) * amplitude
+        let leadX = rect.maxX - amplitude
+        let trailX = rect.minX + amplitude
+        func lead(at y: CGFloat) -> CGFloat {
+            leadX + sin(phase + y / wavelength * 2 * .pi) * amplitude
         }
-        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        p.addLine(to: CGPoint(x: x(at: rect.minY), y: rect.minY))
+        func trail(at y: CGFloat) -> CGFloat {
+            trailX + sin(phase + 2.3 + y / (wavelength * 1.15) * 2 * .pi) * amplitude
+        }
         let steps = max(2, Int(rect.height / 4))
+        func y(_ i: Int) -> CGFloat { rect.minY + rect.height * CGFloat(i) / CGFloat(steps) }
+        p.move(to: CGPoint(x: trail(at: rect.minY), y: rect.minY))
+        p.addLine(to: CGPoint(x: lead(at: rect.minY), y: rect.minY))
         for i in 1...steps {
-            let y = rect.minY + rect.height * CGFloat(i) / CGFloat(steps)
-            p.addLine(to: CGPoint(x: x(at: y), y: y))
+            p.addLine(to: CGPoint(x: lead(at: y(i)), y: y(i)))
         }
-        p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        for i in stride(from: steps, through: 0, by: -1) {
+            p.addLine(to: CGPoint(x: trail(at: y(i)), y: y(i)))
+        }
         p.closeSubpath()
         return p
     }
