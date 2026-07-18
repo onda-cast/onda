@@ -160,6 +160,7 @@ final class RecommendationPipelineTests: XCTestCase {
         await svc.refresh(followedCategories: [])
         XCTAssertEqual(svc.recommendations.map(\.dto.collectionName), ["Top Show"])
         XCTAssertFalse(svc.isStale, "cache fresh after refresh")
+        XCTAssertFalse(svc.isPersonalized, "no profile signal → charts, not personalized")
     }
 
     func test_service_dismiss_removesAndPersists() async throws {
