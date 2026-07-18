@@ -20,6 +20,15 @@ enum LibraryLayout: String, CaseIterable {
     }
 }
 
+private struct ChipsWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+private struct ChipsViewportWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
 struct LibraryView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(PlaybackManager.self) private var playback
@@ -38,6 +47,10 @@ struct LibraryView: View {
     @State private var showClips = false
     @State private var settingsPodcast: Podcast?
     @State private var unsubscribeTarget: Podcast?
+    // Right-edge fade is a "scroll me" affordance — only meaningful when the chips actually overflow.
+    @State private var chipsContentWidth: CGFloat = 0
+    @State private var chipsViewportWidth: CGFloat = 0
+    private var chipsOverflow: Bool { chipsContentWidth > chipsViewportWidth + 1 }
     @State private var toast: String?
     @State private var pendingSmartQueue: [Episode]?
 
@@ -88,16 +101,30 @@ struct LibraryView: View {
                                     .disabled(isEmpty)
                                     .opacity(isEmpty ? 0.4 : 1)
                                 }
-                            }.padding(.horizontal, 20)
+                            }
+                            .padding(.horizontal, 20)
+                            .background(GeometryReader { g in
+                                Color.clear.preference(key: ChipsWidthKey.self, value: g.size.width)
+                            })
                         }
-                        // Fade the right edge so it reads as "more chips off-screen, scroll me".
-                        .mask(
-                            LinearGradient(stops: [
-                                .init(color: .black, location: 0),
-                                .init(color: .black, location: 0.88),
-                                .init(color: .clear, location: 1)
-                            ], startPoint: .leading, endPoint: .trailing)
-                        )
+                        .background(GeometryReader { g in
+                            Color.clear.preference(key: ChipsViewportWidthKey.self, value: g.size.width)
+                        })
+                        .onPreferenceChange(ChipsWidthKey.self) { chipsContentWidth = $0 }
+                        .onPreferenceChange(ChipsViewportWidthKey.self) { chipsViewportWidth = $0 }
+                        // Fade the right edge as a "more chips off-screen, scroll me" hint — but only
+                        // when the chips actually overflow; a full-width rectangle mask is a no-op.
+                        .mask {
+                            if chipsOverflow {
+                                LinearGradient(stops: [
+                                    .init(color: .black, location: 0),
+                                    .init(color: .black, location: 0.88),
+                                    .init(color: .clear, location: 1)
+                                ], startPoint: .leading, endPoint: .trailing)
+                            } else {
+                                Rectangle()
+                            }
+                        }
                         .padding(.top, 16)
                     }
 
@@ -160,14 +187,20 @@ struct LibraryView: View {
 
     private var layoutMenu: some View {
         Menu {
-            Picker("Layout", selection: $layoutRaw) {
-                ForEach(LibraryLayout.allCases, id: \.rawValue) { l in
-                    Label(l.label, systemImage: l.icon).tag(l.rawValue)
+            // Header states the active value; the inline Picker checkmarks the selected row —
+            // so the current sort/layout is legible without cross-referencing.
+            Section("Sort · \(sort.label)") {
+                Picker("Sort", selection: $sortRaw) {
+                    ForEach(LibrarySort.allCases, id: \.rawValue) { s in
+                        Label(s.label, systemImage: s.icon).tag(s.rawValue)
+                    }
                 }
             }
-            Picker("Sort", selection: $sortRaw) {
-                ForEach(LibrarySort.allCases, id: \.rawValue) { s in
-                    Label(s.label, systemImage: s.icon).tag(s.rawValue)
+            Section("Layout · \(layout.label)") {
+                Picker("Layout", selection: $layoutRaw) {
+                    ForEach(LibraryLayout.allCases, id: \.rawValue) { l in
+                        Label(l.label, systemImage: l.icon).tag(l.rawValue)
+                    }
                 }
             }
         } label: {

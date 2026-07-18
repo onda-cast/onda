@@ -13,9 +13,10 @@ struct EpisodeRow: View {
     private var dateText: String {
         episode.publishDate.formatted(.relative(presentation: .named))
     }
-    private var durationText: String {
+    // nil when the feed gives no (or a sub-minute) duration — better to omit than show "0 min".
+    private var durationText: String? {
         let m = Int(episode.duration) / 60
-        return "\(m) min"
+        return m > 0 ? "\(m) min" : nil
     }
 
     var body: some View {
@@ -35,7 +36,8 @@ struct EpisodeRow: View {
                     Text(episode.title).font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(theme.color(.text)).lineLimit(2)
                     HStack(spacing: 8) {
-                        Text(dateText); Text("•"); Text(durationText)
+                        Text(dateText)
+                        if let durationText { Text("•"); Text(durationText) }
                         if episode.playbackPosition > 1 && !episode.played {
                             Text("• In progress").foregroundStyle(theme.color(.accent))
                         }

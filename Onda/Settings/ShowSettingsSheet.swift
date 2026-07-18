@@ -4,6 +4,7 @@ import SwiftUI
 struct ShowSettingsSheet: View {
     @Environment(AppTheme.self) private var theme
     @Environment(PlaybackManager.self) private var playback
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.dismiss) private var dismiss
     @Bindable var podcast: Podcast
 
@@ -50,7 +51,9 @@ struct ShowSettingsSheet: View {
                     section("Downloads & Retention") {
                         overridePicker("Keep Downloads",
                                        state: overrideState(s.maxDownloadsKeptOverride, offValue: 0),
-                                       offLabel: "No limit") { mode in
+                                       offLabel: "No limit",
+                                       defaultHint: appSettings.defaultMaxDownloadsKept == 0
+                                           ? "No limit" : "\(appSettings.defaultMaxDownloadsKept) per show") { mode in
                             s.maxDownloadsKeptOverride = [nil, 0, 10][mode]
                         }
                         if let cap = s.maxDownloadsKeptOverride, cap > 0 {
@@ -61,7 +64,8 @@ struct ShowSettingsSheet: View {
                         }
                         overridePicker("Auto-Delete Listened",
                                        state: overrideState(s.autoDeleteListenedAfterDaysOverride, offValue: -1),
-                                       offLabel: "Off") { mode in
+                                       offLabel: "Off",
+                                       defaultHint: autoDeleteDefaultHint) { mode in
                             s.autoDeleteListenedAfterDaysOverride = [nil, -1, 7][mode]
                         }
                         if let days = s.autoDeleteListenedAfterDaysOverride, days >= 0 {
@@ -72,9 +76,11 @@ struct ShowSettingsSheet: View {
                                          label: { $0 == 0 ? "Immediately" : "\($0) day\($0 == 1 ? "" : "s")" })
                         }
                         boolOverridePicker("Auto-Transcribe Downloads",
+                                           defaultHint: appSettings.defaultAutoTranscribeOnDownload ? "On" : "Off",
                                            value: Binding(get: { s.autoTranscribeOnDownloadOverride },
                                                           set: { s.autoTranscribeOnDownloadOverride = $0 }))
                         boolOverridePicker("Keep Transcripts After Delete",
+                                           defaultHint: appSettings.keepTranscriptsOnDelete ? "On" : "Off",
                                            value: Binding(get: { s.keepTranscriptsOverride },
                                                           set: { s.keepTranscriptsOverride = $0 }))
                     }
@@ -99,6 +105,13 @@ struct ShowSettingsSheet: View {
         playback.applyAudioSettings()
     }
 
+    private var autoDeleteDefaultHint: String {
+        let d = appSettings.defaultAutoDeleteListenedAfterDays
+        if d < 0 { return "Off" }
+        if d == 0 { return "Immediately" }
+        return "\(d) day\(d == 1 ? "" : "s")"
+    }
+
     /// nil → 0 (inherit default), the sentinel offValue → 1 (explicit off), anything else → 2 (custom).
     private func overrideState(_ value: Int?, offValue: Int) -> Int {
         guard let value else { return 0 }
@@ -107,21 +120,33 @@ struct ShowSettingsSheet: View {
 
     /// Three-way override control: 0 = inherit default, 1 = explicit off/unlimited, 2 = custom.
     @ViewBuilder private func overridePicker(_ title: String, state: Int, offLabel: String,
+                                             defaultHint: String,
                                              onChange: @escaping (Int) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), (offLabel, 1), ("Custom", 2)],
                          selection: state, onChange: onChange)
+            defaultCaption(defaultHint, shown: state == 0)
         }
     }
 
-    @ViewBuilder private func boolOverridePicker(_ title: String, value: Binding<Bool?>) -> some View {
+    @ViewBuilder private func boolOverridePicker(_ title: String, defaultHint: String,
+                                                 value: Binding<Bool?>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), ("Off", 1), ("On", 2)],
                          selection: value.wrappedValue == nil ? 0 : (value.wrappedValue == false ? 1 : 2)) {
                 value.wrappedValue = [nil, false, true][$0]
             }
+            defaultCaption(defaultHint, shown: value.wrappedValue == nil)
+        }
+    }
+
+    // Spells out what "Default" resolves to (from the global settings) while that segment is active,
+    // so "Default" isn't an opaque choice.
+    @ViewBuilder private func defaultCaption(_ hint: String, shown: Bool) -> some View {
+        if shown {
+            Text("Default: \(hint)").font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
         }
     }
 
