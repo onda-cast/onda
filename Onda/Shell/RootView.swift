@@ -62,8 +62,8 @@ struct RootView: View {
             tabButton(.discover, "Discover", "magnifyingglass")
             tabButton(.profile, "Profile", "person")
         }
-        .padding(.top, 8)
-        .frame(height: 78)
+        .padding(.top, 6)
+        .frame(height: 62)
         .background(theme.color(.tabBarBg))
         .overlay(Rectangle().frame(height: 2.5).foregroundStyle(theme.color(.border)), alignment: .top)
     }
