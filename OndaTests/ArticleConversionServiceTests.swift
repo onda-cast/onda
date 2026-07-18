@@ -378,4 +378,53 @@ final class ArticleConversionServiceTests: XCTestCase {
         try? FileManager.default.removeItem(
             at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: eps[0].guid)))
     }
+
+    func test_processQueueForBackground_convertsSubCapEntriesSequentially() async throws {
+        let ctx = try makeContext()
+        let queue = tempQueue()
+        let a = URL(string: "https://example.com/bg-a")!
+        let b = URL(string: "https://example.com/bg-b")!
+        let capped = URL(string: "https://example.com/bg-capped")!
+        queue.append(a)
+        queue.append(b)
+        queue.append(capped)
+        for _ in 0..<ArticleConversionService.maxAutoAttempts { queue.recordAttempt(capped) }
+
+        let svc = makeService(ctx: ctx, extract: { _ in self.article }, queue: queue)
+        await svc.processQueueForBackground()
+
+        let eps = try ctx.fetch(FetchDescriptor<Episode>())
+        XCTAssertEqual(eps.count, 2, "both sub-cap entries convert; capped one is skipped")
+        XCTAssertEqual(queue.entries().map(\.url), [capped])
+        for ep in eps {
+            try? FileManager.default.removeItem(
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+        }
+    }
+
+    func test_processQueueForBackground_skipsInFlightURL() async throws {
+        let ctx = try makeContext()
+        let queue = tempQueue()
+        let url = URL(string: "https://example.com/bg-inflight")!
+        queue.append(url)
+        let gate = Gate()   // reuse the existing gated fake from the race tests
+        let svc = makeService(ctx: ctx, extract: { _ in self.article },
+                              renderer: GatedRenderer(gate: gate), queue: queue)
+        svc.add(url: url)
+        await gate.waitForEntry()   // wait until the gated conversion is genuinely inside render()
+
+        await svc.processQueueForBackground()   // must NOT start a second attempt
+
+        let enterCount = await gate.enterCount
+        XCTAssertEqual(enterCount, 1, "background pass must skip the in-flight URL")
+        await gate.release()
+        let settled = await poll { svc.pending.isEmpty }
+        XCTAssertTrue(settled, "conversion did not settle within the timeout")
+        let eps = try ctx.fetch(FetchDescriptor<Episode>())
+        XCTAssertEqual(eps.count, 1)
+        if let ep = eps.first {
+            try? FileManager.default.removeItem(
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+        }
+    }
 }

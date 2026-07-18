@@ -66,7 +66,9 @@ struct OndaApp: App {
             _refresh = State(initialValue: rs)
             _recommendations = State(initialValue: RecommendationService(
                 modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient()))
-            _articles = State(initialValue: OndaApp.makeArticleService(context: c.mainContext, ts: ts))
+            let articlesService = OndaApp.makeArticleService(context: c.mainContext, ts: ts)
+            articlesService.registerBackgroundTask()
+            _articles = State(initialValue: articlesService)
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
         }
@@ -168,6 +170,7 @@ struct OndaApp: App {
                         articles.resumePersisted()
                         Task { [refresh] in await refresh.refreshAll() }
                     } else if phase == .background {
+                        articles.scheduleBackgroundProcessing()
                         refresh.scheduleBackgroundRefresh()
                     }
                 }

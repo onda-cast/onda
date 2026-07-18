@@ -33,7 +33,7 @@ targets:
       path: Onda/Info.plist
       properties:
         UIBackgroundModes: [audio]
-        BGTaskSchedulerPermittedIdentifiers: [com.onda.refresh]
+        BGTaskSchedulerPermittedIdentifiers: [com.onda.refresh, com.onda.articles.convert]
     settings:
       base:
         INFOPLIST_KEY_CFBundleDisplayName: Onda

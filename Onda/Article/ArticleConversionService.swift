@@ -1,6 +1,11 @@
 //  ArticleConversionService.swift
 import Foundation
 import SwiftData
+import BackgroundTasks
+import OSLog
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Orchestrates URL → extracted article → sentences → rendered TTS audio → SwiftData rows.
 /// Not-yet-converted URLs persist in the shared PendingArticlesQueue (App Group JSON) so
@@ -22,6 +27,8 @@ final class ArticleConversionService {
 
     static let articlesFeedURL = URL(string: "onda-local:articles")!
     static let maxAutoAttempts = 3
+    static let backgroundTaskId = "com.onda.articles.convert"
+    private static let log = Logger(subsystem: "com.chasegilliam.Onda", category: "articles")
 
     private let modelContext: ModelContext
     private let extract: Extract
@@ -63,6 +70,8 @@ final class ArticleConversionService {
         pending.insert(Pending(id: url), at: 0)
         let id = UUID()
         let task: Task<Void, Never> = Task { [weak self] in
+            let bg = Self.beginBackgroundContinuation()
+            defer { Self.endBackgroundContinuation(bg) }
             await self?.convert(url, generation: id)
         }
         inFlight[url] = InFlight(id: id, task: task)
@@ -99,6 +108,41 @@ final class ArticleConversionService {
                     id: entry.url,
                     failure: "Conversion failed \(entry.attempts) times — retry to try again."))
             }
+        }
+    }
+
+    /// Must be called before the app finishes launching (OndaApp.init), same as
+    /// FeedRefreshService. The handler runs with the app in the background: process
+    /// durable entries one at a time so an expiration cancels at most one conversion.
+    func registerBackgroundTask() {
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.backgroundTaskId,
+                                        using: nil) { task in
+            let op = Task { @MainActor [weak self] in
+                await self?.processQueueForBackground()
+                task.setTaskCompleted(success: true)
+            }
+            task.expirationHandler = { op.cancel() }
+        }
+    }
+
+    func scheduleBackgroundProcessing() {
+        guard queue.entries().contains(where: { $0.attempts < Self.maxAutoAttempts })
+        else { return }
+        let request = BGProcessingTaskRequest(identifier: Self.backgroundTaskId)
+        request.requiresNetworkConnectivity = true   // extraction fetches the page
+        request.requiresExternalPower = false
+        try? BGTaskScheduler.shared.submit(request)
+    }
+
+    /// Sequential on purpose: TTS rendering is CPU-bound, and one-at-a-time means an
+    /// expiration cancels a single conversion whose entry stays queued. Skips URLs with
+    /// an in-flight attempt — a foreground conversion suspended mid-render resumes
+    /// concurrently with a background wake, and double-converting duplicates episodes.
+    func processQueueForBackground() async {
+        for entry in queue.entries() where entry.attempts < Self.maxAutoAttempts {
+            guard !Task.isCancelled else { return }
+            guard inFlight[entry.url] == nil else { continue }
+            await convert(entry.url)
         }
     }
 
@@ -144,6 +188,43 @@ final class ArticleConversionService {
     }
 
     // MARK: - private
+
+    /// ~30s of continued execution when the user backgrounds the app mid-conversion —
+    /// enough for typical articles. If it expires, the conversion freezes with the app;
+    /// its queue entry survives for the BGProcessingTask window.
+    #if canImport(UIKit)
+    private static func beginBackgroundContinuation() -> UIBackgroundTaskIdentifier {
+        let holder = ContinuationHolder()
+        let id = UIApplication.shared.beginBackgroundTask(withName: "article-conversion") {
+            holder.end()
+        }
+        holder.id = id
+        return id
+    }
+
+    private static func endBackgroundContinuation(_ id: UIBackgroundTaskIdentifier) {
+        guard id != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(id)
+    }
+
+    /// beginBackgroundTask's expiration handler needs the identifier the call returns —
+    /// this box breaks the chicken-and-egg without capturing a mutated local. The handler
+    /// runs off the main thread, so `end()` hops to the main actor before touching
+    /// UIApplication.
+    private final class ContinuationHolder: @unchecked Sendable {
+        var id: UIBackgroundTaskIdentifier = .invalid
+        func end() {
+            Task { @MainActor in
+                guard self.id != .invalid else { return }
+                UIApplication.shared.endBackgroundTask(self.id)
+                self.id = .invalid
+            }
+        }
+    }
+    #else
+    private static func beginBackgroundContinuation() -> Int { 0 }
+    private static func endBackgroundContinuation(_ id: Int) {}
+    #endif
 
     private func isCurrentGeneration(_ url: URL, _ id: UUID) -> Bool {
         inFlight[url]?.id == id
@@ -197,6 +278,7 @@ final class ArticleConversionService {
                 return
             }
             if isCurrentGeneration(url, id) { queue.recordAttempt(url) }
+            Self.log.error("conversion failed for \(url.absoluteString, privacy: .public): \(error)")
             setFailure(url, message: (error as? LocalizedError)?.errorDescription
                        ?? "Conversion failed: \(error.localizedDescription)", generation: id)
         }
