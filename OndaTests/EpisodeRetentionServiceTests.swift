@@ -39,9 +39,11 @@ final class EpisodeRetentionServiceTests: XCTestCase {
     @discardableResult
     private func makeEpisode(_ pod: Podcast, guid: String, downloaded: Bool = true,
                              played: Bool = false, playedDaysAgo: Double = 0,
-                             publishDaysAgo: Double = 0, withTranscript: Bool = false) -> Episode {
+                             publishDaysAgo: Double = 0, withTranscript: Bool = false,
+                             sourceType: String = "feed") -> Episode {
         let ep = Episode(guid: guid, title: guid, publishDate: clock.addingTimeInterval(-publishDaysAgo * 86_400),
                          duration: 100, audioURL: URL(string: "https://ex.com/\(guid).mp3")!, notes: "")
+        ep.sourceType = sourceType
         ep.podcast = pod; pod.episodes.append(ep)
         ep.played = played
         if played { ep.playedDate = clock.addingTimeInterval(-playedDaysAgo * 86_400) }
@@ -102,6 +104,32 @@ final class EpisodeRetentionServiceTests: XCTestCase {
         let ep2 = makeEpisode(pod2, guid: "kept", played: true, playedDaysAgo: 100)
         makeService().evictEligibleEpisodes(for: pod2)
         XCTAssertFalse(ep2.isArchived, "-1 = rule off")
+    }
+
+    func test_ageRule_neverEvictsArticleEpisodes_evictsEquivalentFeedEpisode() {
+        let pod = makePodcast()
+        settings.defaultAutoDeleteListenedAfterDays = 0   // most aggressive setting: evict immediately
+        let article = makeEpisode(pod, guid: "article", played: true, playedDaysAgo: 5, sourceType: "article")
+        let feedEp = makeEpisode(pod, guid: "feed", played: true, playedDaysAgo: 5, sourceType: "feed")
+        makeService().evictEligibleEpisodes(for: pod)
+        XCTAssertFalse(deleted.contains("article"),
+                       "article audio has no re-download source — eviction would be permanent deletion")
+        XCTAssertFalse(article.isArchived, "article episode must not be archived/evicted by the age rule")
+        XCTAssertNotNil(article.downloadedFile, "article download must survive")
+        XCTAssertEqual(deleted, ["feed"], "equivalent feed episode is evicted as before")
+        XCTAssertTrue(feedEp.isArchived)
+    }
+
+    func test_capRule_neverEvictsArticleEpisodes_evictsEquivalentFeedEpisode() {
+        let pod = makePodcast()
+        settings.defaultMaxDownloadsKept = 1   // aggressive cap
+        let article = makeEpisode(pod, guid: "article", played: true, publishDaysAgo: 10, sourceType: "article")
+        let feedEp = makeEpisode(pod, guid: "feed", played: true, publishDaysAgo: 5, sourceType: "feed")
+        makeService().evictEligibleEpisodes(for: pod)
+        XCTAssertFalse(deleted.contains("article"),
+                       "article audio has no re-download source — cap eviction would be permanent deletion")
+        XCTAssertNotNil(article.downloadedFile, "article download must survive the cap sweep")
+        XCTAssertEqual(deleted, ["feed"], "the newer feed episode is still evicted to respect the cap")
     }
 
     func test_ageRule_transcriptPurgedOnlyWhenKeepOff() {

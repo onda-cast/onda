@@ -81,14 +81,27 @@ final class SubscriptionService {
 
     /// Unsubscribe IS the delete action for a show: downloaded audio is always freed, and
     /// transcripts are purged unless the resolved keep-transcripts setting says otherwise.
+    ///
+    /// For local (synthetic) shows — e.g. Articles — there is no feed to re-subscribe from with
+    /// fresh content: `ArticleConversionService.articlesPodcast()` just re-attaches to the same
+    /// `Podcast` row on the next add. So a plain `isSubscribed = false` would silently resurrect
+    /// every "deleted" article, audio-freed and unplayable, the moment the user converts a new
+    /// one. Local shows therefore get their episode rows deleted outright — cascade delete rules
+    /// on `Episode` (`.cascade` to `ArticleSource`/`DownloadedFile`/`Transcript`/`Chapter`/`Clip`)
+    /// take care of the children. The `Podcast` + `ShowSettings` rows survive so the voice
+    /// preference sticks and the show reappears empty, not orphaned, on the next conversion.
     func unsubscribe(_ podcast: Podcast) {
         podcast.isSubscribed = false
         let keepTranscripts = retention?.resolvedKeepTranscripts(for: podcast) ?? true
-        for ep in podcast.episodes {
+        let episodes = podcast.episodes
+        for ep in episodes {
             if ep.downloadedFile != nil { deleteDownload?(ep) }
             if !keepTranscripts, let tr = ep.transcript {
                 ep.transcript = nil
                 modelContext.delete(tr)   // cascades cues
+            }
+            if podcast.isLocal {
+                modelContext.delete(ep)   // cascades ArticleSource/DownloadedFile/Transcript/Chapter/Clip
             }
         }
         try? modelContext.save()

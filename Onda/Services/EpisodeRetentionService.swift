@@ -55,12 +55,16 @@ final class EpisodeRetentionService {
 
     /// Rule 1: listened episodes whose playedDate is older than the resolved threshold are
     /// fully deleted — audio freed AND archived, exactly like a manual swipe-delete.
+    ///
+    /// Article episodes (`sourceType == "article"`) are excluded: their `audioURL` IS the local
+    /// TTS-generated `.m4a` — there is no remote feed to re-download from, so evicting them would
+    /// be permanent, silent data loss rather than a reclaimable cache eviction.
     private func evictListenedPastAge(for podcast: Podcast) {
         let days = resolvedAutoDeleteAfterDays(for: podcast)
         guard days >= 0 else { return }
         let cutoff = now().addingTimeInterval(-Double(days) * 86_400)
         let keep = resolvedKeepTranscripts(for: podcast)
-        for ep in podcast.episodes where ep.played && !ep.isArchived {
+        for ep in podcast.episodes where ep.played && !ep.isArchived && ep.sourceType != "article" {
             guard let playedAt = ep.playedDate, playedAt <= cutoff else { continue }
             if ep.downloadedFile != nil { deleteDownload(ep) }
             archive(ep, keepTranscript: keep)
@@ -69,13 +73,18 @@ final class EpisodeRetentionService {
 
     /// Rule 2: beyond the per-show download cap, the oldest PLAYED downloads lose their audio.
     /// Only the file is freed — the episode is not archived, so it stays listed/streamable.
+    ///
+    /// Article episodes are excluded from the eviction candidate pool for the same reason as
+    /// Rule 1 above: their audio is local-only with no re-download source, so freeing it would
+    /// strand the episode unplayable forever instead of just evicting a reclaimable cache entry.
     private func evictBeyondDownloadCap(for podcast: Podcast) {
         let cap = resolvedMaxDownloadsKept(for: podcast)
         guard cap > 0 else { return }
         let downloaded = podcast.episodes.filter { $0.downloadedFile != nil && !$0.isArchived }
         let overflow = downloaded.count - cap
         guard overflow > 0 else { return }
-        let evictable = downloaded.filter(\.played).sorted { $0.publishDate < $1.publishDate }
+        let evictable = downloaded.filter { $0.played && $0.sourceType != "article" }
+            .sorted { $0.publishDate < $1.publishDate }
         for ep in evictable.prefix(overflow) {
             deleteDownload(ep)
         }

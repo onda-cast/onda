@@ -155,7 +155,11 @@ extension — parallel to, but independent of, `DownloadManager.fileName(for:)`'
 `.mp3`-only convention (that method is untouched; a separate small helper in the
 Article pipeline picks the `.m4a` name and path). A `DownloadedFile` row is recorded via
 the existing `PersistenceActor.recordDownload(...)` the moment the file is complete, so
-retention/eviction, storage accounting, and offline playback all work unmodified.
+retention/eviction, storage accounting, and offline playback all work unmodified. One
+exception: `EpisodeRetentionService`'s destructive eviction sweeps (listened-age and
+download-cap) explicitly skip `sourceType == "article"` episodes — their audio is the
+local `.m4a` itself with no remote feed to re-download from, so evicting it would be
+silent, permanent data loss rather than a reclaimable cache eviction.
 
 ## In-app UI
 

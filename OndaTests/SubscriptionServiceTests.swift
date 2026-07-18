@@ -128,6 +128,55 @@ final class SubscriptionServiceTests: XCTestCase {
         XCTAssertEqual(pods.count, 1)
     }
 
+    func test_unsubscribe_localShow_deletesEpisodesAndArticleSources_keepsPodcastAndSettings() async throws {
+        let ctx = try context()
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
+        var deleted: [String] = []
+        svc.deleteDownload = { deleted.append($0.guid) }
+        let pod = Podcast(feedURL: URL(string: "onda-local:articles")!, title: "Articles",
+                          author: "You", artworkURL: nil, category: "Articles", itunesId: nil,
+                          isSubscribed: true)
+        pod.isLocal = true
+        let settings = ShowSettings.makeDefault(); settings.podcast = pod; pod.settings = settings
+        ctx.insert(pod); ctx.insert(settings)
+
+        let ep = Episode(guid: "art-1", title: "Article One", publishDate: .now, duration: 100,
+                         audioURL: URL(string: "https://ex.com/art-1.m4a")!, notes: "")
+        ep.sourceType = "article"
+        ep.podcast = pod; pod.episodes.append(ep)
+        let source = ArticleSource(sourceURL: URL(string: "https://example.com/article")!,
+                                   siteName: "Example", addedAt: .now)
+        source.episode = ep; ep.articleSource = source
+        let file = DownloadedFile(localFileName: "art-1.m4a", fileSizeBytes: 100, downloadedAt: .now)
+        file.episode = ep; ep.downloadedFile = file
+        let tr = Transcript(source: "ondevice", language: "en"); tr.episode = ep; ep.transcript = tr
+        ctx.insert(ep); ctx.insert(source); ctx.insert(file); ctx.insert(tr)
+        try ctx.save()
+
+        svc.unsubscribe(pod)
+
+        XCTAssertEqual(deleted, ["art-1"], "download-freeing closure was invoked before the row was deleted")
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<Episode>()).count, 0, "episode row is gone, not just archived")
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<ArticleSource>()).count, 0,
+                       "ArticleSource cascades away with its Episode")
+        let pods = try ctx.fetch(FetchDescriptor<Podcast>())
+        XCTAssertEqual(pods.count, 1, "the Podcast row survives so re-adding an article finds it again")
+        XCTAssertFalse(pods[0].isSubscribed)
+        XCTAssertNotNil(pods[0].settings, "ShowSettings (voice preference) survives")
+    }
+
+    func test_unsubscribe_nonLocalShow_episodesSurvive() async throws {
+        let ctx = try context()
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
+        svc.deleteDownload = { _ in }
+        let pod = try await svc.subscribe(to: dto())
+        svc.unsubscribe(pod)
+        XCTAssertFalse(pod.isSubscribed)
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<Episode>()).count, 1,
+                       "unsubscribing a normal feed show only frees downloads — episodes stay so " +
+                       "resubscribing doesn't need to re-fetch history")
+    }
+
     func test_refreshEpisodes_localShow_neverTouchesTheFeed() async throws {
         struct ThrowingFeeds: FeedFetching {
             func fetchFeed(_ url: URL) async throws -> ParsedFeed {

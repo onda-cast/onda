@@ -131,14 +131,20 @@ struct LibraryView: View {
             .sheet(isPresented: $showClips) { ClipsView() }
             .sheet(isPresented: $showAddArticle) { AddArticleSheet() }
             .sheet(item: $settingsPodcast) { ShowSettingsSheet(podcast: $0) }
-            .confirmationDialog("Unsubscribe from \(unsubscribeTarget?.title ?? "")?",
+            .confirmationDialog(unsubscribeTarget?.isLocal == true
+                                ? "Delete \(unsubscribeTarget?.title ?? "")?"
+                                : "Unsubscribe from \(unsubscribeTarget?.title ?? "")?",
                                 isPresented: Binding(get: { unsubscribeTarget != nil },
                                                      set: { if !$0 { unsubscribeTarget = nil } }),
                                 titleVisibility: .visible, presenting: unsubscribeTarget) { show in
-                Button("Unsubscribe", role: .destructive) { subscriptions.unsubscribe(show) }
+                Button(show.isLocal ? "Delete" : "Unsubscribe", role: .destructive) {
+                    subscriptions.unsubscribe(show)
+                }
                 Button("Cancel", role: .cancel) {}
-            } message: { _ in
-                Text("Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
+            } message: { show in
+                Text(show.isLocal
+                     ? "Permanently deletes every converted article in this show. This can't be undone."
+                     : "Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
             }
             .overlay(alignment: .bottom) {
                 if let toast {
