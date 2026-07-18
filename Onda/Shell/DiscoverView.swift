@@ -272,15 +272,18 @@ struct DiscoverView: View {
         if names.count == 1 { return "Because you follow \(names[0])" }
         return "Because you follow \(names[0]) & \(names[1])"
     }
+}
 
+// MARK: - Data loading & shake
+extension DiscoverView {
     // Shared entry point for the shake gesture and the visible Shuffle button.
-    private func triggerShake() {
+    func triggerShake() {
         mode = .browse   // shake results live in Browse
         shakeCount += 1
         Task { await runShake() }
     }
 
-    private func runShake() async {
+    func runShake() async {
         let followed = Array(Set(subs.map(\.category))).sorted()
         var rng = SystemRandomNumberGenerator()
         let result = await shakeSuggestions(
@@ -299,7 +302,7 @@ struct DiscoverView: View {
         }
     }
 
-    private func loadTrending(force: Bool = false) async {
+    func loadTrending(force: Bool = false) async {
         guard force || trending.isEmpty else { return }
         loading = true; trendingFailed = false; defer { loading = false }
         do {
@@ -310,7 +313,7 @@ struct DiscoverView: View {
         }
     }
 
-    private func runSearch(_ term: String) async {
+    func runSearch(_ term: String) async {
         let t = term.trimmingCharacters(in: .whitespaces)
         guard t.count >= 2 else { results = []; searchFailed = false; return }
         try? await Task.sleep(for: .milliseconds(300))   // debounce

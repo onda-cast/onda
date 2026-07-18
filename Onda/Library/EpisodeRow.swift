@@ -8,6 +8,7 @@ struct EpisodeRow: View {
     var snippet: String?
     var onPlay: () -> Void = {}
     var onDownload: () -> Void = {}
+    var onOpen: () -> Void = {}
 
     private var dateText: String {
         episode.publishDate.formatted(.relative(presentation: .named))
@@ -29,21 +30,27 @@ struct EpisodeRow: View {
             }.buttonStyle(.plain)
             .accessibilityIdentifier("play-episode")
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(episode.title).font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(theme.color(.text)).lineLimit(2)
-                HStack(spacing: 8) {
-                    Text(dateText); Text("•"); Text(durationText)
-                    if episode.playbackPosition > 1 && !episode.played {
-                        Text("• In progress").foregroundStyle(theme.color(.accent))
+            Button(action: onOpen) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(episode.title).font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(theme.color(.text)).lineLimit(2)
+                    HStack(spacing: 8) {
+                        Text(dateText); Text("•"); Text(durationText)
+                        if episode.playbackPosition > 1 && !episode.played {
+                            Text("• In progress").foregroundStyle(theme.color(.accent))
+                        }
+                    }
+                    .font(.system(size: 12.5)).foregroundStyle(theme.color(.textTertiary))
+                    if let snippet {
+                        Text("“\(snippet)”").font(.system(size: 12.5)).italic()
+                            .foregroundStyle(theme.color(.textSecondary)).lineLimit(2)
                     }
                 }
-                .font(.system(size: 12.5)).foregroundStyle(theme.color(.textTertiary))
-                if let snippet {
-                    Text("“\(snippet)”").font(.system(size: 12.5)).italic()
-                        .foregroundStyle(theme.color(.textSecondary)).lineLimit(2)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens episode details")
             Spacer(minLength: 8)
             Button(action: onDownload) {
                 downloadIcon

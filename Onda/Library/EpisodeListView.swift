@@ -19,6 +19,7 @@ struct EpisodeListView: View {
     @State private var results: [EpisodeSearchResult] = []
     @State private var pendingUnsubscribe = false
     @State private var pendingDownloadDelete: Episode?
+    @State private var detailEpisode: Episode?
 
     init(podcast: Podcast) {
         self.podcast = podcast
@@ -82,7 +83,8 @@ struct EpisodeListView: View {
                                case .downloading: break
                                case .none:       downloads.download(ep)
                                }
-                           })
+                           },
+                           onOpen: { detailEpisode = ep })
                 .listRowBackground(theme.color(.bg))
                 .listRowSeparatorTint(theme.color(.separator))
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -134,6 +136,7 @@ struct EpisodeListView: View {
         }
         .sheet(isPresented: $showSettings) { ShowSettingsSheet(podcast: podcast) }
         .sheet(isPresented: $showTranscripts) { ShowTranscriptsView(podcast: podcast) }
+        .sheet(item: $detailEpisode) { EpisodeDetailView(episode: $0) }
         .onChange(of: query) { _, _ in runSearch() }
         .confirmationDialog("Unsubscribe from \(podcast.title)?", isPresented: $pendingUnsubscribe,
                             titleVisibility: .visible) {
