@@ -173,11 +173,12 @@ struct DiscoverView: View {
             .padding(.horizontal, 20).padding(.bottom, 120)
         }
         .refreshable { await pullRefresh() }
-        // Dice-cup wobble the moment a shake registers — feedback that the roll is happening,
-        // before the network round-trip lands the results.
-        .phaseAnimator([0, -1.6, 1.9, -1.2, 0.8, 0], trigger: shakeCount) { view, angle in
-            view.rotationEffect(.degrees(angle), anchor: .center)
-        } animation: { _ in .spring(duration: 0.07, bounce: 0.5) }
+        // The Onda wave — washes across the screen the moment a shake registers, feedback
+        // that the roll is happening before the network round-trip lands the results.
+        .overlay {
+            ShakeWaveOverlay(trigger: shakeCount)
+                .ignoresSafeArea()
+        }
         // Tapping anywhere (simultaneous so buttons still work) or scrolling dismisses the keyboard.
         .simultaneousGesture(TapGesture().onEnded { searchFocused = false })
         .scrollDismissesKeyboard(.immediately)
