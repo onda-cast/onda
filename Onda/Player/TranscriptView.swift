@@ -116,7 +116,7 @@ struct TranscriptView: View {
                         showClipSheet = true
                     } label: {
                         Text("Clip \(hi - lo + 1) line\(hi == lo ? "" : "s")")
-                            .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                            .scaledFont(15, weight: .bold).foregroundStyle(.white)
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
                             .background(theme.color(.accent)).brutalBorder(width: 2)
                     }
@@ -124,7 +124,7 @@ struct TranscriptView: View {
                     .background(theme.color(.bg))
                 } else if selecting {
                     Text("Tap the first and last line to clip.")
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(theme.color(.textSecondary))
+                        .scaledFont(13, weight: .semibold).foregroundStyle(theme.color(.textSecondary))
                         .frame(maxWidth: .infinity).padding(.vertical, 14).padding(.horizontal, 16)
                         .background(theme.color(.bg))
                 }
@@ -170,20 +170,20 @@ struct TranscriptView: View {
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 if let s = cue.speaker {
-                    Text(s).font(.system(size: 12, weight: .bold)).textCase(.uppercase)
+                    Text(s).scaledFont(12, weight: .bold).textCase(.uppercase)
                         .foregroundStyle(theme.color(.accent))
                 }
-                Text(timeStr(cue.start)).font(.system(size: 11, weight: .medium)).monospacedDigit()
+                Text(timeStr(cue.start)).scaledFont(11, weight: .medium).monospacedDigit()
                     .foregroundStyle(theme.color(.textTertiary))
                 styledCueText(cue, isActiveCue: i == activeIndex)
-                    .font(.system(size: 16))
+                    .scaledFont(16)
                     .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
             if !selecting {
                 Button { playback.jumpFromTranscript(episode: episode, to: cue.start) } label: {
-                    Image(systemName: "play.fill").font(.system(size: 13, weight: .bold))
+                    Image(systemName: "play.fill").scaledFont(13, weight: .bold)
                         .foregroundStyle(theme.color(.accent))
                         .frame(width: 40, height: 40)
                         .background(theme.color(.bgElevated)).brutalBorder(width: 2)
@@ -249,20 +249,20 @@ struct TranscriptView: View {
             Text("No transcript available").foregroundStyle(theme.color(.textTertiary))
             if let failure = transcripts.lastFailure[episode.guid] {
                 Text(failure)
-                    .font(.system(size: 13)).multilineTextAlignment(.center)
+                    .scaledFont(13).multilineTextAlignment(.center)
                     .foregroundStyle(.red).padding(.horizontal, 24)
             }
             if transcripts.canTranscribeOnDevice(episode) {
                 Button("Transcribe episode") { Task { await transcribe() } }
-                    .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                    .scaledFont(15, weight: .bold).foregroundStyle(.white)
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(theme.color(.accent)).brutalBorder(width: 2)
             } else if transcripts.hasEngine {
                 Text("Download this episode to transcribe it on device")
-                    .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                    .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
             } else {
                 Text("On-device transcription requires iOS 26 or later")
-                    .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                    .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }

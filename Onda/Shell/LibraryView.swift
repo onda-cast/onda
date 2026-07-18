@@ -64,8 +64,8 @@ struct LibraryView: View {
                         Button { showClips = true } label: {
                             HStack(spacing: 5) {
                                 Image(systemName: "bookmark")
-                                    .font(.system(size: 15, weight: .semibold))
-                                Text("CLIPS").font(.system(size: 12, weight: .bold))
+                                    .scaledFont(15, weight: .semibold)
+                                Text("CLIPS").scaledFont(12, weight: .bold)
                             }
                             .foregroundStyle(theme.color(.textSecondary))
                             .padding(.horizontal, 10).frame(height: 36)
@@ -73,7 +73,7 @@ struct LibraryView: View {
                         }.buttonStyle(.plain).accessibilityLabel("Clips")
                         Button { showSearch = true } label: {
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 17, weight: .semibold))
+                                .scaledFont(17, weight: .semibold)
                                 .foregroundStyle(theme.color(.textSecondary))
                                 .frame(width: 36, height: 36)
                                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
@@ -92,7 +92,7 @@ struct LibraryView: View {
                                         startSmartQueue(sq.apply(to: allEpisodes))
                                     } label: {
                                         Text(sq.label.uppercased())
-                                            .font(.system(size: 12, weight: .bold))
+                                            .scaledFont(12, weight: .bold)
                                             .foregroundStyle(theme.color(.textSecondary))
                                             .padding(.horizontal, 12).padding(.vertical, 8)
                                             .background(theme.color(.bgElevated)).brutalBorder(width: 2)
@@ -166,7 +166,7 @@ struct LibraryView: View {
             .overlay(alignment: .bottom) {
                 if let toast {
                     Text(toast)
-                        .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                        .scaledFont(14, weight: .bold).foregroundStyle(.white)
                         .padding(.horizontal, 18).padding(.vertical, 12)
                         .background(theme.color(.accent)).brutalBorder(width: 2)
                         .padding(.bottom, 96)
@@ -205,7 +205,7 @@ struct LibraryView: View {
             }
         } label: {
             Image(systemName: "slider.horizontal.3")
-                .font(.system(size: 17, weight: .semibold))
+                .scaledFont(17, weight: .semibold)
                 .foregroundStyle(theme.color(.textSecondary))
                 .frame(width: 36, height: 36)
                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
@@ -244,11 +244,11 @@ struct LibraryView: View {
                 Text(show.title).brutalHeader(size: 14).foregroundStyle(theme.color(.text))
                     .lineLimit(1)
                 Text(show.episodes.first?.title ?? "No episodes")
-                    .font(.system(size: 12.5)).foregroundStyle(theme.color(.textTertiary))
+                    .scaledFont(12.5).foregroundStyle(theme.color(.textTertiary))
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right").font(.system(size: 13))
+            Image(systemName: "chevron.right").scaledFont(13)
                 .foregroundStyle(theme.color(.textTertiary))
         }
         .padding(showArt ? 10 : 12)

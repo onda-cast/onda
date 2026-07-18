@@ -65,10 +65,10 @@ struct ShowTranscriptsView: View {
     private func card(_ ep: Episode, snippet: String?) -> some View {
         BrutalCard {
             VStack(alignment: .leading, spacing: 6) {
-                Text(ep.title).font(.system(size: 15, weight: .bold)).lineLimit(2)
+                Text(ep.title).scaledFont(15, weight: .bold).lineLimit(2)
                     .foregroundStyle(theme.color(.text))
                 if let snippet {
-                    Text(snippet).font(.system(size: 13)).lineLimit(2)
+                    Text(snippet).scaledFont(13).lineLimit(2)
                         .foregroundStyle(theme.color(.textSecondary))
                 }
             }

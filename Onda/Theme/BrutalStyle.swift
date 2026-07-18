@@ -26,8 +26,8 @@ extension View {
 }
 
 extension Text {
-    func brutalHeader(size: CGFloat) -> some View {
-        self.font(.system(size: size, weight: .black, design: .default))
+    @MainActor func brutalHeader(size: CGFloat) -> some View {
+        self.scaledFont(size, weight: .black, relativeTo: .headline)
             .textCase(.uppercase)
             .tracking(-0.5)
     }

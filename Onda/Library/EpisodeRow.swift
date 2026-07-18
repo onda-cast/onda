@@ -23,7 +23,7 @@ struct EpisodeRow: View {
         HStack(alignment: .top, spacing: 12) {
             Button(action: onPlay) {
                 Image(systemName: episode.played ? "checkmark" : "play.fill")
-                    .font(.system(size: 14, weight: .black))
+                    .scaledFont(14, weight: .black)
                     .foregroundStyle(episode.played ? theme.color(.textTertiary) : .white)
                     .frame(width: 34, height: 34)
                     .background(episode.played ? theme.color(.bgElevated) : theme.color(.accent))
@@ -33,7 +33,7 @@ struct EpisodeRow: View {
 
             Button(action: onOpen) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(episode.title).font(.system(size: 15, weight: .semibold))
+                    Text(episode.title).scaledFont(15, weight: .semibold)
                         .foregroundStyle(theme.color(.text)).lineLimit(2)
                     HStack(spacing: 8) {
                         Text(dateText)
@@ -42,9 +42,9 @@ struct EpisodeRow: View {
                             Text("• In progress").foregroundStyle(theme.color(.accent))
                         }
                     }
-                    .font(.system(size: 12.5)).foregroundStyle(theme.color(.textTertiary))
+                    .scaledFont(12.5).foregroundStyle(theme.color(.textTertiary))
                     if let snippet {
-                        Text("“\(snippet)”").font(.system(size: 12.5)).italic()
+                        Text("“\(snippet)”").scaledFont(12.5).italic()
                             .foregroundStyle(theme.color(.textSecondary)).lineLimit(2)
                     }
                 }
@@ -74,7 +74,7 @@ struct EpisodeRow: View {
         switch downloadState {
         case .none:
             Image(systemName: "arrow.down")
-                .font(.system(size: 13, weight: .black))
+                .scaledFont(13, weight: .black)
                 .foregroundStyle(theme.color(.textSecondary))
                 .frame(width: 30, height: 30)
                 .background(theme.color(.bgElevated))
@@ -91,14 +91,14 @@ struct EpisodeRow: View {
                 .brutalBorder(width: 2)
         case .downloaded:
             Image(systemName: "checkmark")
-                .font(.system(size: 13, weight: .black))
+                .scaledFont(13, weight: .black)
                 .foregroundStyle(.white)
                 .frame(width: 30, height: 30)
                 .background(theme.color(.accent))
                 .brutalBorder(width: 2)
         case .failed:
             Image(systemName: "arrow.clockwise")
-                .font(.system(size: 13, weight: .black))
+                .scaledFont(13, weight: .black)
                 .foregroundStyle(.white)
                 .frame(width: 30, height: 30)
                 .background(.black)

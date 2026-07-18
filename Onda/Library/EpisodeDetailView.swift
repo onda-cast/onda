@@ -27,10 +27,10 @@ struct EpisodeDetailView: View {
                         ArtworkView(url: episode.podcast?.artworkURL, seed: episode.podcast?.title ?? episode.title)
                             .frame(width: 84, height: 84).brutalBorder(width: 2)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(episode.podcast?.title ?? "").font(.system(size: 12, weight: .bold))
+                            Text(episode.podcast?.title ?? "").scaledFont(12, weight: .bold)
                                 .textCase(.uppercase).foregroundStyle(theme.color(.accent)).lineLimit(1)
                             Text(episode.title).brutalHeader(size: 18).foregroundStyle(theme.color(.text))
-                            Text(meta).font(.system(size: 12.5)).foregroundStyle(theme.color(.textTertiary))
+                            Text(meta).scaledFont(12.5).foregroundStyle(theme.color(.textTertiary))
                         }
                     }
 
@@ -42,7 +42,7 @@ struct EpisodeDetailView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("About This Episode").brutalHeader(size: 13)
                                 .foregroundStyle(theme.color(.textTertiary))
-                            Text(episode.notes).font(.system(size: 14.5))
+                            Text(episode.notes).scaledFont(14.5)
                                 .foregroundStyle(theme.color(.textSecondary))
                         }
                     }
@@ -66,20 +66,20 @@ struct EpisodeDetailView: View {
         HStack(spacing: 10) {
             Button { playback.play(episode) } label: {
                 Label(episode.played ? "Play Again" : "Play", systemImage: "play.fill")
-                    .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                    .scaledFont(15, weight: .bold).foregroundStyle(.white)
                     .frame(maxWidth: .infinity).frame(height: 48)
                     .background(theme.color(.accent)).brutalBorder(width: 2)
             }.buttonStyle(.plain)
 
             Button { showTranscript = true } label: {
-                Image(systemName: "text.quote").font(.system(size: 17, weight: .bold))
+                Image(systemName: "text.quote").scaledFont(17, weight: .bold)
                     .foregroundStyle(theme.color(.text))
                     .frame(width: 48, height: 48)
                     .background(theme.color(.bgElevated)).brutalBorder(width: 2)
             }.buttonStyle(.plain).accessibilityLabel("Transcript")
 
             Button { downloadAction() } label: {
-                Image(systemName: downloadSymbol).font(.system(size: 17, weight: .bold))
+                Image(systemName: downloadSymbol).scaledFont(17, weight: .bold)
                     .foregroundStyle(theme.color(.text))
                     .frame(width: 48, height: 48)
                     .background(theme.color(.bgElevated)).brutalBorder(width: 2)
@@ -92,10 +92,10 @@ struct EpisodeDetailView: View {
             Text("Chapters").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
             ForEach(episode.chapters.sorted { $0.startTime < $1.startTime }, id: \.startTime) { ch in
                 HStack {
-                    Text(ch.title).font(.system(size: 14.5, weight: .semibold))
+                    Text(ch.title).scaledFont(14.5, weight: .semibold)
                         .foregroundStyle(theme.color(.text))
                     Spacer()
-                    Text(timeStr(ch.startTime)).font(.system(size: 12.5)).monospacedDigit()
+                    Text(timeStr(ch.startTime)).scaledFont(12.5).monospacedDigit()
                         .foregroundStyle(theme.color(.textTertiary))
                 }
                 .padding(.vertical, 6)

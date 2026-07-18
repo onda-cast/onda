@@ -23,10 +23,10 @@ struct ShowSettingsSheet: View {
                     section("Playback") {
                         row("Speed") {
                             Button(speedLabel) { cycleSpeed() }
-                                .font(.system(size: 15, weight: .bold)).foregroundStyle(theme.color(.text))
+                                .scaledFont(15, weight: .bold).foregroundStyle(theme.color(.text))
                         }
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Voice Boost").font(.system(size: 16)).foregroundStyle(theme.color(.text))
+                            Text("Voice Boost").scaledFont(16).foregroundStyle(theme.color(.text))
                             SegmentedRow(options: [("Off", 0), ("Med", 1), ("High", 2)],
                                          selection: s.voiceBoost) { s.voiceBoost = $0; playback.applyAudioSettings() }
                         }
@@ -36,7 +36,7 @@ struct ShowSettingsSheet: View {
                     }
                     section("Ads & Downloads") {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Ad Skip").font(.system(size: 16)).foregroundStyle(theme.color(.text))
+                            Text("Ad Skip").scaledFont(16).foregroundStyle(theme.color(.text))
                             SegmentedRow(options: [("Off", "off"), ("Manual", "manual"), ("Auto", "auto")],
                                          selection: s.adSkipMode) { s.adSkipMode = $0 }
                         }
@@ -123,7 +123,7 @@ struct ShowSettingsSheet: View {
                                              defaultHint: String,
                                              onChange: @escaping (Int) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text))
+            Text(title).scaledFont(16).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), (offLabel, 1), ("Custom", 2)],
                          selection: state, onChange: onChange)
             defaultCaption(defaultHint, shown: state == 0)
@@ -133,7 +133,7 @@ struct ShowSettingsSheet: View {
     @ViewBuilder private func boolOverridePicker(_ title: String, defaultHint: String,
                                                  value: Binding<Bool?>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text))
+            Text(title).scaledFont(16).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), ("Off", 1), ("On", 2)],
                          selection: value.wrappedValue == nil ? 0 : (value.wrappedValue == false ? 1 : 2)) {
                 value.wrappedValue = [nil, false, true][$0]
@@ -146,20 +146,20 @@ struct ShowSettingsSheet: View {
     // so "Default" isn't an opaque choice.
     @ViewBuilder private func defaultCaption(_ hint: String, shown: Bool) -> some View {
         if shown {
-            Text("Default: \(hint)").font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+            Text("Default: \(hint)").scaledFont(12).foregroundStyle(theme.color(.textTertiary))
         }
     }
 
     private func countStepper(_ title: String, value: Binding<Int>, range: ClosedRange<Int>,
                               label: (Int) -> String) -> some View {
         HStack {
-            Text(title).font(.system(size: 14)).foregroundStyle(theme.color(.textSecondary))
+            Text(title).scaledFont(14).foregroundStyle(theme.color(.textSecondary))
             Spacer()
             stepButton("−", "Decrease \(title)") {
                 value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1)
             }
             Text(label(value.wrappedValue)).monospacedDigit().frame(minWidth: 88)
-                .font(.system(size: 14, weight: .semibold)).foregroundStyle(theme.color(.text))
+                .scaledFont(14, weight: .semibold).foregroundStyle(theme.color(.text))
             stepButton("+", "Increase \(title)") {
                 value.wrappedValue = min(range.upperBound, value.wrappedValue + 1)
             }
@@ -168,7 +168,7 @@ struct ShowSettingsSheet: View {
 
     private func stepButton(_ glyph: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(glyph).font(.system(size: 20, weight: .semibold))
+            Text(glyph).scaledFont(20, weight: .semibold)
                 .foregroundStyle(theme.color(.accent))
                 .frame(width: 44, height: 44).contentShape(Rectangle())
         }
@@ -182,14 +182,14 @@ struct ShowSettingsSheet: View {
         }
     }
     @ViewBuilder private func row(_ title: String, @ViewBuilder _ trailing: () -> some View) -> some View {
-        HStack { Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text)); Spacer(); trailing() }
+        HStack { Text(title).scaledFont(16).foregroundStyle(theme.color(.text)); Spacer(); trailing() }
     }
     private func stepperRow(_ title: String, value: Binding<Int>) -> some View {
         HStack {
-            Text(title).font(.system(size: 16)).foregroundStyle(theme.color(.text)); Spacer()
+            Text(title).scaledFont(16).foregroundStyle(theme.color(.text)); Spacer()
             stepButton("−", "Decrease \(title)") { value.wrappedValue = max(0, value.wrappedValue - 5) }
             Text("\(value.wrappedValue)s").monospacedDigit().frame(minWidth: 44)
-                .font(.system(size: 16, weight: .semibold)).foregroundStyle(theme.color(.text))
+                .scaledFont(16, weight: .semibold).foregroundStyle(theme.color(.text))
             stepButton("+", "Increase \(title)") { value.wrappedValue = min(60, value.wrappedValue + 5) }
         }
     }

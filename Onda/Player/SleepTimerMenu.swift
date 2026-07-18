@@ -20,10 +20,10 @@ struct SleepTimerMenu: View {
             // Live remaining time next to the moon while a duration timer is armed.
             HStack(spacing: 4) {
                 Image(systemName: playback.sleepMode == .off ? "moon" : "moon.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .scaledFont(18, weight: .semibold)
                 if playback.sleepRemaining != nil {
                     TimelineView(.periodic(from: .now, by: 1)) { _ in
-                        Text(remainingText).font(.system(size: 12, weight: .bold)).monospacedDigit()
+                        Text(remainingText).scaledFont(12, weight: .bold).monospacedDigit()
                             .foregroundStyle(theme.color(.accent))
                     }
                 }

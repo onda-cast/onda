@@ -58,13 +58,13 @@ struct EpisodeListView: View {
                 if !isSearching && episodes.isEmpty && filter == .downloaded {
                     Button { filter = .all } label: {
                         Text("No downloads yet — show all episodes")
-                            .font(.system(size: 13, weight: .semibold)).foregroundStyle(theme.color(.accent))
+                            .scaledFont(13, weight: .semibold).foregroundStyle(theme.color(.accent))
                             .frame(maxWidth: .infinity).padding(.top, 24)
                     }.buttonStyle(.plain)
                 }
                 if isSearching && results.isEmpty {
                     Text("No episodes match “\(query)”")
-                        .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                        .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
                         .frame(maxWidth: .infinity).padding(.top, 24)
                 }
             }
@@ -200,10 +200,10 @@ struct EpisodeListView: View {
                 .frame(width: 96, height: 96).hardShadow(offset: 4)
             VStack(alignment: .leading, spacing: 6) {
                 Text(podcast.title).brutalHeader(size: 20).foregroundStyle(theme.color(.text))
-                Text(podcast.category).font(.system(size: 13))
+                Text(podcast.category).scaledFont(13)
                     .foregroundStyle(theme.color(.textTertiary))
                 Button("Unsubscribe") { pendingUnsubscribe = true }
-                    .font(.system(size: 13, weight: .bold)).foregroundStyle(.red)
+                    .scaledFont(13, weight: .bold).foregroundStyle(.red)
             }
             Spacer()
         }

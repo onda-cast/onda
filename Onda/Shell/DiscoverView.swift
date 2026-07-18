@@ -102,7 +102,7 @@ struct DiscoverView: View {
             Button {
                 Task { await recs.refresh(followedCategories: followedCategories) }
             } label: {
-                Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .bold))
+                Image(systemName: "arrow.clockwise").scaledFont(14, weight: .bold)
                     .foregroundStyle(theme.color(.textSecondary))
                     .frame(width: 34, height: 34)
                     .background(theme.color(.bgElevated)).brutalBorder(width: 2)
@@ -112,19 +112,19 @@ struct DiscoverView: View {
         if recs.isLoading && recs.recommendations.isEmpty {
             HStack(spacing: 8) {
                 ProgressView().tint(theme.color(.accent))
-                Text("Finding shows for you…").font(.system(size: 13))
+                Text("Finding shows for you…").scaledFont(13)
                     .foregroundStyle(theme.color(.textTertiary))
             }.padding(.top, 40).frame(maxWidth: .infinity)
         } else if recs.recommendations.isEmpty {
             Text("Follow a few shows and clip moments you love — recommendations get sharper as Onda learns your taste.")
-                .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
                 .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 50)
         } else {
             ForEach(recs.recommendations) { rec in
                 VStack(alignment: .leading, spacing: 4) {
                     TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
                     if let reason = rec.reasonLine {
-                        Text(reason).font(.system(size: 11.5)).foregroundStyle(theme.color(.textTertiary))
+                        Text(reason).scaledFont(11.5).foregroundStyle(theme.color(.textTertiary))
                             .padding(.leading, 2)
                     }
                 }
@@ -145,8 +145,8 @@ struct DiscoverView: View {
                     Spacer()
                     Button { triggerShake() } label: {
                         HStack(spacing: 5) {
-                            Image(systemName: "shuffle").font(.system(size: 14, weight: .bold))
-                            Text("SHUFFLE").font(.system(size: 12, weight: .bold))
+                            Image(systemName: "shuffle").scaledFont(14, weight: .bold)
+                            Text("SHUFFLE").scaledFont(12, weight: .bold)
                         }
                         .foregroundStyle(theme.color(.textSecondary))
                         .padding(.horizontal, 10).frame(height: 36)
@@ -201,7 +201,7 @@ struct DiscoverView: View {
         .overlay(alignment: .bottom) {
             if let toast {
                 Text(toast)
-                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                    .scaledFont(14, weight: .bold).foregroundStyle(.white)
                     .padding(.horizontal, 18).padding(.vertical, 12)
                     .background(theme.color(.accent)).brutalBorder(width: 2).hardShadow(offset: 3)
                     .padding(.bottom, 40)
@@ -254,13 +254,13 @@ struct DiscoverView: View {
                 Spacer()
                 Button { withAnimation { self.shake = nil } } label: {
                     Text("Back to Trending")
-                        .font(.system(size: 11, weight: .bold)).textCase(.uppercase)
+                        .scaledFont(11, weight: .bold).textCase(.uppercase)
                         .foregroundStyle(theme.color(.textSecondary))
                         .padding(.horizontal, 12).padding(.vertical, 6)
                         .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                 }.buttonStyle(.plain)
             }
-            Text(subtitle(for: shake)).font(.system(size: 12))
+            Text(subtitle(for: shake)).scaledFont(12)
                 .foregroundStyle(theme.color(.textTertiary))
         }
     }
@@ -278,21 +278,21 @@ extension DiscoverView {
     func loadingRow(_ text: String) -> some View {
         HStack(spacing: 8) {
             ProgressView().tint(theme.color(.accent))
-            Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+            Text(text).scaledFont(13).foregroundStyle(theme.color(.textTertiary))
         }.frame(maxWidth: .infinity).padding(.top, 40)
     }
 
     func statusNote(_ text: String) -> some View {
-        Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+        Text(text).scaledFont(13).foregroundStyle(theme.color(.textTertiary))
             .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 40)
     }
 
     func errorRetry(_ text: String, action: @escaping () -> Void) -> some View {
         VStack(spacing: 10) {
-            Text(text).font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+            Text(text).scaledFont(13).foregroundStyle(theme.color(.textTertiary))
                 .multilineTextAlignment(.center)
             Button(action: action) {
-                Text("Retry").font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                Text("Retry").scaledFont(13, weight: .bold).foregroundStyle(.white)
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .background(theme.color(.accent)).brutalBorder(width: 2)
             }.buttonStyle(.plain)
@@ -334,7 +334,7 @@ extension DiscoverView {
             searchField
             Button { showAddFeed = true } label: {
                 Image(systemName: "link.badge.plus")
-                    .font(.system(size: 16, weight: .bold))
+                    .scaledFont(16, weight: .bold)
                     .foregroundStyle(theme.color(.textSecondary))
                     .frame(width: 48, height: 48)
                     .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)

@@ -30,14 +30,17 @@ struct RootView: View {
             // inside Now Playing where it was previously invisible at capture time.
             if let toast = playback.captureToast {
                 Text(toast)
-                    .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(.white)
+                    .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
                     .padding(.horizontal, 18).padding(.vertical, 10)
-                    .background(theme.color(.accent)).brutalBorder(width: 2).hardShadow(offset: 3)
+                    .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
                     .padding(.bottom, 150)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeOut(duration: 0.2), value: playback.captureToast)
+        // Dynamic Type scales the app's fonts (see scaledFont), but cap growth so the brutalist
+        // fixed-height controls and two-column grid don't blow out at the largest sizes.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .sheet(isPresented: Binding(get: { playback.showNowPlaying },
                                     set: { playback.showNowPlaying = $0 })) {
             NowPlayingView()
@@ -62,8 +65,8 @@ struct RootView: View {
         let active = tab == t
         return Button { tab = t } label: {
             VStack(spacing: 4) {
-                Image(systemName: icon).font(.system(size: 20, weight: .semibold))
-                Text(label).font(.system(size: 10.5, weight: .semibold))
+                Image(systemName: icon).scaledFont(20, weight: .semibold)
+                Text(label).scaledFont(10.5, weight: .semibold)
             }
             .foregroundStyle(active ? theme.color(.accent) : theme.color(.textTertiary))
             .frame(maxWidth: .infinity)

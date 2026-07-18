@@ -90,7 +90,7 @@ struct DownloadsStorageView: View {
                     Text("Downloads & Transcripts").brutalHeader(size: 13)
                         .foregroundStyle(theme.color(.textTertiary))
                     Spacer()
-                    Text(sizeStr(bd.totalBytes)).font(.system(size: 15, weight: .bold)).monospacedDigit()
+                    Text(sizeStr(bd.totalBytes)).scaledFont(15, weight: .bold).monospacedDigit()
                         .foregroundStyle(theme.color(.text))
                 }
                 proportionBar(audio: bd.audioBytes, transcript: bd.transcriptBytes)
@@ -127,7 +127,7 @@ struct DownloadsStorageView: View {
     private func legend(color: Color, label: String, bytes: Int64, approx: Bool = false) -> some View {
         HStack(spacing: 6) {
             Rectangle().fill(color).frame(width: 12, height: 12).brutalBorder(width: 1.5)
-            Text("\(label) \(approx ? "~" : "")\(sizeStr(bytes))").font(.system(size: 12, weight: .semibold))
+            Text("\(label) \(approx ? "~" : "")\(sizeStr(bytes))").scaledFont(12, weight: .semibold)
                 .foregroundStyle(theme.color(.textSecondary))
         }
     }
@@ -138,10 +138,10 @@ struct DownloadsStorageView: View {
         BrutalCard {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(row.title).font(.system(size: 15, weight: .bold)).lineLimit(1)
+                    Text(row.title).scaledFont(15, weight: .bold).lineLimit(1)
                         .foregroundStyle(theme.color(.text))
                     Text("Audio \(sizeStr(row.audioBytes)) · Transcripts ~\(sizeStr(row.transcriptBytes))")
-                        .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+                        .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
                 }
                 Spacer()
                 Menu {
@@ -156,7 +156,7 @@ struct DownloadsStorageView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold))
+                    Image(systemName: "ellipsis").scaledFont(16, weight: .bold)
                         .foregroundStyle(theme.color(.textSecondary))
                         .frame(width: 40, height: 40)
                 }
@@ -167,7 +167,7 @@ struct DownloadsStorageView: View {
 
     private func smallButton(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).font(.system(size: 12, weight: .bold))
+            Text(title).scaledFont(12, weight: .bold)
                 .foregroundStyle(theme.color(.text))
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(theme.color(.bg)).brutalBorder(width: 2)

@@ -15,13 +15,13 @@ struct TrendingRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(dto.collectionName).brutalHeader(size: 14).foregroundStyle(theme.color(.text))
                     .lineLimit(1)
-                Text(dto.primaryGenreName ?? "Podcast").font(.system(size: 13))
+                Text(dto.primaryGenreName ?? "Podcast").scaledFont(13)
                     .foregroundStyle(theme.color(.textTertiary))
             }
             Spacer(minLength: 8)
             Button(action: onToggle) {
                 Text(isSubscribed ? "Following" : "Follow")
-                    .font(.system(size: 13, weight: .bold)).textCase(.uppercase)
+                    .scaledFont(13, weight: .bold).textCase(.uppercase)
                     .lineLimit(1).fixedSize()
                     .foregroundStyle(isSubscribed ? theme.color(.textSecondary) : .white)
                     .padding(.horizontal, 16).padding(.vertical, 7)

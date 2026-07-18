@@ -61,9 +61,9 @@ struct RetentionSettingsSection: View {
     private func toggleRow(_ title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 15, weight: .semibold))
+                Text(title).scaledFont(15, weight: .semibold)
                     .foregroundStyle(theme.color(.text))
-                Text(subtitle).font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+                Text(subtitle).scaledFont(12).foregroundStyle(theme.color(.textTertiary))
             }
             Spacer()
             Toggle("", isOn: isOn).labelsHidden().tint(theme.color(.accent))
@@ -73,13 +73,13 @@ struct RetentionSettingsSection: View {
     private func stepperRow(_ title: String, value: Binding<Int>, range: ClosedRange<Int>,
                             label: (Int) -> String) -> some View {
         HStack {
-            Text(title).font(.system(size: 14)).foregroundStyle(theme.color(.textSecondary))
+            Text(title).scaledFont(14).foregroundStyle(theme.color(.textSecondary))
             Spacer()
             stepButton("−", "Decrease \(title)") {
                 value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1)
             }
             Text(label(value.wrappedValue)).monospacedDigit().frame(minWidth: 80)
-                .font(.system(size: 14, weight: .semibold))
+                .scaledFont(14, weight: .semibold)
                 .foregroundStyle(theme.color(.text))
             stepButton("+", "Increase \(title)") {
                 value.wrappedValue = min(range.upperBound, value.wrappedValue + 1)
@@ -90,7 +90,7 @@ struct RetentionSettingsSection: View {
 
     private func stepButton(_ glyph: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(glyph).font(.system(size: 20, weight: .semibold))
+            Text(glyph).scaledFont(20, weight: .semibold)
                 .foregroundStyle(theme.color(.accent))
                 .frame(width: 44, height: 44).contentShape(Rectangle())
         }

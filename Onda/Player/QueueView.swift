@@ -13,7 +13,7 @@ struct QueueView: View {
                 Section("Up Next") {
                     if playback.queue.isEmpty {
                         Text("Queue is empty — add episodes from a show or start a smart queue.")
-                            .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                            .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
                     } else {
                         ForEach(playback.queue, id: \.guid) { ep in
                             Button { playback.playFromQueue(ep) } label: { row(ep, isCurrent: false) }
@@ -32,15 +32,15 @@ struct QueueView: View {
     private func row(_ ep: Episode, isCurrent: Bool) -> some View {
         HStack(spacing: 10) {
             if isCurrent {
-                Image(systemName: "waveform").font(.system(size: 14, weight: .bold))
+                Image(systemName: "waveform").scaledFont(14, weight: .bold)
                     .foregroundStyle(theme.color(.accent)).frame(width: 20)
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(ep.title).font(.system(size: 15, weight: .semibold)).lineLimit(2)
+                Text(ep.title).scaledFont(15, weight: .semibold).lineLimit(2)
                     .foregroundStyle(theme.color(.text))
                 Text("\(ep.podcast?.title ?? "") · \(durationText(ep))")
-                    .font(.system(size: 12.5)).foregroundStyle(theme.color(.textTertiary)).lineLimit(1)
+                    .scaledFont(12.5).foregroundStyle(theme.color(.textTertiary)).lineLimit(1)
             }
         }
         .accessibilityElement(children: .combine)

@@ -26,7 +26,7 @@ struct AddFeedSheet: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Add by URL").brutalHeader(size: 24).foregroundStyle(theme.color(.text))
                 Text("Paste the RSS link from your paid membership (Patreon, Supercast, and similar). Private links stay on this device.")
-                    .font(.system(size: 13)).foregroundStyle(theme.color(.textTertiary))
+                    .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
 
                 urlField
                 if UIPasteboard.general.hasURLs && preview == nil {
@@ -37,7 +37,7 @@ struct AddFeedSheet: View {
                         }
                     } label: {
                         Label("Paste Link", systemImage: "doc.on.clipboard")
-                            .font(.system(size: 13, weight: .bold))
+                            .scaledFont(13, weight: .bold)
                             .foregroundStyle(theme.color(.textSecondary))
                             .padding(.horizontal, 14).frame(height: 44)
                             .background(theme.color(.bgElevated)).brutalBorder(width: 2)
@@ -45,14 +45,14 @@ struct AddFeedSheet: View {
                 }
 
                 if let errorText {
-                    Text(errorText).font(.system(size: 13))
+                    Text(errorText).scaledFont(13)
                         .foregroundStyle(theme.color(.accent))
                 }
 
                 if loading {
                     HStack(spacing: 8) {
                         ProgressView().tint(theme.color(.accent))
-                        Text("Loading feed…").font(.system(size: 13))
+                        Text("Loading feed…").scaledFont(13)
                             .foregroundStyle(theme.color(.textTertiary))
                     }.frame(maxWidth: .infinity).padding(.top, 8)
                 } else if let preview {
@@ -85,7 +85,7 @@ struct AddFeedSheet: View {
 
     private var fetchButton: some View {
         Button { Task { await fetchPreview() } } label: {
-            Text("Fetch Feed").font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+            Text("Fetch Feed").scaledFont(14, weight: .bold).foregroundStyle(.white)
                 .frame(maxWidth: .infinity).frame(height: 48)
                 .background(enteredURL == nil ? theme.color(.textTertiary) : theme.color(.accent))
                 .brutalBorder(width: 2.5)
@@ -103,15 +103,15 @@ struct AddFeedSheet: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(feed.title).brutalHeader(size: 15).foregroundStyle(theme.color(.text))
                         .lineLimit(2)
-                    Text(feed.author).font(.system(size: 12.5))
+                    Text(feed.author).scaledFont(12.5)
                         .foregroundStyle(theme.color(.textSecondary)).lineLimit(1)
                     Text("\(feed.episodes.count) episodes · \(feed.category)")
-                        .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+                        .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
                 }
                 Spacer(minLength: 0)
             }
             Button { Task { await subscribe() } } label: {
-                Text("Subscribe").font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                Text("Subscribe").scaledFont(14, weight: .bold).foregroundStyle(.white)
                     .frame(maxWidth: .infinity).frame(height: 48)
                     .background(theme.color(.accent)).brutalBorder(width: 2.5)
             }

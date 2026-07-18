@@ -15,7 +15,7 @@ struct ProfileView: View {
                     Text("Appearance").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
                     BrutalCard {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Theme").font(.system(size: 16, weight: .semibold))
+                            Text("Theme").scaledFont(16, weight: .semibold)
                                 .foregroundStyle(theme.color(.text))
                             SegmentedRow(options: [("System", Appearance.system),
                                                    ("Light", .light), ("Dark", .dark)],
@@ -44,7 +44,7 @@ struct ProfileView: View {
 
     private func row(_ title: String) -> some View {
         HStack {
-            Text(title).font(.system(size: 16, weight: .semibold))
+            Text(title).scaledFont(16, weight: .semibold)
                 .foregroundStyle(theme.color(.text))
             Spacer()
             Image(systemName: "chevron.right")

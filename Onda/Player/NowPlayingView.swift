@@ -23,7 +23,7 @@ struct NowPlayingView: View {
                         .hardShadow(offset: 8)
                     Text(ep.title).brutalHeader(size: 18).multilineTextAlignment(.center)
                         .foregroundStyle(theme.color(.text))
-                    Text(ep.podcast?.title ?? "").font(.system(size: 15, weight: .bold))
+                    Text(ep.podcast?.title ?? "").scaledFont(15, weight: .bold)
                         .textCase(.uppercase).foregroundStyle(theme.color(.accent))
                     if playback.adActive {
                         adBanner(ep)
@@ -56,7 +56,7 @@ struct NowPlayingView: View {
         .overlay(alignment: .bottom) {
             if let toast = playback.captureToast {
                 Text(toast)
-                    .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(.white)
+                    .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
                     .padding(.horizontal, 18).padding(.vertical, 10)
                     .background(theme.color(.accent)).brutalBorder(width: 2)
                     .padding(.bottom, 30)
@@ -84,13 +84,13 @@ struct NowPlayingView: View {
 
     private var header: some View {
         HStack {
-            Button { dismiss() } label: { Image(systemName: "chevron.down").font(.system(size: 16, weight: .bold)) }
+            Button { dismiss() } label: { Image(systemName: "chevron.down").scaledFont(16, weight: .bold) }
             Spacer()
             SleepTimerMenu()
-            Button { showTranscript = true } label: { Image(systemName: "text.quote").font(.system(size: 16, weight: .bold)) }
+            Button { showTranscript = true } label: { Image(systemName: "text.quote").scaledFont(16, weight: .bold) }
                 .accessibilityIdentifier("transcript-button")
-            Button { showQueue = true } label: { Image(systemName: "list.bullet").font(.system(size: 16, weight: .bold)) }
-            Button { showSettings = true } label: { Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold)) }
+            Button { showQueue = true } label: { Image(systemName: "list.bullet").scaledFont(16, weight: .bold) }
+            Button { showSettings = true } label: { Image(systemName: "ellipsis").scaledFont(16, weight: .bold) }
         }
         .foregroundStyle(theme.color(.textSecondary))
     }
@@ -121,7 +121,7 @@ struct NowPlayingView: View {
                 }
                 Text("-" + timeStr(max(0, playback.durationSeconds - playback.positionSeconds)))
             }
-            .font(.system(size: 12.5)).monospacedDigit().foregroundStyle(theme.color(.textTertiary))
+            .scaledFont(12.5).monospacedDigit().foregroundStyle(theme.color(.textTertiary))
         }
         .frame(maxWidth: 280)
         .animation(.easeInOut(duration: 0.2), value: downloadFraction == nil)
@@ -147,7 +147,7 @@ struct NowPlayingView: View {
                 .accessibilityLabel("Skip back 15 seconds")
             Button { playback.togglePlayPause() } label: {
                 Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 36)).foregroundStyle(.white)
+                    .scaledFont(36).foregroundStyle(.white)
                     .frame(width: 96, height: 96).background(theme.color(.accent))
                     .brutalBorder(width: 3).hardShadow(offset: 5)
             }
@@ -158,7 +158,7 @@ struct NowPlayingView: View {
     }
 
     private func skipLabel(_ symbol: String) -> some View {
-        Image(systemName: symbol).font(.system(size: 24)).foregroundStyle(theme.color(.text))
+        Image(systemName: symbol).scaledFont(24).foregroundStyle(theme.color(.text))
             .frame(width: 60, height: 60).background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
     }
 
@@ -184,7 +184,7 @@ struct NowPlayingView: View {
     // Compact enough that all three chips fit a 375pt screen at the longest labels
     // ("1.25×", "Boost: High", "Silence On"); the scroller is a safety net, not the norm.
     private func chip(_ text: String, active: Bool) -> some View {
-        Text(text).font(.system(size: 13.5, weight: .semibold))
+        Text(text).scaledFont(13.5, weight: .semibold)
             .lineLimit(1).fixedSize()
             .foregroundStyle(active ? theme.color(.accent) : theme.color(.text))
             .padding(.horizontal, 13).padding(.vertical, 11)
@@ -206,10 +206,10 @@ struct NowPlayingView: View {
                     ForEach(ep.chapters.sorted { $0.startTime < $1.startTime }, id: \.startTime) { ch in
                         Button { playback.seek(toFraction: ch.startTime / max(1, ep.duration)) } label: {
                             HStack {
-                                Text(ch.title).font(.system(size: 14.5, weight: .semibold))
+                                Text(ch.title).scaledFont(14.5, weight: .semibold)
                                     .foregroundStyle(theme.color(.text))
                                 Spacer()
-                                Text(timeStr(ch.startTime)).font(.system(size: 12.5)).monospacedDigit()
+                                Text(timeStr(ch.startTime)).scaledFont(12.5).monospacedDigit()
                                     .foregroundStyle(theme.color(.textTertiary))
                             }.padding(.vertical, 10)
                         }.buttonStyle(.plain)
@@ -222,11 +222,11 @@ struct NowPlayingView: View {
                         Task { _ = await chapterGen.generate(for: ep) }
                     } label: {
                         Text(chapterGen.isGenerating[ep.guid] == true ? "Generating…" : "Generate chapters")
-                            .font(.system(size: 13, weight: .bold)).foregroundStyle(theme.color(.accent))
+                            .scaledFont(13, weight: .bold).foregroundStyle(theme.color(.accent))
                     }
                     .disabled(chapterGen.isGenerating[ep.guid] == true)
                     if let failure = chapterGen.lastFailure[ep.guid] {
-                        Text(failure).font(.system(size: 12)).foregroundStyle(.red)
+                        Text(failure).scaledFont(12).foregroundStyle(.red)
                     }
                 }.frame(maxWidth: 280)
             }
@@ -236,7 +236,7 @@ struct NowPlayingView: View {
     private func adBanner(_ ep: Episode) -> some View {
         HStack {
             Text(settings?.adSkipMode == "auto" ? "Skipping ad…" : "Ad break in progress")
-                .font(.system(size: 13, weight: .semibold))
+                .scaledFont(13, weight: .semibold)
                 .foregroundStyle(theme.color(.text))
             Spacer()
             if settings?.adSkipMode == "manual" {
@@ -247,7 +247,7 @@ struct NowPlayingView: View {
                         playback.seek(toFraction: end / max(1, ep.duration))
                     }
                 }
-                .font(.system(size: 13, weight: .bold))
+                .scaledFont(13, weight: .bold)
                 .foregroundStyle(theme.color(.accent))
             }
         }
@@ -258,7 +258,7 @@ struct NowPlayingView: View {
     private func about(_ ep: Episode) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("About This Episode").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
-            Text(ep.notes).font(.system(size: 14.5)).foregroundStyle(theme.color(.textSecondary))
+            Text(ep.notes).scaledFont(14.5).foregroundStyle(theme.color(.textSecondary))
         }.frame(maxWidth: 280, alignment: .leading)
     }
 
@@ -295,8 +295,8 @@ private struct BackToTranscriptButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: "arrow.uturn.backward").font(.system(size: 13, weight: .bold))
-                Text("Back to transcript").font(.system(size: 13.5, weight: .bold))
+                Image(systemName: "arrow.uturn.backward").scaledFont(13, weight: .bold)
+                Text("Back to transcript").scaledFont(13.5, weight: .bold)
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 16).padding(.vertical, 10)

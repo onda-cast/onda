@@ -15,13 +15,13 @@ struct MiniPlayerView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(ep.title).brutalHeader(size: 14).foregroundStyle(theme.color(.text))
                             .lineLimit(1)
-                        Text(ep.podcast?.title ?? "").font(.system(size: 13.5))
+                        Text(ep.podcast?.title ?? "").scaledFont(13.5)
                             .foregroundStyle(theme.color(.textTertiary))
                     }
                     Spacer(minLength: 8)
                     Button { playback.togglePlayPause() } label: {
                         Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 20)).foregroundStyle(.white)
+                            .scaledFont(20).foregroundStyle(.white)
                             .frame(width: 52, height: 52).background(theme.color(.accent))
                             .brutalBorder(width: 2)
                     }.buttonStyle(.plain)

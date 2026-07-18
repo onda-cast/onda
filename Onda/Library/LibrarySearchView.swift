@@ -23,10 +23,10 @@ struct LibrarySearchView: View {
                     Button { open(hit) } label: {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(hit.showTitle).brutalHeader(size: 12).foregroundStyle(theme.color(.accent))
-                            Text(hit.cueText).font(.system(size: 15)).foregroundStyle(theme.color(.text))
+                            Text(hit.cueText).scaledFont(15).foregroundStyle(theme.color(.text))
                                 .lineLimit(2)
                             Text(hit.episodeTitle + " · " + timeStr(hit.startTime))
-                                .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+                                .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
                         }
                     }
                 }
