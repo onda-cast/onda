@@ -16,7 +16,10 @@ targets:
   Onda:
     type: application
     platform: iOS
-    sources: [Onda]
+    sources:
+      - Onda
+      - path: Resources
+        buildPhase: resources
     dependencies:
       - sdk: libsqlite3.tbd
     # INFOPLIST_KEY_* cannot express array-valued plist keys (UIBackgroundModes,
