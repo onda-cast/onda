@@ -14,6 +14,7 @@ final class FeedRefreshServiceTests: XCTestCase {
         let context: ModelContext
         let subscriptions: SubscriptionService
         let downloads: DownloadManager
+        let appSettings: AppSettings
     }
 
     private func env(feedGuids: [String]) throws -> TestEnv {
@@ -28,13 +29,21 @@ final class FeedRefreshServiceTests: XCTestCase {
         let subs = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed))
         let dm = DownloadManager(persistence: PersistenceActor(modelContainer: container),
                                  session: FakeURLSession())
-        return TestEnv(context: ctx, subscriptions: subs, downloads: dm)
+        let suite = "FeedRefreshTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return TestEnv(context: ctx, subscriptions: subs, downloads: dm,
+                       appSettings: AppSettings(defaults: defaults))
+    }
+
+    private func makeService(_ testEnv: TestEnv) -> FeedRefreshService {
+        FeedRefreshService(modelContext: testEnv.context, subscriptions: testEnv.subscriptions,
+                           downloads: testEnv.downloads, appSettings: testEnv.appSettings)
     }
 
     func test_newEpisodesAfterRefresh_returnsOnlyNewGuids() throws {
         let testEnv = try env(feedGuids: ["a", "b"])
-        let svc = FeedRefreshService(modelContext: testEnv.context,
-                                     subscriptions: testEnv.subscriptions, downloads: testEnv.downloads)
+        let svc = makeService(testEnv)
         let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!, title: "S", author: "A",
                           artworkURL: nil, category: "Tech", itunesId: 1)
         for g in ["a", "b"] {
@@ -54,9 +63,24 @@ final class FeedRefreshServiceTests: XCTestCase {
         let pod = try await testEnv.subscriptions.subscribe(to: dto)     // starts with a,b
         pod.settings?.autoDownload = true
         try testEnv.context.save()
-        let svc = FeedRefreshService(modelContext: testEnv.context,
-                                     subscriptions: testEnv.subscriptions, downloads: testEnv.downloads)
+        let svc = makeService(testEnv)
         await svc.refreshAll()   // no new episodes → nothing downloads
         XCTAssertEqual(testEnv.downloads.state(for: pod.episodes.first!), DownloadState.none)
+    }
+
+    func test_refreshAll_autoDownloads_whenGlobalDefaultOn_andShowHasNoOverride() async throws {
+        let testEnv = try env(feedGuids: ["a"])
+        testEnv.appSettings.defaultAutoDownload = true
+        // Subscribed show with no episodes yet and no per-show override (settings nil).
+        let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!, title: "S", author: "A",
+                          artworkURL: nil, category: "Tech", itunesId: 1, isSubscribed: true)
+        testEnv.context.insert(pod)
+        try testEnv.context.save()
+        let svc = makeService(testEnv)
+        await svc.refreshAll()   // feed adds "a" → new episode, inherited auto-download kicks in
+        let ep = try XCTUnwrap(pod.episodes.first)
+        if case .downloading = testEnv.downloads.state(for: ep) {} else {
+            XCTFail("expected the new episode to start downloading via the global default")
+        }
     }
 }

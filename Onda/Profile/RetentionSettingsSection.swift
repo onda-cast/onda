@@ -14,6 +14,11 @@ struct RetentionSettingsSection: View {
 
             BrutalCard {
                 VStack(spacing: 0) {
+                    toggleRow("Wi-Fi only downloads", subtitle: "Never download over cellular",
+                              isOn: Binding(
+                                get: { appSettings.wifiOnlyDownloads },
+                                set: { appSettings.wifiOnlyDownloads = $0 }))
+                    divider
                     toggleRow("Limit downloads kept", subtitle: "Oldest played episodes are removed first",
                               isOn: Binding(
                                 get: { appSettings.defaultMaxDownloadsKept > 0 },
@@ -25,16 +30,19 @@ struct RetentionSettingsSection: View {
                                    range: 1...50, label: { "\($0)" })
                     }
                     divider
-                    toggleRow("Auto-delete listened", subtitle: "Removes played episodes after a delay",
-                              isOn: Binding(
-                                get: { appSettings.defaultAutoDeleteListenedAfterDays >= 0 },
-                                set: { appSettings.defaultAutoDeleteListenedAfterDays = $0 ? 7 : -1 }))
-                    if appSettings.defaultAutoDeleteListenedAfterDays >= 0 {
-                        stepperRow("After",
-                                   value: Binding(get: { appSettings.defaultAutoDeleteListenedAfterDays },
-                                                  set: { appSettings.defaultAutoDeleteListenedAfterDays = $0 }),
-                                   range: 0...30,
-                                   label: { $0 == 0 ? "Immediately" : "\($0) day\($0 == 1 ? "" : "s")" })
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Delete played episodes").scaledFont(15, weight: .semibold)
+                            .foregroundStyle(theme.color(.text))
+                        SegmentedRow(options: [("Never", -1), ("Done", 0), ("1 day", 1), ("Custom", 7)],
+                                     selection: deletePlayedPreset) {
+                            appSettings.defaultAutoDeleteListenedAfterDays = $0
+                        }
+                        if appSettings.defaultAutoDeleteListenedAfterDays > 1 {
+                            stepperRow("After",
+                                       value: Binding(get: { appSettings.defaultAutoDeleteListenedAfterDays },
+                                                      set: { appSettings.defaultAutoDeleteListenedAfterDays = $0 }),
+                                       range: 2...30, label: { "\($0) days" })
+                        }
                     }
                     divider
                     toggleRow("Auto-transcribe downloads",
@@ -52,6 +60,13 @@ struct RetentionSettingsSection: View {
                 .padding(16)
             }
         }
+    }
+
+    /// Maps the stored day count onto the preset segments; any value ≥ 2 selects "Custom"
+    /// (whose segment value 7 is the starting day count when tapped).
+    private var deletePlayedPreset: Int {
+        let d = appSettings.defaultAutoDeleteListenedAfterDays
+        return d >= 2 ? 7 : d
     }
 
     private var divider: some View {

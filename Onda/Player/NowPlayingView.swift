@@ -6,6 +6,7 @@ struct NowPlayingView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(DownloadManager.self) private var downloads
     @Environment(ChapterGenerationService.self) private var chapterGen
+    @Environment(AppSettings.self) private var appSettings
     @Environment(\.dismiss) private var dismiss
     @State private var showQueue = false
     @State private var showSettings = false
@@ -15,6 +16,10 @@ struct NowPlayingView: View {
 
     private var ep: Episode? { playback.currentEpisode }
     private var settings: ShowSettings? { ep?.podcast?.settings }
+    // Chips display the effective (override ?? global) values; tapping writes a per-show override.
+    private var resolved: ResolvedPlaybackSettings {
+        ResolvedPlaybackSettings(show: settings, app: appSettings)
+    }
 
     var body: some View {
         ScrollView {
@@ -106,8 +111,8 @@ struct NowPlayingView: View {
     // Sized for the smallest supported screens (375pt wide): 60 + 96 + 60 + spacing + padding.
     private var transport: some View {
         HStack(spacing: 20) {
-            Button { playback.skip(by: -15) } label: { skipLabel("gobackward.15") }
-                .accessibilityLabel("Skip back 15 seconds")
+            Button { playback.skipBack() } label: { skipLabel("gobackward.\(appSettings.seekBackSec)") }
+                .accessibilityLabel("Skip back \(appSettings.seekBackSec) seconds")
             Button { playback.togglePlayPause() } label: {
                 Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
                     .scaledFont(36).foregroundStyle(.white)
@@ -115,8 +120,8 @@ struct NowPlayingView: View {
                     .brutalBorder(width: 3).hardShadow(offset: 5)
             }
             .accessibilityLabel(playback.isPlaying ? "Pause" : "Play")
-            Button { playback.skip(by: 30) } label: { skipLabel("goforward.30") }
-                .accessibilityLabel("Skip forward 30 seconds")
+            Button { playback.skipForward() } label: { skipLabel("goforward.\(appSettings.seekForwardSec)") }
+                .accessibilityLabel("Skip forward \(appSettings.seekForwardSec) seconds")
         }.buttonStyle(.plain)
     }
 
@@ -131,11 +136,11 @@ struct NowPlayingView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 // Tap cycles through speeds; long-press opens a menu to pick one directly.
-                Button { cycleSpeed() } label: { chip(speedLabel, active: (settings?.speed ?? 1) != 1) }
+                Button { cycleSpeed() } label: { chip(speedLabel, active: resolved.speed != 1) }
                     .contextMenu {
                         ForEach(Self.speedSteps, id: \.self) { sp in
                             Button { setSpeed(sp) } label: {
-                                if settings?.speed == sp {
+                                if resolved.speed == sp {
                                     Label(Self.speedText(sp), systemImage: "checkmark")
                                 } else {
                                     Text(Self.speedText(sp))
@@ -144,11 +149,11 @@ struct NowPlayingView: View {
                         }
                     }
                 Button { toggleBoost() } label: {
-                    chip("Boost: \(boostLabel)", active: (settings?.voiceBoost ?? 0) > 0)
+                    chip("Boost: \(boostLabel)", active: resolved.voiceBoost > 0)
                 }
                 Button { toggleSilence() } label: {
-                    chip(settings?.skipSilence == true ? "No Silence" : "Silence On",
-                         active: settings?.skipSilence == true)
+                    chip(resolved.skipSilence ? "No Silence" : "Silence On",
+                         active: resolved.skipSilence)
                 }
             }
             .padding(.horizontal, 2)
@@ -167,11 +172,11 @@ struct NowPlayingView: View {
             .brutalBorder(width: 2)
     }
 
-    private var speedLabel: String { Self.speedText(settings?.speed ?? 1.0) }
+    private var speedLabel: String { Self.speedText(resolved.speed) }
     static func speedText(_ s: Double) -> String {
         s == s.rounded() ? "\(Int(s))×" : "\(s)×"
     }
-    private var boostLabel: String { ["Off", "Med", "High"][settings?.voiceBoost ?? 0] }
+    private var boostLabel: String { ["Off", "Med", "High"][min(2, max(0, resolved.voiceBoost))] }
 
     private func chapterList(_ ep: Episode) -> some View {
         Group {
@@ -210,11 +215,11 @@ struct NowPlayingView: View {
 
     private func adBanner(_ ep: Episode) -> some View {
         HStack {
-            Text(settings?.adSkipMode == "auto" ? "Skipping ad…" : "Ad break in progress")
+            Text(resolved.adSkipMode == "auto" ? "Skipping ad…" : "Ad break in progress")
                 .scaledFont(13, weight: .semibold)
                 .foregroundStyle(theme.color(.text))
             Spacer()
-            if settings?.adSkipMode == "manual" {
+            if resolved.adSkipMode == "manual" {
                 Button("Skip Ad") {
                     let w = AdWindow(chapters: ep.chapters.map { ($0.startTime, $0.isAd) },
                                      duration: ep.duration)
@@ -324,11 +329,10 @@ extension NowPlayingView {
 
     static let speedSteps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
 
-    /// Tap: advance to the next speed step (wrapping).
+    /// Tap: advance to the next speed step (wrapping). Writes a per-show override.
     func cycleSpeed() {
-        guard let s = settings else { return }
         let steps = Self.speedSteps
-        let i = steps.firstIndex(of: s.speed) ?? 1
+        let i = steps.firstIndex(of: resolved.speed) ?? 1
         setSpeed(steps[(i + 1) % steps.count])
     }
 
@@ -338,11 +342,13 @@ extension NowPlayingView {
         playback.applyAudioSettings()
     }
     func toggleBoost() {
-        settings.map { $0.voiceBoost = ($0.voiceBoost + 1) % 3 }
+        let next = (resolved.voiceBoost + 1) % 3
+        settings.map { $0.voiceBoost = next }
         playback.applyAudioSettings()
     }
     func toggleSilence() {
-        settings.map { $0.skipSilence.toggle() }
+        let next = !resolved.skipSilence
+        settings.map { $0.skipSilence = next }
         playback.applyAudioSettings()
     }
 

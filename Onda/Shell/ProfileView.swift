@@ -25,6 +25,8 @@ struct ProfileView: View {
                         .padding(16)
                     }
 
+                    PlaybackSettingsSection()
+
                     RetentionSettingsSection()
 
                     Text("General").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))

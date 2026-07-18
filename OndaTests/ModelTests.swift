@@ -61,13 +61,13 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(trs.first?.episode?.guid, "g")
     }
 
-    func test_showSettingsDefault_hasExpectedValues() {
+    func test_showSettingsDefault_inheritsEveryGlobal() {
         let s = ShowSettings.makeDefault()
-        XCTAssertEqual(s.speed, 1.0)
-        XCTAssertEqual(s.voiceBoost, 0)
-        XCTAssertFalse(s.skipSilence)
-        XCTAssertEqual(s.adSkipMode, "off")
-        XCTAssertFalse(s.autoDownload)
+        XCTAssertNil(s.speed)
+        XCTAssertNil(s.voiceBoost)
+        XCTAssertNil(s.skipSilence)
+        XCTAssertNil(s.adSkipMode)
+        XCTAssertNil(s.autoDownload)
         XCTAssertEqual(s.introTrimSec, 0)
         XCTAssertEqual(s.outroTrimSec, 0)
         XCTAssertEqual(s.notifMode, "all")

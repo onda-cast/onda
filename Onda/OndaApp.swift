@@ -35,8 +35,8 @@ struct OndaApp: App {
             let dm = DownloadManager(persistence: PersistenceActor(modelContainer: c))
             _subscriptions = State(initialValue: subs)
             _downloads = State(initialValue: dm)
-            let pm = PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext)
-            pm.ensureDownloaded = { [weak dm] in dm?.download($0) }
+            let pm = PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext,
+                                     appSettings: settings)
             _playback = State(initialValue: pm)
             let engine: AudioTranscribing? = {
                 if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }
@@ -58,12 +58,9 @@ struct OndaApp: App {
             OndaApp.seedSearchIndexIfEmpty(index, context: c.mainContext)
             let cs = ClipService(modelContext: c.mainContext, index: index)
             _clips = State(initialValue: cs)
-            pm.onCaptureRequested = { [weak pm] in
-                guard let pm, let ep = pm.currentEpisode else { return }
-                cs.quickClip(episode: ep, at: pm.positionSeconds)
-                pm.showCaptureToast("Clipped last \(Int(ClipService.quickClipWindow))s")
-            }
-            let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs, downloads: dm)
+            OndaApp.wirePlayback(pm: pm, dm: dm, cs: cs, settings: settings)
+            let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs,
+                                        downloads: dm, appSettings: settings)
             rs.retention = ret
             rs.registerBackgroundTask()
             _refresh = State(initialValue: rs)
@@ -78,9 +75,22 @@ struct OndaApp: App {
         }
     }
 
+    private static func wirePlayback(pm: PlaybackManager, dm: DownloadManager,
+                                     cs: ClipService, settings: AppSettings) {
+        pm.ensureDownloaded = { [weak dm] in dm?.download($0) }
+        dm.cellularAllowed = { !settings.wifiOnlyDownloads }
+        pm.onCaptureRequested = { [weak pm] in
+            guard let pm, let ep = pm.currentEpisode else { return }
+            cs.quickClip(episode: ep, at: pm.positionSeconds)
+            pm.showCaptureToast("Clipped last \(Int(ClipService.quickClipWindow))s")
+        }
+    }
+
     private static func wireRetention(subs: SubscriptionService, dm: DownloadManager,
                                       ret: EpisodeRetentionService, ts: TranscriptService,
                                       context: ModelContext) {
+        // One-time normalization of pre-override ShowSettings rows (no-op after first launch).
+        ShowSettingsMigrator.normalizeAll(in: context)
         subs.retention = ret
         subs.deleteDownload = { [weak dm] in dm?.delete($0) }
         subs.downloadEpisode = { [weak dm] in dm?.download($0) }

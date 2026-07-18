@@ -4,11 +4,12 @@ import SwiftData
 
 @Model
 final class ShowSettings {
-    var speed: Double
-    var voiceBoost: Int         // 0 = Off, 1 = Med, 2 = High
-    var skipSilence: Bool
-    var adSkipMode: String      // "off" | "manual" | "auto"
-    var autoDownload: Bool
+    // Playback overrides — nil inherits the AppSettings global default.
+    var speed: Double?
+    var voiceBoost: Int?        // 0 = Off, 1 = Med, 2 = High
+    var skipSilence: Bool?
+    var adSkipMode: String?     // "off" | "manual" | "auto"
+    var autoDownload: Bool?
     var introTrimSec: Int
     var outroTrimSec: Int
     var notifMode: String       // "all" | "important" | "none"
@@ -20,8 +21,9 @@ final class ShowSettings {
     var ttsVoiceIdentifier: String?   // Articles show only; nil = system default voice
     var podcast: Podcast?
 
-    init(speed: Double, voiceBoost: Int, skipSilence: Bool, adSkipMode: String,
-         autoDownload: Bool, introTrimSec: Int, outroTrimSec: Int, notifMode: String) {
+    init(speed: Double? = nil, voiceBoost: Int? = nil, skipSilence: Bool? = nil,
+         adSkipMode: String? = nil, autoDownload: Bool? = nil,
+         introTrimSec: Int = 0, outroTrimSec: Int = 0, notifMode: String = "all") {
         self.speed = speed
         self.voiceBoost = voiceBoost
         self.skipSilence = skipSilence
@@ -32,8 +34,6 @@ final class ShowSettings {
         self.notifMode = notifMode
     }
 
-    static func makeDefault() -> ShowSettings {
-        ShowSettings(speed: 1.0, voiceBoost: 0, skipSilence: false, adSkipMode: "off",
-                     autoDownload: false, introTrimSec: 0, outroTrimSec: 0, notifMode: "all")
-    }
+    /// Fresh settings that inherit every global default (all overrides nil).
+    static func makeDefault() -> ShowSettings { ShowSettings() }
 }
