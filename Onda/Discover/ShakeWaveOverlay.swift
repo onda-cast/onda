@@ -14,6 +14,12 @@ struct WaveBandShape: Shape {
     var wavelength: CGFloat
     var phase: CGFloat
 
+    // Animating `phase` rolls the scallops along the edges while the band sweeps.
+    var animatableData: CGFloat {
+        get { phase }
+        set { phase = newValue }
+    }
+
     func path(in rect: CGRect) -> Path {
         var p = Path()
         let leadX = rect.maxX - amplitude
@@ -48,6 +54,8 @@ struct ShakeWaveOverlay: View {
 
     // One entry per band; progress 0 = parked off-screen left, 1 = exited off-screen right.
     @State private var progress: [CGFloat] = [0, 0, 0]
+    // Extra phase added to each band's sine edges; animating it makes the scallops undulate.
+    @State private var undulation: [CGFloat] = [0, 0, 0]
 
     private struct Band {
         let lightHex: String
@@ -71,7 +79,7 @@ struct ShakeWaveOverlay: View {
                 // Draw deep-navy first so the lighter, earlier bands overlap in front of it.
                 ZStack(alignment: .topLeading) {
                     ForEach(Array(Self.bands.enumerated().reversed()), id: \.offset) { i, band in
-                        bandView(band, size: geo.size)
+                        bandView(band, index: i, size: geo.size)
                             // Band is 1.4× screen width; travel from fully off left to fully
                             // off right so nothing is visible at progress 0 or 1.
                             .offset(x: -1.5 * geo.size.width + progress[i] * 3.0 * geo.size.width)
@@ -83,10 +91,10 @@ struct ShakeWaveOverlay: View {
         }
     }
 
-    private func bandView(_ band: Band, size: CGSize) -> some View {
+    private func bandView(_ band: Band, index: Int, size: CGSize) -> some View {
         let shape = WaveBandShape(amplitude: band.amplitude,
                                   wavelength: band.wavelength,
-                                  phase: band.phase)
+                                  phase: band.phase + undulation[index])
         let isDark = theme.resolvedAppearance == .dark
         let fill = Color(hex: isDark ? band.darkHex : band.lightHex)
         return ZStack {
@@ -101,13 +109,20 @@ struct ShakeWaveOverlay: View {
 
     private func sweep() {
         // Instant reset (no withAnimation) so a shake mid-sweep restarts from the left.
-        for i in Self.bands.indices { progress[i] = 0 }
+        for i in Self.bands.indices {
+            progress[i] = 0
+            undulation[i] = 0
+        }
         // Defer the animated set one runloop turn: if reset and animation land in the same
         // update, SwiftUI animates from the last *rendered* value (1 → 1 = no sweep at all).
         Task { @MainActor in
             for i in Self.bands.indices {
                 withAnimation(.easeInOut(duration: 0.85).delay(Self.bands[i].delay)) {
                     progress[i] = 1
+                }
+                // Linear so the scallops roll at a constant rate for the whole sweep.
+                withAnimation(.linear(duration: 0.85).delay(Self.bands[i].delay)) {
+                    undulation[i] = 3 * .pi
                 }
             }
         }
