@@ -10,6 +10,7 @@ struct EpisodeListView: View {
     @Environment(DownloadManager.self) private var downloads
     @Environment(AppSettings.self) private var appSettings
     @Environment(SearchIndexBox.self) private var searchIndexBox
+    @Environment(ArticleConversionService.self) private var articles
     @Environment(\.dismiss) private var dismiss
     let podcast: Podcast
     @State private var showSettings = false
@@ -58,6 +59,16 @@ struct EpisodeListView: View {
             }
             .listRowBackground(theme.color(.bg))
             .listRowSeparator(.hidden)
+
+            if podcast.isLocal {
+                ForEach(articles.pending) { item in
+                    ArticlePendingRow(item: item,
+                                      onRetry: { articles.retry(url: item.id) },
+                                      onDismiss: { articles.dismiss(url: item.id) })
+                        .listRowBackground(theme.color(.bg))
+                        .listRowSeparator(.hidden)
+                }
+            }
 
             ForEach(displayedEpisodes) { ep in
                 EpisodeRow(episode: ep,
@@ -163,6 +174,7 @@ struct EpisodeListView: View {
     }
 
     private func refresh() async {
+        guard !podcast.isLocal else { return }
         try? await subscriptions.refreshEpisodes(for: podcast)
     }
 
@@ -174,7 +186,7 @@ struct EpisodeListView: View {
                 Text(podcast.title).brutalHeader(size: 20).foregroundStyle(theme.color(.text))
                 Text(podcast.category).font(.system(size: 13))
                     .foregroundStyle(theme.color(.textTertiary))
-                Button("Unsubscribe") {
+                Button(podcast.isLocal ? "Delete Show" : "Unsubscribe") {
                     subscriptions.unsubscribe(podcast); dismiss()
                 }
                 .font(.system(size: 13, weight: .bold)).foregroundStyle(theme.color(.accent))

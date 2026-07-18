@@ -127,4 +127,21 @@ final class SubscriptionServiceTests: XCTestCase {
         let pods = try ctx.fetch(FetchDescriptor<Podcast>())
         XCTAssertEqual(pods.count, 1)
     }
+
+    func test_refreshEpisodes_localShow_neverTouchesTheFeed() async throws {
+        struct ThrowingFeeds: FeedFetching {
+            func fetchFeed(_ url: URL) async throws -> ParsedFeed {
+                XCTFail("local shows must not be fetched")
+                throw NSError(domain: "test", code: 1)
+            }
+        }
+        let ctx = try context()
+        let svc = SubscriptionService(modelContext: ctx, feeds: ThrowingFeeds())
+        let pod = Podcast(feedURL: URL(string: "onda-local:articles")!, title: "Articles",
+                          author: "You", artworkURL: nil, category: "Articles", itunesId: nil,
+                          isSubscribed: true)
+        pod.isLocal = true
+        ctx.insert(pod)
+        try await svc.refreshEpisodes(for: pod)   // must be a silent no-op
+    }
 }

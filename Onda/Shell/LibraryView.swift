@@ -204,15 +204,17 @@ struct LibraryView: View {
     }
 
     @ViewBuilder private func contextMenu(for show: Podcast) -> some View {
-        Button { checkUpdates(show) } label: { Label("Check for Updates", systemImage: "arrow.clockwise") }
-        Button { downloadLatest(show) } label: { Label("Download Latest", systemImage: "arrow.down.circle") }
+        if !show.isLocal {
+            Button { checkUpdates(show) } label: { Label("Check for Updates", systemImage: "arrow.clockwise") }
+            Button { downloadLatest(show) } label: { Label("Download Latest", systemImage: "arrow.down.circle") }
+        }
         Button { settingsPodcast = show } label: { Label("Show Settings", systemImage: "gearshape") }
         Button { subscriptions.markAllPlayed(for: show) } label: {
             Label("Mark All Played", systemImage: "checkmark.circle")
         }
         Divider()
         Button(role: .destructive) { unsubscribeTarget = show } label: {
-            Label("Unsubscribe", systemImage: "trash")
+            Label(show.isLocal ? "Delete Articles Show" : "Unsubscribe", systemImage: "trash")
         }
     }
 

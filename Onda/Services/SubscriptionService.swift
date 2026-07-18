@@ -95,6 +95,7 @@ final class SubscriptionService {
     }
 
     func refreshEpisodes(for podcast: Podcast) async throws {
+        guard !podcast.isLocal else { return }   // synthetic shows have no feed to poll
         let feed = try await feeds.fetchFeed(podcast.feedURL)
         let existing = Set(podcast.episodes.map(\.guid))
         // Build new episodes first and extend the relationship ONCE — per-item appends to a
