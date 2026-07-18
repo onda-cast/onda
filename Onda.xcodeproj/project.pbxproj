@@ -162,6 +162,7 @@
 		EBF3D546A8A34C903BA08430 /* TrendingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724742E0E1635727F2999811 /* TrendingRow.swift */; };
 		ED63B54DE41FB02973EB229B /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 30A2540F9C13B4E709BA6570 /* libsqlite3.tbd */; };
 		EE0DD6B7A6CAB3E4DF728838 /* uitest-audio.aiff in Resources */ = {isa = PBXBuildFile; fileRef = 3F65138271FBACF93B441DAA /* uitest-audio.aiff */; };
+		EEDA880E7415DD01CE31C1FD /* ShakeWaveOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09095FFCD1695D9823847A7F /* ShakeWaveOverlay.swift */; };
 		F339BE46425621A1A28C19E7 /* AdWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1167AF2050B72699C1A53695 /* AdWindow.swift */; };
 		F355B50995E50BD922CAE0BE /* AddArticleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0080ED4EBE0E4CA668C71C /* AddArticleSheet.swift */; };
 		F62F7E968FAA1FB666FE6430 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 323028D4CD592C6D201924EF /* AppSettings.swift */; };
@@ -218,6 +219,7 @@
 		027D2498D259920B8FD7659E /* SpeechEngineReproTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechEngineReproTests.swift; sourceTree = "<group>"; };
 		02CC59D6F9385B3EF735B13B /* LibrarySort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySort.swift; sourceTree = "<group>"; };
 		038C26F4DBED21BB7B7008BE /* SilenceDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SilenceDetector.swift; sourceTree = "<group>"; };
+		09095FFCD1695D9823847A7F /* ShakeWaveOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeWaveOverlay.swift; sourceTree = "<group>"; };
 		093C510B4884B6D866862854 /* ScaledFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaledFont.swift; sourceTree = "<group>"; };
 		097BB2EF5DA616773F62F1C3 /* TranscriptServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptServiceTests.swift; sourceTree = "<group>"; };
 		0CCAE772148CAAD909064824 /* ArticleSpeechRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleSpeechRenderer.swift; sourceTree = "<group>"; };
@@ -507,6 +509,7 @@
 				785F5307E3C823FEC78A931B /* DealtCard.swift */,
 				F24D279FF00ABC8C8E030FBF /* DiscoverSuggestions.swift */,
 				A6D6D5D1903CED676E1E2D66 /* ShakeDetector.swift */,
+				09095FFCD1695D9823847A7F /* ShakeWaveOverlay.swift */,
 				724742E0E1635727F2999811 /* TrendingRow.swift */,
 			);
 			path = Discover;
@@ -1060,6 +1063,7 @@
 				F8112CCD4BFC192E00FC7B69 /* SegmentedRow.swift in Sources */,
 				3ED5A80D04F79C5DFCD21188 /* SentenceSplitter.swift in Sources */,
 				B5B0D046340EEAB9B6F12F16 /* ShakeDetector.swift in Sources */,
+				EEDA880E7415DD01CE31C1FD /* ShakeWaveOverlay.swift in Sources */,
 				78C50A91BD56CB1F74763998 /* ShowCard.swift in Sources */,
 				C4C5120BA3D15BB3B79D6421 /* ShowSettings.swift in Sources */,
 				134B411898C677C4F030743D /* ShowSettingsSheet.swift in Sources */,
