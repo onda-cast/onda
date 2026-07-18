@@ -172,6 +172,7 @@ struct DiscoverView: View {
             }
             .padding(.horizontal, 20).padding(.bottom, 120)
         }
+        .refreshable { await pullRefresh() }
         // Dice-cup wobble the moment a shake registers — feedback that the roll is happening,
         // before the network round-trip lands the results.
         .phaseAnimator([0, -1.6, 1.9, -1.2, 0.8, 0], trigger: shakeCount) { view, angle in
@@ -382,6 +383,19 @@ extension DiscoverView {
             shake = ShakeState(picks: result.picks, categories: result.categories,
                                usedFallback: result.usedFallback, title: title)
             dealID += 1   // re-deals the cards and fires the landing haptic
+        }
+    }
+
+    // Pull-to-refresh reloads whatever the user is looking at: an active search re-runs, Browse
+    // force-refetches today's charts (bypassing the day cache), For You recomputes in place.
+    // (@Sendable refreshable closure calls this MainActor func — never touch services inline.)
+    func pullRefresh() async {
+        if mode == .forYou {
+            await recs.refresh(followedCategories: followedCategories)
+        } else if isSearching {
+            await runSearch(query)
+        } else {
+            await clientBox.loadTrendingIfNeeded(force: true)
         }
     }
 
