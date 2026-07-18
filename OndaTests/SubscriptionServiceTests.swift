@@ -31,6 +31,25 @@ final class SubscriptionServiceTests: XCTestCase {
                    })
     }
 
+    func test_subscribe_autoDownloadsNewestEpisode() async throws {
+        let ctx = try context()
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let feed = ParsedFeed(title: "The Signal", author: "Ex", artworkURL: nil, category: "Tech",
+                              episodes: [
+                                ParsedEpisode(guid: "old", title: "Old", publishDate: base,
+                                              duration: 100, audioURL: URL(string: "https://ex.com/old.mp3")!,
+                                              notes: "", chaptersURL: nil),
+                                ParsedEpisode(guid: "new", title: "New", publishDate: base.addingTimeInterval(86_400),
+                                              duration: 100, audioURL: URL(string: "https://ex.com/new.mp3")!,
+                                              notes: "", chaptersURL: nil)
+                              ])
+        let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed))
+        var downloaded: [String] = []
+        svc.downloadEpisode = { downloaded.append($0.guid) }
+        _ = try await svc.subscribe(to: dto())
+        XCTAssertEqual(downloaded, ["new"], "only the newest episode auto-downloads on subscribe")
+    }
+
     func test_subscribe_createsPodcastSettingsAndEpisodes() async throws {
         let ctx = try context()
         let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a", "b"])))

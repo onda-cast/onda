@@ -75,6 +75,7 @@ struct OndaApp: App {
                                       context: ModelContext) {
         subs.retention = ret
         subs.deleteDownload = { [weak dm] in dm?.delete($0) }
+        subs.downloadEpisode = { [weak dm] in dm?.download($0) }
         dm.onDownloadCompleted = { guid in
             OndaApp.autoTranscribeIfEnabled(guid: guid, context: context,
                                             retention: ret, transcripts: ts)

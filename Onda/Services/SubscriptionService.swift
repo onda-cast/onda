@@ -11,6 +11,7 @@ final class SubscriptionService {
     // retention sweep runs reactively on mark-played, and unsubscribe frees downloads.
     var retention: EpisodeRetentionService?
     var deleteDownload: ((Episode) -> Void)?
+    var downloadEpisode: ((Episode) -> Void)?   // wired to DownloadManager.download in OndaApp
 
     init(modelContext: ModelContext, feeds: FeedFetching) {
         self.modelContext = modelContext
@@ -37,6 +38,10 @@ final class SubscriptionService {
         }
         try await refreshEpisodes(for: podcast)
         try modelContext.save()
+        // Grab the latest episode so a freshly-subscribed show has something ready offline.
+        if let newest = podcast.episodes.max(by: { $0.publishDate < $1.publishDate }) {
+            downloadEpisode?(newest)   // idempotent in DownloadManager
+        }
         return podcast
     }
 
