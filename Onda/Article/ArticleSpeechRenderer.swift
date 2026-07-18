@@ -4,6 +4,16 @@ import AVFoundation
 
 enum ArticleRenderError: Error, Equatable { case noSentences, synthesisFailed, fileWriteFailed }
 
+extension ArticleRenderError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .noSentences: "No text to read aloud."
+        case .synthesisFailed: "Speech synthesis failed."
+        case .fileWriteFailed: "Couldn't save the audio file."
+        }
+    }
+}
+
 struct RenderedArticleAudio: Sendable {
     let fileURL: URL
     let duration: TimeInterval

@@ -20,8 +20,66 @@ private struct FakeRenderer: ArticleSpeechRendering {
     }
 }
 
+/// Coordinates a gated fake render call so tests can deterministically catch a conversion
+/// mid-flight: waitForEntry() suspends until the renderer is actually blocked inside render(),
+/// and release() lets it proceed. Cancellation is detected by the renderer itself (via
+/// Task.checkCancellation() in its poll loop) without needing an explicit release.
+private actor Gate {
+    private(set) var isReleased = false
+    private var entered = false
+    private var entryContinuation: CheckedContinuation<Void, Never>?
+
+    func enter() {
+        entered = true
+        entryContinuation?.resume()
+        entryContinuation = nil
+    }
+
+    func waitForEntry() async {
+        if entered { return }
+        await withCheckedContinuation { entryContinuation = $0 }
+    }
+
+    func release() { isReleased = true }
+}
+
+/// A renderer that blocks inside render() until the test releases its Gate, polling for
+/// cancellation in the meantime so a cancelled Task unwinds promptly without waiting for release.
+private struct GatedRenderer: ArticleSpeechRendering {
+    let gate: Gate
+    var duration: TimeInterval = 3.0
+    var cues: [ParsedCue] = [ParsedCue(startTime: 0, endTime: 1.5, text: "One.", speaker: nil)]
+
+    func render(sentences: [String], voiceIdentifier: String?, outputURL: URL,
+                progress: @escaping @Sendable (Double) -> Void) async throws -> RenderedArticleAudio {
+        await gate.enter()
+        while await !gate.isReleased {
+            try Task.checkCancellation()
+            try await Task.sleep(nanoseconds: 5_000_000)
+        }
+        try Task.checkCancellation()
+        try FileManager.default.createDirectory(at: outputURL.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try Data(repeating: 0, count: 64).write(to: outputURL)
+        progress(1)
+        return RenderedArticleAudio(fileURL: outputURL, duration: duration, cues: cues)
+    }
+}
+
 @MainActor
 final class ArticleConversionServiceTests: XCTestCase {
+    /// Polls a condition with a bounded timeout instead of a single arbitrary sleep. Used both
+    /// to wait for a conversion to settle and to confirm a bad state never appears.
+    @discardableResult
+    private func poll(timeout: TimeInterval = 1.0, _ condition: () -> Bool) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return true }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        return condition()
+    }
+
     private func makeContext() throws -> ModelContext {
         let c = try ModelContainer(for: Schema(ondaSchema),
                                    configurations: ModelConfiguration(isStoredInMemoryOnly: true))
@@ -124,5 +182,53 @@ final class ArticleConversionServiceTests: XCTestCase {
         XCTAssertEqual(svc.pending.count, 1)
         svc.dismiss(url: url)
         XCTAssertTrue(svc.pending.isEmpty)
+    }
+
+    func test_dismissThenReAdd_whileFirstConversionInFlight_producesExactlyOneEpisode() async throws {
+        let ctx = try makeContext()
+        let gate = Gate()
+        let svc = makeService(ctx: ctx, extract: { _ in self.article },
+                              renderer: GatedRenderer(gate: gate))
+        let url = URL(string: "https://example.com/race")!
+
+        svc.add(url: url)
+        await gate.waitForEntry()   // task A is genuinely in flight, blocked inside render()
+        svc.dismiss(url: url)
+        svc.add(url: url)          // task B starts concurrently while A is still unwinding
+        await gate.release()       // lets both A (which self-cancels) and B proceed
+
+        let settled = await poll { svc.pending.isEmpty }
+        XCTAssertTrue(settled, "conversion did not settle within the timeout")
+
+        let eps = try ctx.fetch(FetchDescriptor<Episode>())
+        XCTAssertEqual(eps.count, 1, "dismiss + re-add during an in-flight conversion must not duplicate the episode")
+        XCTAssertTrue(svc.pending.isEmpty)
+        XCTAssertNil(svc.pending.first(where: { $0.id == url })?.failure)
+
+        if let ep = eps.first {
+            try? FileManager.default.removeItem(
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+        }
+    }
+
+    func test_dismiss_whileConversionInFlight_cancelsWithoutResurrectingOrCreatingEpisode() async throws {
+        let ctx = try makeContext()
+        let gate = Gate()
+        let svc = makeService(ctx: ctx, extract: { _ in self.article },
+                              renderer: GatedRenderer(gate: gate))
+        let url = URL(string: "https://example.com/cancel")!
+
+        svc.add(url: url)
+        await gate.waitForEntry()   // conversion is genuinely in flight, blocked inside render()
+        svc.dismiss(url: url)
+        await gate.release()        // let the (already-cancelled) render() call unwind
+
+        // Give the cancelled task a bounded window to finish; a bug here would either
+        // resurrect the pending row or insert an episode from a cancelled conversion.
+        await poll(timeout: 0.3) { (try? ctx.fetch(FetchDescriptor<Episode>()).isEmpty) == false }
+
+        XCTAssertTrue(svc.pending.isEmpty, "a cancelled conversion must not resurrect the dismissed row")
+        XCTAssertTrue(try ctx.fetch(FetchDescriptor<Episode>()).isEmpty,
+                      "a cancelled conversion must not create an episode")
     }
 }

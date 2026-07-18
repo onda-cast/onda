@@ -28,6 +28,10 @@ final class ArticleConversionService {
 
     var pending: [Pending] = []
 
+    /// Tracks the in-flight conversion Task per URL so dismiss() can cancel it and add() can
+    /// tell "already converting" apart from "failed, needs a fresh attempt".
+    private var tasks: [URL: Task<Void, Never>] = [:]
+
     init(modelContext: ModelContext, extract: @escaping Extract,
          renderer: ArticleSpeechRendering,
          persistTranscript: @escaping (Episode, [ParsedCue]) -> Void) {
@@ -39,10 +43,10 @@ final class ArticleConversionService {
 
     func add(url: URL) {
         // Idempotent while in flight; re-adding a failed URL restarts it.
-        if let existing = pending.first(where: { $0.id == url }), existing.failure == nil { return }
+        if tasks[url] != nil { return }
         pending.removeAll { $0.id == url }
         pending.insert(Pending(id: url), at: 0)
-        Task { await convert(url) }
+        tasks[url] = Task { [weak self] in await self?.convert(url) }
     }
 
     func retry(url: URL) {
@@ -51,6 +55,8 @@ final class ArticleConversionService {
     }
 
     func dismiss(url: URL) {
+        tasks[url]?.cancel()
+        tasks[url] = nil
         pending.removeAll { $0.id == url }
     }
 
@@ -80,6 +86,9 @@ final class ArticleConversionService {
     }
 
     func convert(_ url: URL) async {
+        // Clears the in-flight marker on every exit path (success, failure, or cancellation),
+        // including when convert() is invoked directly (tests, queue drain) without add().
+        defer { tasks[url] = nil }
         setStage(url, .fetching)
         do {
             let article = try await extract(url)
@@ -93,11 +102,26 @@ final class ArticleConversionService {
                 sentences: sentences, voiceIdentifier: currentVoiceIdentifier(),
                 outputURL: out,
                 progress: { [weak self] p in
-                    Task { @MainActor in self?.setStage(url, .synthesizing(p)) }
+                    Task { @MainActor in self?.updateStage(url, .synthesizing(p)) }
                 })
+            // A dismiss() may have cancelled this Task while render() was finishing up; don't
+            // resurrect the dismissed row with a freshly-inserted episode. render() already
+            // succeeded, so clean up the now-orphaned audio file it wrote.
+            guard !Task.isCancelled else {
+                try? FileManager.default.removeItem(at: out)
+                pending.removeAll { $0.id == url }
+                return
+            }
             insertEpisode(guid: guid, url: url, article: article, rendered: rendered)
             pending.removeAll { $0.id == url }
         } catch {
+            // The extractor maps cancellation to .timeout and the renderer throws
+            // CancellationError, so check Task.isCancelled directly rather than the error type.
+            // A cancelled conversion must not resurrect or fail-mark a dismissed row.
+            guard !Task.isCancelled else {
+                pending.removeAll { $0.id == url }
+                return
+            }
             setFailure(url, message: (error as? LocalizedError)?.errorDescription
                        ?? "Conversion failed: \(error.localizedDescription)")
         }
@@ -150,6 +174,14 @@ final class ArticleConversionService {
         } else {
             pending.insert(Pending(id: url, stage: stage), at: 0)
         }
+    }
+
+    /// Update-only: for progress ticks, which must never resurrect a row that dismiss() already
+    /// removed (unlike setStage's upsert, used only for the two stage transitions in convert()).
+    private func updateStage(_ url: URL, _ stage: Stage) {
+        guard let i = pending.firstIndex(where: { $0.id == url }) else { return }
+        pending[i].stage = stage
+        pending[i].failure = nil
     }
 
     private func setFailure(_ url: URL, message: String) {
