@@ -53,6 +53,11 @@ struct LibraryView: View {
     private var chipsOverflow: Bool { chipsContentWidth > chipsViewportWidth + 1 }
     @State private var toast: String?
     @State private var pendingSmartQueue: [Episode]?
+    // Chips FILTER the library (like Discover's chips); queue replacement only happens via the
+    // explicit Play All button inside a filtered view.
+    @State private var activeFilter: SmartQueue?
+    @State private var detailEpisode: Episode?
+    @State private var pendingDownloadDelete: Episode?
 
     var body: some View {
         NavigationStack {
@@ -89,18 +94,32 @@ struct LibraryView: View {
                             HStack(spacing: 10) {
                                 ForEach(SmartQueue.allCases, id: \.self) { sq in
                                     let isEmpty = !sq.hasMatches(in: allEpisodes)
+                                    let isActive = activeFilter == sq
+                                    // Filter toggle — same mental model as Discover's chips. The
+                                    // queue is only touched by the explicit Play All button.
                                     Button {
-                                        startSmartQueue(sq.apply(to: allEpisodes))
+                                        withAnimation(.easeOut(duration: 0.15)) {
+                                            activeFilter = isActive ? nil : sq
+                                        }
                                     } label: {
-                                        Text(sq.label.uppercased())
-                                            .scaledFont(12, weight: .bold)
-                                            .foregroundStyle(theme.color(.textSecondary))
-                                            .padding(.horizontal, 12).padding(.vertical, 8)
-                                            .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                                        HStack(spacing: 4) {
+                                            if isActive {
+                                                Image(systemName: "checkmark")
+                                                    .scaledFont(10, weight: .black)
+                                            }
+                                            Text(sq.label.uppercased())
+                                                .scaledFont(12, weight: .bold)
+                                        }
+                                        .foregroundStyle(isActive ? .white : theme.color(.textSecondary))
+                                        .padding(.horizontal, 12).padding(.vertical, 8)
+                                        .background(isActive ? theme.color(.accentStrong)
+                                                             : theme.color(.bgElevated))
+                                        .brutalBorder(width: 2)
                                     }
                                     .buttonStyle(.plain)
-                                    .disabled(isEmpty)
-                                    .opacity(isEmpty ? 0.4 : 1)
+                                    .disabled(isEmpty && !isActive)
+                                    .opacity(isEmpty && !isActive ? 0.4 : 1)
+                                    .accessibilityAddTraits(isActive ? .isSelected : [])
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -133,6 +152,9 @@ struct LibraryView: View {
                         Text("No shows yet — find some in Discover")
                             .foregroundStyle(theme.color(.textTertiary))
                             .frame(maxWidth: .infinity).padding(.top, 80)
+                    } else if let filter = activeFilter {
+                        filteredEpisodeList(filter)
+                            .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 120)
                     } else {
                         libraryContent
                             .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 120)
@@ -144,6 +166,16 @@ struct LibraryView: View {
             .sheet(isPresented: $showSearch) { LibrarySearchView() }
             .sheet(isPresented: $showClips) { ClipsView() }
             .sheet(item: $settingsPodcast) { ShowSettingsSheet(podcast: $0) }
+            .sheet(item: $detailEpisode) { EpisodeDetailView(episode: $0) }
+            .confirmationDialog("Delete this download?",
+                                isPresented: Binding(get: { pendingDownloadDelete != nil },
+                                                     set: { if !$0 { pendingDownloadDelete = nil } }),
+                                titleVisibility: .visible, presenting: pendingDownloadDelete) { ep in
+                Button("Delete Download", role: .destructive) { downloads.delete(ep) }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("The episode stays in your library and can stream or re-download.")
+            }
             .confirmationDialog("Unsubscribe from \(unsubscribeTarget?.title ?? "")?",
                                 isPresented: Binding(get: { unsubscribeTarget != nil },
                                                      set: { if !$0 { unsubscribeTarget = nil } }),
@@ -186,6 +218,10 @@ struct LibraryView: View {
         }
     }
 
+}
+
+// MARK: - Layout menu, show list, and context actions
+extension LibraryView {
     private var layoutMenu: some View {
         Menu {
             // Header states the active value; the inline Picker checkmarks the selected row —
@@ -294,6 +330,57 @@ struct LibraryView: View {
         Task {
             try? await Task.sleep(for: .seconds(2))
             withAnimation { toast = nil }
+        }
+    }
+}
+
+// MARK: - Chip-filtered episode list
+extension LibraryView {
+    /// The library content while a chip filter is active: matching episodes across all shows.
+    /// Tapping a row plays that one episode; only the explicit Play All replaces the queue.
+    @ViewBuilder func filteredEpisodeList(_ filter: SmartQueue) -> some View {
+        let episodes = filter.apply(to: shows.flatMap(\.episodes))
+        if episodes.isEmpty {
+            Text("No \(filter.label.lowercased()) episodes")
+                .foregroundStyle(theme.color(.textTertiary))
+                .frame(maxWidth: .infinity).padding(.top, 60)
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("\(episodes.count) episode\(episodes.count == 1 ? "" : "s")")
+                        .brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
+                    Spacer()
+                    Button {
+                        startSmartQueue(episodes)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "play.fill").scaledFont(11, weight: .bold)
+                            Text("PLAY ALL").scaledFont(12, weight: .bold)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12).frame(height: 34)
+                        .background(theme.color(.accentStrong)).brutalBorder(width: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Play all \(episodes.count) episodes")
+                }
+                .padding(.bottom, 6)
+                ForEach(episodes, id: \.guid) { ep in
+                    EpisodeRow(episode: ep,
+                               downloadState: downloads.state(for: ep),
+                               showLabel: ep.podcast?.title,
+                               onPlay: { playback.play(ep) },
+                               onDownload: {
+                                   switch downloads.state(for: ep) {
+                                   case .downloaded: pendingDownloadDelete = ep
+                                   case .failed:     downloads.retryManually(guid: ep.guid)
+                                   case .downloading: break
+                                   case .none:       downloads.download(ep)
+                                   }
+                               },
+                               onOpen: { detailEpisode = ep })
+                }
+            }
         }
     }
 }
