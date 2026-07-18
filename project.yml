@@ -22,6 +22,11 @@ targets:
         buildPhase: resources
     dependencies:
       - sdk: libsqlite3.tbd
+      - target: OndaShareExtension
+    entitlements:
+      path: Onda/Onda.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.chasegilliam.onda]
     # INFOPLIST_KEY_* cannot express array-valued plist keys (UIBackgroundModes,
     # BGTaskSchedulerPermittedIdentifiers) — they were silently ignored. Real plist entries:
     info:
@@ -54,3 +59,27 @@ targets:
     sources: [OndaUITests]
     dependencies:
       - target: Onda
+  OndaShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - OndaShareExtension
+      - Onda/Article/PendingArticlesQueue.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chasegilliam.Onda.ShareExtension
+        INFOPLIST_KEY_CFBundleDisplayName: Onda
+    info:
+      path: OndaShareExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
+    entitlements:
+      path: OndaShareExtension/OndaShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.chasegilliam.onda]

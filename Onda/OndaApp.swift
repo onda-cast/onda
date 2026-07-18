@@ -165,6 +165,7 @@ struct OndaApp: App {
                 .preferredColorScheme(theme.colorScheme)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
+                        for url in PendingArticlesQueue.standard.drain() { articles.add(url: url) }
                         Task { [refresh] in await refresh.refreshAll() }
                     } else if phase == .background {
                         refresh.scheduleBackgroundRefresh()
