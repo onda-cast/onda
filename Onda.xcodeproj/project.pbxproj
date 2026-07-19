@@ -107,6 +107,7 @@
 		9518DC32144DA86BF1115FCF /* SubscriptionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 469CC05685CD4AF03D586364 /* SubscriptionServiceTests.swift */; };
 		9564DB2BBF45807965A37B62 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D98EBBD5A1C251BF9D3E293 /* RootView.swift */; };
 		9593E05ACDBDF1828267053F /* QueueItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E0512972681EB4C4F71DA9 /* QueueItem.swift */; };
+		9724285441AE9BF8683B4777 /* AddByURLClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63E6294643BFFAEC88CC362 /* AddByURLClassifierTests.swift */; };
 		98E1394BA431566B56E0A974 /* ClipRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9EB09CF6995D64F1C2C2D63 /* ClipRow.swift */; };
 		9984B175F6497AFC38E0BF2F /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C56597246CCC6EC9FC34A3C6 /* Palette.swift */; };
 		99DBAB55F788DBE13FE89810 /* Podcast.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCF6C8AE0E3030E7AE86BC20 /* Podcast.swift */; };
@@ -383,6 +384,7 @@
 		D2CF0359FFD2A2518DFC0CFC /* ITunesSearchClientBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ITunesSearchClientBox.swift; sourceTree = "<group>"; };
 		D3E6D458C6BF61C120857B24 /* SearchTermLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchTermLog.swift; sourceTree = "<group>"; };
 		D408A1F28C67945F8F98FE3C /* MarkdownExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownExport.swift; sourceTree = "<group>"; };
+		D63E6294643BFFAEC88CC362 /* AddByURLClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddByURLClassifierTests.swift; sourceTree = "<group>"; };
 		D77A07433A0F72FEBAFC86FC /* PrivateFeedTokenMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateFeedTokenMigrationTests.swift; sourceTree = "<group>"; };
 		D9EB09CF6995D64F1C2C2D63 /* ClipRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipRow.swift; sourceTree = "<group>"; };
 		DAEF393589BFDADE7CF562DE /* BoostLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoostLevel.swift; sourceTree = "<group>"; };
@@ -782,6 +784,7 @@
 			isa = PBXGroup;
 			children = (
 				4F66A85825297F08BFE4CB57 /* ActiveCueTests.swift */,
+				D63E6294643BFFAEC88CC362 /* AddByURLClassifierTests.swift */,
 				FB76E9F921E83B4F3D008312 /* AdWindowTests.swift */,
 				65EAE54DF68A8665111DB7C9 /* AppSettingsTests.swift */,
 				45E8ECB241397DDBC7F14C81 /* ArticleConversionServiceTests.swift */,
@@ -1145,6 +1148,7 @@
 			files = (
 				CB8C8558D840BEEF8924E26C /* ActiveCueTests.swift in Sources */,
 				B76FE3AFC6105791CB1F8EE7 /* AdWindowTests.swift in Sources */,
+				9724285441AE9BF8683B4777 /* AddByURLClassifierTests.swift in Sources */,
 				371D3F09169A5260B054221F /* AppSettingsTests.swift in Sources */,
 				A3DE5EE5BB97D7237E0830A6 /* ArticleConversionServiceTests.swift in Sources */,
 				65C9056163045DC2CB339C1E /* ArticleExtractorTests.swift in Sources */,

@@ -173,12 +173,44 @@ struct AddByURLSheet: View {
             let feed = try await subscriptions.previewFeed(url)
             detection = .feed(feed)
         } catch {
-            // Not parseable as a feed → offer the article path. A wrong/paywalled feed URL lands
-            // here too, so the card says explicitly this wasn't recognized as a feed.
-            detection = .article
+            // Didn't parse as a feed. Sniff the raw response so a BROKEN feed (XML content that
+            // failed to parse — expired token, malformed feed) shows a feed error instead of
+            // being silently offered as an article; only genuine web pages get the article path.
+            await sniffNonFeed(url)
         }
         checkedURL = url
         fieldFocused = false
+    }
+
+    private func sniffNonFeed(_ url: URL) async {
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            let contentType = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Type")
+            let prefix = String(bytes: data.prefix(512), encoding: .utf8) ?? ""
+            switch Self.classifyNonFeed(contentType: contentType, bodyPrefix: prefix) {
+            case .webPage:
+                detection = .article
+            case .brokenFeed:
+                detection = nil
+                errorText = "This looks like a podcast feed, but it couldn't be read — check the URL and that your membership is still active."
+            }
+        } catch {
+            detection = nil
+            errorText = "Couldn't reach this link — check the address and your connection."
+        }
+    }
+
+    enum NonFeedKind { case brokenFeed, webPage }
+
+    /// Pure classifier for a URL that failed feed parsing: XML-ish content type or an XML/RSS/Atom
+    /// body prefix means "broken feed"; everything else (HTML and friends) is a web page.
+    static func classifyNonFeed(contentType: String?, bodyPrefix: String) -> NonFeedKind {
+        let ct = (contentType ?? "").lowercased()
+        if ct.contains("html") { return .webPage }   // incl. application/xhtml+xml
+        if ct.contains("rss") || ct.contains("atom") || ct.contains("xml") { return .brokenFeed }
+        let head = bodyPrefix.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if head.hasPrefix("<?xml") || head.hasPrefix("<rss") || head.hasPrefix("<feed") { return .brokenFeed }
+        return .webPage
     }
 
     private func subscribe() async {
