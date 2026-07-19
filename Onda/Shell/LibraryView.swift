@@ -28,7 +28,7 @@ struct LibraryView: View {
     private var sortedShows: [Podcast] { sort.sorted(shows) }
     @State private var showSearch = false
     @State private var showClips = false
-    @State private var showAddArticle = false
+    @State private var showAddByURL = false
     @State private var settingsPodcast: Podcast?
     @State private var unsubscribeTarget: Podcast?
     // Right-edge fade is a "scroll me" affordance — only meaningful when the chips actually overflow.
@@ -61,13 +61,13 @@ struct LibraryView: View {
                             .padding(.horizontal, 10).frame(height: 36)
                             .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                         }.buttonStyle(.plain).accessibilityLabel("Clips")
-                        Button { showAddArticle = true } label: {
+                        Button { showAddByURL = true } label: {
                             Image(systemName: "link.badge.plus")
-                                .font(.system(size: 16, weight: .semibold))
+                                .scaledFont(16, weight: .semibold)
                                 .foregroundStyle(theme.color(.textSecondary))
                                 .frame(width: 36, height: 36)
                                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                        }.buttonStyle(.plain).accessibilityLabel("Add Article")
+                        }.buttonStyle(.plain).accessibilityLabel("Add by Link")
                         Button { showSearch = true } label: {
                             Image(systemName: "magnifyingglass")
                                 .scaledFont(17, weight: .semibold)
@@ -165,7 +165,7 @@ struct LibraryView: View {
             .navigationDestination(for: Podcast.self) { EpisodeListView(podcast: $0) }
             .sheet(isPresented: $showSearch) { LibrarySearchView() }
             .sheet(isPresented: $showClips) { ClipsView() }
-            .sheet(isPresented: $showAddArticle) { AddArticleSheet() }
+            .sheet(isPresented: $showAddByURL) { AddByURLSheet().presentationDetents([.medium, .large]) }
             .sheet(item: $settingsPodcast) { ShowSettingsSheet(podcast: $0) }
             .sheet(item: $detailEpisode) { EpisodeDetailView(episode: $0) }
             .confirmationDialog("Delete this download?",

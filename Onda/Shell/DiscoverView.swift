@@ -19,7 +19,7 @@ struct DiscoverView: View {
     @State private var mode: DiscoverMode = .browse
     @State private var toast: String?
     @State private var unfollowTarget: PodcastDTO?
-    @State private var showAddFeed = false
+    @State private var showAddByURL = false
     @FocusState private var searchFocused: Bool
 
     private enum DiscoverMode: Hashable { case browse, forYou }
@@ -182,8 +182,8 @@ struct DiscoverView: View {
         // Tapping anywhere (simultaneous so buttons still work) or scrolling dismisses the keyboard.
         .simultaneousGesture(TapGesture().onEnded { searchFocused = false })
         .scrollDismissesKeyboard(.immediately)
-        .sheet(isPresented: $showAddFeed) {
-            AddFeedSheet().presentationDetents([.medium, .large])
+        .sheet(isPresented: $showAddByURL) {
+            AddByURLSheet().presentationDetents([.medium, .large])
         }
         .background(theme.color(.bg))
         .task { await clientBox.loadTrendingIfNeeded() }
@@ -341,7 +341,7 @@ extension DiscoverView {
     var searchRow: some View {
         HStack(spacing: 10) {
             searchField
-            Button { showAddFeed = true } label: {
+            Button { showAddByURL = true } label: {
                 Image(systemName: "link.badge.plus")
                     .scaledFont(16, weight: .bold)
                     .foregroundStyle(theme.color(.textSecondary))
@@ -349,8 +349,8 @@ extension DiscoverView {
                     .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Add show by feed URL")
-            .accessibilityHint("For private or paid podcast feeds")
+            .accessibilityLabel("Add by Link")
+            .accessibilityHint("Private podcast feeds or articles to listen to")
         }
     }
 
