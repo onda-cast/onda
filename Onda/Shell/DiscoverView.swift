@@ -2,6 +2,12 @@
 import SwiftUI
 import SwiftData
 
+// Row tap → show preview. Identifiable wrapper because PodcastDTO itself isn't Identifiable.
+private struct PreviewTarget: Identifiable {
+    let id = UUID()
+    let dto: PodcastDTO
+}
+
 struct DiscoverView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(SubscriptionService.self) private var subscriptions
@@ -21,7 +27,15 @@ struct DiscoverView: View {
     @State private var toast: String?
     @State private var unfollowTarget: PodcastDTO?
     @State private var showAddByURL = false
+    @State private var undoToastTask: Task<Void, Never>?
+    @State private var showUndoToast = false
+    // Category chips are real filters: selection drives its own result set and NEVER writes
+    // into the visible search text (that made them read as a search shortcut, unlike every
+    // other chip in the app).
+    @State private var selectedCategory: String?
+    @State private var categoryResults: [PodcastDTO] = []
     @FocusState private var searchFocused: Bool
+    @State private var previewTarget: PreviewTarget?
 
     private enum DiscoverMode: Hashable { case browse, forYou }
 
@@ -65,7 +79,10 @@ struct DiscoverView: View {
         browseStatus
         Group {
             ForEach(Array(listItems.enumerated()), id: \.element.collectionId) { i, dto in
+                // Row tap opens a preview; the inner Follow Button still wins its own taps.
                 let row = TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) { toggleFollow(dto) }
+                    .contentShape(Rectangle()).onTapGesture { previewTarget = PreviewTarget(dto: dto) }
+                    .accessibilityHint("Opens a preview of this show")
                 if shake != nil {
                     DealtCard(index: i) { row }
                 } else {
@@ -84,6 +101,8 @@ struct DiscoverView: View {
             } else if !searching && results.isEmpty {
                 statusNote("No results for “\(query)”")
             }
+        } else if let cat = selectedCategory, categoryResults.isEmpty {
+            loadingRow("Loading \(cat)…")
         } else if shake == nil && trending.isEmpty {
             if loading {
                 loadingRow("Loading trending…")
@@ -144,11 +163,19 @@ struct DiscoverView: View {
         .sheet(isPresented: $showAddByURL) {
             AddByURLSheet().presentationDetents([.medium, .large])
         }
+        .sheet(item: $previewTarget) { target in
+            ShowPreviewSheet(dto: target.dto, isSubscribed: isSubscribed(target.dto),
+                             onToggle: { handlePreviewToggle(target) })
+                .presentationDetents([.medium, .large])
+        }
         .background(theme.color(.bg))
         .task { await clientBox.loadTrendingIfNeeded() }
         .task { await recs.refreshIfStale(followedCategories: followedCategories) }
         .onChange(of: query) { _, new in
-            if !new.trimmingCharacters(in: .whitespaces).isEmpty { shake = nil }
+            if !new.trimmingCharacters(in: .whitespaces).isEmpty {
+                shake = nil
+                selectedCategory = nil; categoryResults = []   // typed search supersedes a category
+            }
             Task { await runSearch(new) }
         }
         .onShake { triggerShake() }
@@ -173,19 +200,42 @@ struct DiscoverView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .overlay(alignment: .bottom) {
+            if showUndoToast, let rec = recs.lastDismissed {
+                Button {
+                    undoToastTask?.cancel()
+                    withAnimation { showUndoToast = false }
+                    recs.undoDismiss()
+                } label: {
+                    Text("Not interested: \(rec.dto.collectionName) \u{2014} UNDO")
+                        .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
+                        .padding(.horizontal, 18).padding(.vertical, 10)
+                        .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, 40)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .accessibilityLabel("Dismissed \(rec.dto.collectionName). Double-tap to undo.")
+            }
+        }
     }
 
     private var categoryChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(categories, id: \.self) { cat in
-                    let selected = query.caseInsensitiveCompare(cat) == .orderedSame
-                    Button { query = selected ? "" : cat } label: {
-                        Text(cat).brutalHeader(size: 11.5)
-                            .foregroundStyle(selected ? .white : theme.color(.text))
-                            .padding(.horizontal, 16).padding(.vertical, 9)
-                            .background(selected ? theme.color(.accent) : theme.color(.bgElevated))
-                            .brutalBorder(width: 2)
+                    let selected = selectedCategory == cat
+                    Button { selectCategory(selected ? nil : cat) } label: {
+                        HStack(spacing: 4) {
+                            if selected {
+                                Image(systemName: "checkmark").scaledFont(10, weight: .black)
+                            }
+                            Text(cat).brutalHeader(size: 11.5)
+                        }
+                        .foregroundStyle(selected ? .white : theme.color(.text))
+                        .padding(.horizontal, 16).padding(.vertical, 9)
+                        .background(selected ? theme.color(.accentStrong) : theme.color(.bgElevated))
+                        .brutalBorder(width: 2)
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
@@ -195,7 +245,10 @@ struct DiscoverView: View {
     }
 
     private var listItems: [PodcastDTO] {
-        shake?.picks ?? (results.isEmpty ? trending : results)
+        if let picks = shake?.picks { return picks }
+        if !results.isEmpty { return results }
+        if selectedCategory != nil { return categoryResults }
+        return trending
     }
 
     @ViewBuilder private var listHeader: some View {
@@ -206,7 +259,8 @@ struct DiscoverView: View {
                     insertion: .scale(scale: 1.35, anchor: .leading).combined(with: .opacity),
                     removal: .opacity))
         } else {
-            Text(results.isEmpty ? "Trending Today" : "Results")
+            Text(!results.isEmpty ? "Results"
+                 : selectedCategory.map { $0.uppercased() } ?? "Trending Today")
                 .brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
         }
     }
@@ -267,6 +321,21 @@ extension DiscoverView {
 
 // MARK: - Follow / toast
 extension DiscoverView {
+    // Preview sheet's follow toggle. For an already-subscribed show, the unfollow confirmation
+    // lives on the view UNDER this sheet — dismiss first, then present (400ms: same sheet
+    // hand-off beat as the transcript-jump flow) instead of routing through toggleFollow directly.
+    fileprivate func handlePreviewToggle(_ target: PreviewTarget) {
+        if isSubscribed(target.dto) {
+            previewTarget = nil
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(400))
+                unfollowTarget = target.dto
+            }
+        } else {
+            toggleFollow(target.dto)
+        }
+    }
+
     // Follow (with a confirmation toast) or, if already following, prompt to unfollow.
     func toggleFollow(_ dto: PodcastDTO) {
         if isSubscribed(dto) {
@@ -319,6 +388,16 @@ extension DiscoverView {
 extension DiscoverView {
     // MARK: For You sub-tab (recommendations)
 
+    func dismissRecommendation(_ rec: Recommendation) {
+        recs.dismiss(rec)
+        withAnimation { showUndoToast = true }
+        undoToastTask?.cancel()
+        undoToastTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            if !Task.isCancelled { withAnimation { showUndoToast = false } }
+        }
+    }
+
     @ViewBuilder private var forYouTab: some View {
         HStack {
             Text(recs.isPersonalized ? "Recommended for you" : "Popular right now").brutalHeader(size: 13)
@@ -353,14 +432,27 @@ extension DiscoverView {
         } else {
             ForEach(recs.recommendations) { rec in
                 VStack(alignment: .leading, spacing: 4) {
-                    TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
+                    HStack(spacing: 8) {
+                        TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
+                            .contentShape(Rectangle()).onTapGesture { previewTarget = PreviewTarget(dto: rec.dto) }
+                            .accessibilityHint("Opens a preview of this show")
+                        // Visible "not interested" — the context menu below stays as the
+                        // secondary path, but discoverability needs an on-screen control.
+                        Button { dismissRecommendation(rec) } label: {
+                            Image(systemName: "xmark").scaledFont(12, weight: .bold)
+                                .foregroundStyle(theme.color(.textTertiary))
+                                .frame(width: 32, height: 44).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Not interested in \(rec.dto.collectionName)")
+                    }
                     if let reason = rec.reasonLine {
                         Text(reason).scaledFont(11.5).foregroundStyle(theme.color(.textTertiary))
                             .padding(.leading, 2)
                     }
                 }
                 .contextMenu {
-                    Button(role: .destructive) { recs.dismiss(rec) } label: {
+                    Button(role: .destructive) { dismissRecommendation(rec) } label: {
                         Label("Not interested", systemImage: "hand.thumbsdown")
                     }
                 }
@@ -414,6 +506,20 @@ extension DiscoverView {
             await runSearch(query)
         } else {
             await clientBox.loadTrendingIfNeeded(force: true)
+        }
+    }
+
+    /// Category chip tap: toggles a category browse with its own result set. Typing a search
+    /// clears it (see onChange(of: query)); the visible query text is never modified.
+    func selectCategory(_ cat: String?) {
+        selectedCategory = cat
+        categoryResults = []
+        shake = nil
+        guard let cat else { return }
+        Task { [clientBox] in
+            let found = (try? await clientBox.client.search(term: cat)) ?? []
+            // Only publish if this category is still the selected one (user may have moved on).
+            if selectedCategory == cat { categoryResults = found }
         }
     }
 

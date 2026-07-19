@@ -149,9 +149,7 @@ struct LibraryView: View {
                     }
 
                     if shows.isEmpty {
-                        Text("No shows yet — find some in Discover")
-                            .foregroundStyle(theme.color(.textTertiary))
-                            .frame(maxWidth: .infinity).padding(.top, 80)
+                        BrutalEmptyState("No shows yet", detail: "Find some in Discover.")
                     } else if let filter = activeFilter {
                         filteredEpisodeList(filter)
                             .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 120)
@@ -413,9 +411,7 @@ extension LibraryView {
         let groups = groupedByShow(filter.apply(to: shows.flatMap(\.episodes)))
         let episodes = groups.flatMap(\.episodes)
         if episodes.isEmpty {
-            Text("No \(filter.label.lowercased()) episodes")
-                .foregroundStyle(theme.color(.textTertiary))
-                .frame(maxWidth: .infinity).padding(.top, 60)
+            BrutalEmptyState("No \(filter.label.lowercased()) episodes")
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 filterHeader(episodes)

@@ -15,7 +15,15 @@ struct ShowSettingsSheet: View {
         }
         return podcast.settings!
     }
-    private let speedSteps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
+    static let speedSteps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
+    private var speedSteps: [Double] { Self.speedSteps }
+
+    /// Where a fresh "Custom" speed starts: the next step ABOVE the global default (wrapping),
+    /// so choosing Custom is immediately visible instead of silently mirroring Default.
+    static func customSpeedSeed(from global: Double) -> Double {
+        speedSteps.first { $0 > global } ?? speedSteps[0]
+    }
+
     @State private var showAllVoiceLanguages = false
 
     var body: some View {
@@ -108,7 +116,7 @@ struct ShowSettingsSheet: View {
     }
 
     // Speed override: Default segment inherits the global; Custom reveals the cycle button
-    // seeded from the current global so tapping it starts from a familiar value.
+    // seeded one step above the global so the override is immediately visible.
     @ViewBuilder private var speedOverrideRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -121,7 +129,7 @@ struct ShowSettingsSheet: View {
             }
             SegmentedRow(options: [("Default", 0), ("Custom", 1)],
                          selection: s.speed == nil ? 0 : 1) {
-                s.speed = $0 == 0 ? nil : appSettings.defaultSpeed
+                s.speed = $0 == 0 ? nil : Self.customSpeedSeed(from: appSettings.defaultSpeed)
                 playback.applyAudioSettings()
             }
             defaultCaption(NowPlayingView.speedText(appSettings.defaultSpeed), shown: s.speed == nil)

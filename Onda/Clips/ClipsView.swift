@@ -37,9 +37,8 @@ struct ClipsView: View {
                     BrutalSearchField("Search clips", text: $query)
 
                     if results.isEmpty {
-                        Text(emptyStateText)
-                            .foregroundStyle(theme.color(.textTertiary))
-                            .frame(maxWidth: .infinity).padding(.top, 60)
+                        BrutalEmptyState(query.isEmpty ? "No clips yet" : "No clips match",
+                                         detail: query.isEmpty ? emptyStateDetail : nil)
                     } else {
                         ForEach(results) { clip in
                             ClipRow(clip: clip,
@@ -92,11 +91,10 @@ struct ClipsView: View {
         }
     }
 
-    private var emptyStateText: String {
-        guard query.isEmpty else { return "No clips match" }
+    private var emptyStateDetail: String {
         let secs = Int(ClipService.quickClipWindow)
-        return "No clips yet — tap the scissors in the player, select transcript lines, or tap "
-            + "the bookmark on your lock screen to save the last \(secs)s."
+        return "Tap the scissors in the player, select transcript lines, or tap the bookmark "
+            + "on your lock screen to save the last \(secs)s."
     }
 
     private func share(_ clip: Clip) {

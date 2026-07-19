@@ -70,6 +70,7 @@ final class RecommendationService {
     ///   - excluding: feed URLs to leave out of this rebuild (on top of subscribed + dismissed).
     func refresh(followedCategories: [String], excluding: Set<URL> = []) async {
         isLoading = true
+        lastDismissed = nil
         defer { isLoading = false }
 
         let subs = (try? modelContext.fetch(
@@ -97,11 +98,26 @@ final class RecommendationService {
         lastComputed = now()
     }
 
+    /// The most recent dismissal, kept so the UI can offer Undo. Cleared by the next refresh,
+    /// the next dismissal (replaced), or a successful undo.
+    private(set) var lastDismissed: Recommendation?
+    private var lastDismissedIndex: Int = 0
+
     /// Marks a recommendation "not interested": adds it to the persistent dismissed set (so it
-    /// won't return) and removes it from the current list.
+    /// won't return) and removes it from the current list. Reversible via ``undoDismiss()``.
     func dismiss(_ rec: Recommendation) {
+        lastDismissedIndex = recommendations.firstIndex { $0.id == rec.id } ?? 0
+        lastDismissed = rec
         dismissedStore.dismiss(rec.dto)
         recommendations.removeAll { $0.id == rec.id }
+    }
+
+    /// Reverses the most recent ``dismiss(_:)``: un-persists it and restores the row in place.
+    func undoDismiss() {
+        guard let rec = lastDismissed else { return }
+        dismissedStore.undismiss(rec.dto)
+        recommendations.insert(rec, at: min(lastDismissedIndex, recommendations.count))
+        lastDismissed = nil
     }
 
     private func charts(excluding subscribedFeeds: Set<URL>, existing: [PodcastDTO]) async -> [PodcastDTO] {

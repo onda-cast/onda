@@ -91,7 +91,9 @@ struct DownloadsStorageView: View {
                     Text("Downloads & Transcripts").brutalHeader(size: 13)
                         .foregroundStyle(theme.color(.textTertiary))
                     Spacer()
-                    Text(sizeStr(bd.totalBytes)).scaledFont(15, weight: .bold).monospacedDigit()
+                    // "~" because transcript bytes are estimated from cue text length
+                    // (StorageBreakdown) — the legends below already mark them "~".
+                    Text("~" + sizeStr(bd.totalBytes)).scaledFont(15, weight: .bold).monospacedDigit()
                         .foregroundStyle(theme.color(.text))
                 }
                 proportionBar(audio: bd.audioBytes, transcript: bd.transcriptBytes)
