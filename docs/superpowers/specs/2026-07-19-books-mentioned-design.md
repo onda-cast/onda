@@ -1,10 +1,13 @@
 # Books Mentioned — Best-Effort Extraction Design (2026-07-19)
 
-**Goal.** Surface the books discussed in an episode — from show notes and transcripts — as a
-"Books Mentioned" section on the episode detail screen, each entry linked (when known) to the
-transcript moment where it came up. Best-effort by design: **precision over recall**. A book only
-appears if it verifies against a real-world book catalog; fuzzy or unverifiable mentions are
-silently dropped. One hallucinated book costs more trust than five misses.
+**Goal.** Answer one specific question a listener actually has: *"what was that book in THIS
+episode?"* The interface is strictly per-episode and user-initiated — a listener asks for the
+books of one episode from that episode's detail screen, and the funnel runs over that episode's
+notes and transcript only. There is deliberately **no open-ended mode**: no cross-episode book
+browsing, no "scan my library", no bulk or background extraction. Best-effort by design:
+**precision over recall** — a book only appears if it verifies against a real-world book
+catalog; fuzzy or unverifiable mentions are silently dropped. One hallucinated book costs more
+trust than five misses.
 
 This extends the app's knowledge-capture identity (transcripts, clips, search): the episode
 becomes a bibliography, and every entry is a jump-back-into-context affordance — no big podcast
@@ -72,10 +75,13 @@ Dedupe per episode by `workKey`, keeping the entry with a timestamp over one wit
 `BookMentionService` (`@MainActor @Observable`, dependencies behind protocols: the LLM
 extractor, the verifier's transport, NLTagger wrapper — all injectable fakes for tests).
 
-**On-demand only, like transcription and auto-chapters:** a "Find books" affordance in the
-episode detail's Books section runs the funnel once and persists results; re-running replaces
-them. No automatic background sweeps in v1 — the funnel costs network (verification) and
-LLM time, and best-effort features shouldn't spend battery uninvited. `progress`/`lastFailure`
+**On-demand, single-episode only, like transcription and auto-chapters:** a "Find books"
+affordance in the episode detail's Books section runs the funnel once **for that episode** and
+persists results; re-running replaces them. The service API takes exactly one `Episode` —
+there is intentionally no batch entry point, no automatic background sweeps, and no
+library-wide invocation, both to keep the cost model honest (network verification + LLM time
+are spent only on an episode the user asked about) and to keep the product scope a per-episode
+question-answering tool rather than an open-ended cataloguing system. `progress`/`lastFailure`
 state mirrors `TranscriptService`'s shape.
 
 ## UX
@@ -84,8 +90,9 @@ state mirrors `TranscriptService`'s shape.
   fallback seeded by title), canonical title, author, and a source badge only for
   transcript-derived rows (a small timestamp chip).
 - Tapping a row with a timestamp = the existing transcript-jump flow (seek + open player, "Back
-  to transcript" affordance). Rows without timestamps open the transcript search prefilled with
-  the title.
+  to transcript" affordance). Rows without timestamps open THIS episode's transcript with the
+  in-panel search prefilled with the title — never the library-wide transcript search; the
+  feature's whole frame is this one episode.
 - Long-press: copy title/author; "Search OpenLibrary" link out (external, user-initiated).
 - Empty/degraded states use `BrutalEmptyState`: never ran → "Find books" CTA with one line of
   explanation; ran, none verified → "No books found — mentions that can't be verified aren't
@@ -117,7 +124,10 @@ state mirrors `TranscriptService`'s shape.
 
 ## Out of scope (v1)
 
-- Cross-episode "Books" library screen / reading-list export (natural v2 built on the same rows).
+- Any cross-episode or open-ended surface: a "Books" library screen, "scan all episodes",
+  reading-list export. Explicitly a non-goal of this feature's interface — if ever revisited it
+  is a separate product decision, not an extension of this one. The per-episode rows would
+  support it, but nothing in v1 may invite it.
 - Other media (films, albums, papers) — same funnel would work; separate spec.
 - Affiliate/purchase integration; price or availability data.
 - Automatic extraction on download/transcription (revisit with real usage data).
