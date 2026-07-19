@@ -12,7 +12,6 @@ final class ShowSettings {
     var autoDownload: Bool?
     var introTrimSec: Int
     var outroTrimSec: Int
-    var notifMode: String       // "all" | "important" | "none"
     // Retention overrides — nil inherits the AppSettings global default.
     var maxDownloadsKeptOverride: Int?              // 0 = explicitly unlimited
     var autoDeleteListenedAfterDaysOverride: Int?   // -1 = explicitly off, 0 = immediately
@@ -23,7 +22,7 @@ final class ShowSettings {
 
     init(speed: Double? = nil, voiceBoost: Int? = nil, skipSilence: Bool? = nil,
          adSkipMode: String? = nil, autoDownload: Bool? = nil,
-         introTrimSec: Int = 0, outroTrimSec: Int = 0, notifMode: String = "all") {
+         introTrimSec: Int = 0, outroTrimSec: Int = 0) {
         self.speed = speed
         self.voiceBoost = voiceBoost
         self.skipSilence = skipSilence
@@ -31,7 +30,6 @@ final class ShowSettings {
         self.autoDownload = autoDownload
         self.introTrimSec = introTrimSec
         self.outroTrimSec = outroTrimSec
-        self.notifMode = notifMode
     }
 
     /// Fresh settings that inherit every global default (all overrides nil).

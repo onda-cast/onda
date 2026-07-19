@@ -70,7 +70,6 @@ final class ModelTests: XCTestCase {
         XCTAssertNil(s.autoDownload)
         XCTAssertEqual(s.introTrimSec, 0)
         XCTAssertEqual(s.outroTrimSec, 0)
-        XCTAssertEqual(s.notifMode, "all")
     }
 
     func test_chapter_defaultsToFeedSource() throws {
