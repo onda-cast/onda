@@ -105,4 +105,20 @@ final class SmartQueueTests: XCTestCase {
         XCTAssertFalse(SmartQueue.recentlyAdded.hasMatches(in: [archived]))
         XCTAssertFalse(SmartQueue.shortestFirst.hasMatches(in: [archived]))
     }
+
+    // The chips derive their candidate set from the small DownloadedFile table instead of
+    // scanning every library episode (which faulted downloadedFile per episode on main).
+    func test_downloadedCandidates_subscribedDownloadsOnly() throws {
+        let context = try ctx()
+        let down = episode(in: context, guid: "down", daysAgo: 1, duration: 100, downloaded: true)
+        _ = episode(in: context, guid: "stream", daysAgo: 1, duration: 100)   // no download
+        let unsubbed = episode(in: context, guid: "unsub", daysAgo: 1, duration: 100, downloaded: true)
+        unsubbed.podcast?.isSubscribed = false
+        try context.save()
+
+        let files = try context.fetch(FetchDescriptor<DownloadedFile>())
+        let candidates = SmartQueue.downloadedCandidates(files)
+        XCTAssertEqual(candidates.map(\.guid), [down.guid],
+                       "only downloads belonging to subscribed shows are chip candidates")
+    }
 }

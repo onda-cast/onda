@@ -19,6 +19,10 @@ struct LibraryView: View {
     @Environment(ArticleConversionService.self) private var articles
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed },
            sort: \Podcast.title) private var shows: [Podcast]
+    // Chips are downloaded-only lenses, so their candidate set comes from the small
+    // DownloadedFile table — never from a per-episode scan of the whole library.
+    @Query private var downloadedFiles: [DownloadedFile]
+    private var chipCandidates: [Episode] { SmartQueue.downloadedCandidates(downloadedFiles) }
 
     private let cols = [GridItem(.flexible(), spacing: 18), GridItem(.flexible(), spacing: 18)]
     @AppStorage("libraryLayout") private var layoutRaw = LibraryLayout.grid.rawValue
@@ -81,7 +85,7 @@ struct LibraryView: View {
 
                     if !shows.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
-                            let allEpisodes = shows.flatMap(\.episodes)
+                            let allEpisodes = chipCandidates
                             HStack(spacing: 10) {
                                 ForEach(SmartQueue.allCases, id: \.self) { sq in
                                     let isEmpty = !sq.hasMatches(in: allEpisodes)
@@ -408,7 +412,7 @@ extension LibraryView {
     /// The library content while a chip filter is active: matching episodes across all shows,
     /// grouped by show. Tapping a row plays that one episode; only Play All replaces the queue.
     @ViewBuilder func filteredEpisodeList(_ filter: SmartQueue) -> some View {
-        let groups = groupedByShow(filter.apply(to: shows.flatMap(\.episodes)))
+        let groups = groupedByShow(filter.apply(to: chipCandidates))
         let episodes = groups.flatMap(\.episodes)
         if episodes.isEmpty {
             BrutalEmptyState("No \(filter.label.lowercased()) episodes")

@@ -13,6 +13,14 @@ enum SmartQueue: String, CaseIterable, Sendable {
         }
     }
 
+    /// The chips' candidate set, derived from the (small) DownloadedFile table. Scanning
+    /// `shows.flatMap(\.episodes)` instead faults the `downloadedFile` relationship on EVERY
+    /// library episode on the main thread — a multi-second Library tab switch on device.
+    @MainActor
+    static func downloadedCandidates(_ files: [DownloadedFile]) -> [Episode] {
+        files.compactMap(\.episode).filter { $0.podcast?.isSubscribed == true }
+    }
+
     @MainActor
     func apply(to episodes: [Episode], now: Date = .now) -> [Episode] {
         // Every chip is a lens onto downloaded episodes only — nothing here surfaces
