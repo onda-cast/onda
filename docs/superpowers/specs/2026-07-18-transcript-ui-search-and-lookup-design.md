@@ -1,8 +1,9 @@
 # Transcript UI: in-panel search & word lookup
 
-**Date:** 2026-07-18
+**Date:** 2026-07-18 (revised same day after selection spike — see Feature 2)
 **Status:** Approved design, ready for implementation plan
-**Scope:** `Onda/Player/TranscriptView.swift` only. No model/schema changes, no new files, no networking.
+**Scope:** `Onda/Player/TranscriptView.swift`, plus two small new components (`SelectableCueText`
+UIKit wrapper, `TranscriptFind` match logic). No model/schema changes, no networking.
 
 ## Goal
 
@@ -63,54 +64,68 @@ auto-follow, and word-level active highlighting — are preserved.
 - While the search bar is open, playback auto-scroll is **suspended** so it doesn't fight the user's
   match navigation. When search is closed, auto-follow resumes its normal behavior.
 
-## Feature 2 — Long-press word lookup (Option A: native text selection)
+## Feature 2 — Long-press word lookup (UITextView-backed cue text)
 
-- Cue text becomes natively selectable via `.textSelection(.enabled)`. Long-press selects the word
-  under the finger; dragging extends the selection to a phrase. iOS then presents its own menu with
-  **Look Up**, **Translate**, **Search Web**, **Copy**, **Share** — no custom menu code.
-- **Gesture coexistence:** tap (jump-to-player) and long-press (selection) are distinct recognizers,
-  so both remain on the row in read mode.
-- **Mode gating:** text selection is enabled only in **read mode**. Entering the existing clip
-  **Select mode** disables selection so long-press does not fight clip range-tapping.
+### Spike result (2026-07-18, iOS 26.3 simulator)
 
-### Verification-first risk
+The originally-designed approach — SwiftUI `.textSelection(.enabled)` on the cue `Text` — was
+spiked and **disproven**: on iOS, long-press on a selectable `Text` shows a whole-text
+**Copy | Share…** menu only. There is no word-level selection, no Look Up, no Search Web. (Gesture
+coexistence was fine: long-press did not conflict with tap-to-jump or scrolling.) The user approved
+pivoting to a UITextView-backed approach, which is what apps like Apple Podcasts use for selectable
+transcripts.
 
-The primary implementation risk is whether SwiftUI allows a `Text` to be selectable while its
-enclosing row keeps tap-to-jump *and* the surrounding `ScrollView` keeps scrolling. This must be
-proven in the Simulator **before** building out the rest of the feature (use the `verify` skill).
+### Design
 
-Fallback ladder if the naïve `.textSelection(.enabled)` on the cue `Text` fights the row's tap or
-scroll:
-1. Attach `.textSelection(.enabled)` at the enclosing `VStack` level instead of the raw `Text`.
-2. Tighten gating (e.g. selection only when not actively following playback).
-3. If irreconcilable, revisit with the user (e.g. move jump entirely to the per-row play button so
-   tap is freed for selection — Option C from brainstorming).
+- In **read mode**, each cue's text renders through `SelectableCueText`, a `UIViewRepresentable`
+  wrapping a non-editable, non-scrolling, selectable `UITextView`. This provides full native
+  selection: long-press selects the word under the finger with drag handles, and the system edit
+  menu offers **Look Up**, **Search Web**, **Translate**, **Copy**, **Share** — still no custom
+  menu code.
+- **Tap-to-jump** is preserved via a `UITapGestureRecognizer` on the text view that calls back into
+  the row's jump action. If the text view has an active selection, a tap clears the selection
+  instead of jumping (matching standard iOS behavior and preventing accidental jumps).
+- **Styling** moves from `Text` concatenation to `NSAttributedString`, built by a small pure
+  function that layers: base color (active vs. inactive cue) → active-word emphasis (existing
+  behavior, on-device transcripts only) → search-match emphasis (accent + bold). Font comes from a
+  `@ScaledMetric(relativeTo: .body)` size in the view so Dynamic Type (and the app-wide
+  `.accessibility1` cap) keeps working.
+- **Mode gating:** clip **Select mode** renders plain `Text` rows (no selection, no tap-to-jump
+  conflict), exactly as today.
 
-## Code shape (all within `TranscriptView.swift`)
+## Code shape
 
-New `@State`:
+New files:
+- `Onda/Transcription/TranscriptFind.swift` — pure match logic (mirrors the `ActiveCue` idiom):
+  `matchingIndices(query:in:)` over the cue texts, and `segments(of:query:)` splitting one cue's
+  text into match/non-match runs for highlight rendering. Unit-tested.
+- `Onda/Player/SelectableCueText.swift` — the `UIViewRepresentable` UITextView wrapper (takes an
+  `NSAttributedString` and an `onTap` closure), plus the attributed-string styler function.
+
+Within `TranscriptView.swift` — new `@State`:
 - `searching: Bool`
 - `query: String`
 - `matchIndices: [Int]`
 - `currentMatch: Int`
 
 New/changed pieces:
-- **Unified cue-text builder** that layers, in order: base color (active vs. inactive cue) →
-  active-word emphasis (existing behavior, active cue only) → search-match emphasis (new). Returns a
-  single `Text`. This replaces/extends the current `styledCueText`.
+- **Read-mode cue text** renders via `SelectableCueText`; the attributed styler layers, in order:
+  base color (active vs. inactive cue) → active-word emphasis (active cue only) → search-match
+  emphasis (new). Select mode renders plain `Text(cue.text)`; the old `styledCueText` `Text`
+  concatenation is retired.
 - **`searchBar` view** — `BrutalSearchField` + counter + chevrons, shown when `searching` is true
   (top of panel).
 - **Toolbar magnifier item** toggling `searching`.
 - **Navigation helpers** — `recomputeMatches()` (on query change), `nextMatch()`,
   `prevMatch()`, and the `currentMatch`-change scroll effect.
-- **`.textSelection(.enabled)`** on the cue text, gated to read mode (disabled while `selecting`).
 - Suspend playback auto-follow while `searching`.
 
 ## Testing
 
-- Because the change is UI/gesture-heavy in SwiftUI, primary verification is manual in the Simulator
-  via the `verify` skill: prove text-selection coexistence first, then exercise search matching,
-  counter, chevron wrap-around, current-match scroll, highlight rendering, and mode gating.
-- Any pure-logic helpers that are cleanly extractable (e.g. match-index computation for a given query
-  over a `[CueVM]`, chevron wrap-around arithmetic) should get lightweight unit tests in
-  `OndaTests` if extracting them doesn't distort the view code.
+- `TranscriptFind` (match indices, segment splitting, case-insensitivity, multiple occurrences,
+  empty/whitespace queries) and the attributed styler (ranges, attributes) get unit tests in
+  `OndaTests` (XCTest, matching `ActiveCueTests` style).
+- The UI/gesture behavior is verified manually in the Simulator via the `verify` skill: word
+  long-press → system menu with Look Up/Search Web, tap-to-jump still works, scroll unaffected,
+  clip Select mode unaffected, search matching/counter/chevron wrap-around/current-match scroll/
+  highlight rendering, auto-follow suspension while searching.
