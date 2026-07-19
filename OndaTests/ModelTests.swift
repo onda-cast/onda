@@ -85,4 +85,21 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(feedChapter.source, "feed")
         XCTAssertEqual(generatedChapter.source, "generated")
     }
+
+    func test_bookMention_roundTripsAndCascadesFromEpisode() throws {
+        let c = try ModelContainer(for: Schema(ondaSchema),
+                                   configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let ctx = ModelContext(c)
+        let ep = Episode(guid: "g", title: "E", publishDate: .now, duration: 10,
+                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        ctx.insert(ep)
+        let book = BookMention(workKey: "OL123W", title: "Atomic Habits", author: "James Clear",
+                               coverURL: nil, sourceTier: "link", timestamp: nil)
+        book.episode = ep; ep.bookMentions.append(book)
+        ctx.insert(book); try ctx.save()
+
+        ctx.delete(ep); try ctx.save()
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<BookMention>()).count, 0,
+                       "book mentions cascade with their episode")
+    }
 }

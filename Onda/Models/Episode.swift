@@ -37,6 +37,9 @@ final class Episode {
     @Relationship(deleteRule: .cascade, inverse: \Clip.episode)
     var clips: [Clip] = []
 
+    @Relationship(deleteRule: .cascade, inverse: \BookMention.episode)
+    var bookMentions: [BookMention] = []
+
     init(guid: String, title: String, publishDate: Date, duration: TimeInterval,
          audioURL: URL, notes: String, noteLinks: [URL] = [], playbackPosition: TimeInterval = 0,
          played: Bool = false,
