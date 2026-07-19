@@ -21,4 +21,12 @@ enum ClipTextSnapshot {
         return CueSpan(start: min(first.start, requestedStart), end: max(last.end, requestedEnd),
                        text: overlapping.map(\.text).joined(separator: " "))
     }
+
+    /// Joins the text of cues overlapping [start, end) WITHOUT moving the boundaries —
+    /// the interactive editor's excerpt, which must track the user's exact times.
+    static func text(cues: [CueSpan], start: TimeInterval, end: TimeInterval) -> String {
+        cues.filter { $0.end > start && $0.start < end }
+            .sorted { $0.start < $1.start }
+            .map(\.text).joined(separator: " ")
+    }
 }
