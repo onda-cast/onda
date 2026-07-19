@@ -30,7 +30,9 @@ struct WaveBandShape: Shape {
         func trail(at y: CGFloat) -> CGFloat {
             trailX + sin(phase + 2.3 + y / (wavelength * 1.15) * 2 * .pi) * amplitude
         }
-        let steps = max(2, Int(rect.height / 4))
+        // ~16pt sampling is indistinguishable for wavelengths ≥100 and cuts per-frame path
+        // cost ~4× — this path is rebuilt every frame while the phase animates.
+        let steps = max(2, Int(rect.height / 16))
         func y(_ i: Int) -> CGFloat { rect.minY + rect.height * CGFloat(i) / CGFloat(steps) }
         p.move(to: CGPoint(x: trail(at: rect.minY), y: rect.minY))
         p.addLine(to: CGPoint(x: lead(at: rect.minY), y: rect.minY))
@@ -85,6 +87,9 @@ struct ShakeWaveOverlay: View {
                             .offset(x: -1.5 * geo.size.width + progress[i] * 3.0 * geo.size.width)
                     }
                 }
+                // Rasterize the whole wave offscreen via Metal — three animating multi-layer
+                // paths are too much for per-frame CPU compositing on older phones.
+                .drawingGroup()
             }
             .allowsHitTesting(false)
             .onChange(of: trigger) { _, _ in sweep() }
