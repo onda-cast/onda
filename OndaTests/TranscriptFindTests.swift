@@ -7,7 +7,7 @@ final class TranscriptFindTests: XCTestCase {
         "Welcome back to the show today",          // 0
         "Penicillin was discovered by accident",   // 1
         "The mold genus is Penicillium",           // 2
-        "Nothing relevant here",                   // 3
+        "Nothing relevant here"                    // 3
     ]
 
     // matchingIndices

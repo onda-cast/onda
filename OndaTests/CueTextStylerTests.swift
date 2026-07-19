@@ -6,6 +6,7 @@ import UIKit
 @MainActor
 final class CueTextStylerTests: XCTestCase {
     private let font = UIFont.systemFont(ofSize: 16)
+    private lazy var style = CueTextStyler.Style(font: font, base: .gray, emphasis: .black, accent: .green)
 
     private func attrs(_ s: NSAttributedString, at location: Int) -> [NSAttributedString.Key: Any] {
         s.attributes(at: location, effectiveRange: nil)
@@ -13,8 +14,7 @@ final class CueTextStylerTests: XCTestCase {
 
     func test_plainText_usesBaseColorAndFontThroughout() {
         let s = CueTextStyler.attributed(text: "Hello world", words: nil, activeWordIndex: nil,
-                                         searchQuery: "", font: font,
-                                         baseColor: .gray, emphasisColor: .black, accentColor: .green)
+                                         searchQuery: "", style: style)
         XCTAssertEqual(s.string, "Hello world")
         XCTAssertEqual(attrs(s, at: 0)[.foregroundColor] as? UIColor, .gray)
         XCTAssertEqual(attrs(s, at: 10)[.foregroundColor] as? UIColor, .gray)
@@ -23,8 +23,7 @@ final class CueTextStylerTests: XCTestCase {
 
     func test_searchQuery_boldsAndAccentsMatchRuns() {
         let s = CueTextStyler.attributed(text: "The mold genus", words: nil, activeWordIndex: nil,
-                                         searchQuery: "mold", font: font,
-                                         baseColor: .gray, emphasisColor: .black, accentColor: .green)
+                                         searchQuery: "mold", style: style)
         XCTAssertEqual(s.string, "The mold genus")
         // "The " — base
         XCTAssertEqual(attrs(s, at: 0)[.foregroundColor] as? UIColor, .gray)
@@ -42,8 +41,7 @@ final class CueTextStylerTests: XCTestCase {
                      WordTiming(text: "beta", startTime: 1, endTime: 2),
                      WordTiming(text: "gamma", startTime: 2, endTime: 3)]
         let s = CueTextStyler.attributed(text: "alpha beta gamma", words: words, activeWordIndex: 1,
-                                         searchQuery: "", font: font,
-                                         baseColor: .gray, emphasisColor: .black, accentColor: .green)
+                                         searchQuery: "", style: style)
         XCTAssertEqual(s.string, "alpha beta gamma")     // joined by single spaces
         XCTAssertEqual(attrs(s, at: 0)[.foregroundColor] as? UIColor, .gray)   // "alpha"
         XCTAssertEqual(attrs(s, at: 6)[.foregroundColor] as? UIColor, .black)  // "beta"
@@ -54,8 +52,7 @@ final class CueTextStylerTests: XCTestCase {
         let words = [WordTiming(text: "alpha", startTime: 0, endTime: 1),
                      WordTiming(text: "beta", startTime: 1, endTime: 2)]
         let s = CueTextStyler.attributed(text: "alpha beta", words: words, activeWordIndex: 0,
-                                         searchQuery: "beta", font: font,
-                                         baseColor: .gray, emphasisColor: .black, accentColor: .green)
+                                         searchQuery: "beta", style: style)
         // Search styling path: match run accented, everything else base — no word emphasis.
         XCTAssertEqual(attrs(s, at: 0)[.foregroundColor] as? UIColor, .gray)
         XCTAssertEqual(attrs(s, at: 6)[.foregroundColor] as? UIColor, .green)
@@ -64,8 +61,7 @@ final class CueTextStylerTests: XCTestCase {
     func test_noActiveWord_allWordsBaseColor() {
         let words = [WordTiming(text: "alpha", startTime: 0, endTime: 1)]
         let s = CueTextStyler.attributed(text: "alpha", words: words, activeWordIndex: nil,
-                                         searchQuery: "", font: font,
-                                         baseColor: .gray, emphasisColor: .black, accentColor: .green)
+                                         searchQuery: "", style: style)
         XCTAssertEqual(attrs(s, at: 0)[.foregroundColor] as? UIColor, .gray)
     }
 }

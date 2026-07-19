@@ -98,33 +98,7 @@ struct TranscriptView: View {
             .navigationTitle("Transcript")
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .top) {
-                if searching {
-                    HStack(spacing: 10) {
-                        BrutalSearchField("Find in transcript", text: $query, focus: $searchFocused)
-                        Text(matchCounterText)
-                            .scaledFont(13, weight: .semibold).monospacedDigit()
-                            .foregroundStyle(theme.color(.textSecondary))
-                            .fixedSize()
-                        Button { prevMatch() } label: {
-                            Image(systemName: "chevron.up").scaledFont(14, weight: .bold)
-                                .foregroundStyle(theme.color(matchIndices.isEmpty ? .textTertiary : .accent))
-                                .frame(width: 36, height: 36)
-                                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                        }
-                        .buttonStyle(.plain).disabled(matchIndices.isEmpty)
-                        .accessibilityLabel("Previous match")
-                        Button { nextMatch() } label: {
-                            Image(systemName: "chevron.down").scaledFont(14, weight: .bold)
-                                .foregroundStyle(theme.color(matchIndices.isEmpty ? .textTertiary : .accent))
-                                .frame(width: 36, height: 36)
-                                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                        }
-                        .buttonStyle(.plain).disabled(matchIndices.isEmpty)
-                        .accessibilityLabel("Next match")
-                    }
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(theme.color(.bg))
-                }
+                if searching { searchBar }
             }
             .toolbar {
                 if transcript != nil, !(transcript?.cues.isEmpty ?? true) {
@@ -181,56 +155,6 @@ struct TranscriptView: View {
         .onChange(of: playback.transcriptJumpNonce) { _, _ in dismiss() }
     }
 
-    private var selectionRange: ClosedRange<Int>? {
-        guard let s = selStart else { return nil }
-        let e = selEnd ?? s
-        return min(s, e)...max(s, e)
-    }
-
-    private func handleSelectionTap(_ i: Int) {
-        if let s = selStart, selEnd == nil, i != s { selEnd = i } else { selStart = i; selEnd = nil }
-    }
-
-    private func resetSelection() {
-        selecting = false; selStart = nil; selEnd = nil
-    }
-
-    private var matchCounterText: String {
-        matchIndices.isEmpty ? "0 / 0" : "\(currentMatch + 1) / \(matchIndices.count)"
-    }
-
-    private func closeSearch() {
-        searching = false; query = ""; matchIndices = []; currentMatch = 0
-    }
-
-    private func recomputeMatches() {
-        matchIndices = TranscriptFind.matchingIndices(query: query, in: cueVMs.map(\.text))
-        currentMatch = 0
-    }
-
-    private func nextMatch() {
-        guard !matchIndices.isEmpty else { return }
-        currentMatch = (currentMatch + 1) % matchIndices.count
-    }
-
-    private func prevMatch() {
-        guard !matchIndices.isEmpty else { return }
-        currentMatch = (currentMatch - 1 + matchIndices.count) % matchIndices.count
-    }
-
-    /// Cue index of the current match (nil when not searching / no matches).
-    private var currentMatchCue: Int? {
-        guard searching, !matchIndices.isEmpty, currentMatch < matchIndices.count else { return nil }
-        return matchIndices[currentMatch]
-    }
-
-    private func timeStr(_ s: TimeInterval) -> String {
-        let t = Int(max(0, s))
-        return t >= 3600
-            ? String(format: "%d:%02d:%02d", t / 3600, (t % 3600) / 60, t % 60)
-            : String(format: "%d:%02d", t / 60, t % 60)
-    }
-
     // Cue text/speaker/timestamp on the left; the jump-to-player control sits off to the right so
     // it never competes with tapping lines to select a clip.
     @ViewBuilder private func cueRow(_ cue: CueVM) -> some View {
@@ -243,23 +167,7 @@ struct TranscriptView: View {
                 }
                 Text(timeStr(cue.start)).scaledFont(11, weight: .medium).monospacedDigit()
                     .foregroundStyle(theme.color(.textTertiary))
-                if selecting {
-                    Text(cue.text)
-                        .scaledFont(16)
-                        .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
-                } else {
-                    SelectableCueText(
-                        attributed: CueTextStyler.attributed(
-                            text: cue.text,
-                            words: i == activeIndex ? cue.words : nil,
-                            activeWordIndex: i == activeIndex ? activeWordIndex(for: cue) : nil,
-                            searchQuery: searching ? query : "",
-                            font: .systemFont(ofSize: cueFontSize),
-                            baseColor: UIColor(theme.color(i == activeIndex ? .text : .textTertiary)),
-                            emphasisColor: UIColor(theme.color(.text)),
-                            accentColor: UIColor(theme.color(.accent))),
-                        onTap: { playback.jumpFromTranscript(episode: episode, to: cue.start) })
-                }
+                cueText(cue)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
@@ -341,6 +249,108 @@ struct TranscriptView: View {
         transcript = await transcripts.transcript(for: episode)
         snapshotCues()
         transcribing = false
+    }
+}
+
+// MARK: - Cue text, search & clip-selection helpers
+extension TranscriptView {
+    // Read mode gets natively-selectable text (long-press → Look Up / Search Web); clip Select
+    // mode gets plain Text so the row's range-tap gesture has no competing recognizer.
+    @ViewBuilder func cueText(_ cue: CueVM) -> some View {
+        let i = cue.id
+        if selecting {
+            Text(cue.text)
+                .scaledFont(16)
+                .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
+        } else {
+            SelectableCueText(
+                attributed: CueTextStyler.attributed(
+                    text: cue.text,
+                    words: i == activeIndex ? cue.words : nil,
+                    activeWordIndex: i == activeIndex ? activeWordIndex(for: cue) : nil,
+                    searchQuery: searching ? query : "",
+                    style: .init(font: .systemFont(ofSize: cueFontSize),
+                                 base: UIColor(theme.color(i == activeIndex ? .text : .textTertiary)),
+                                 emphasis: UIColor(theme.color(.text)),
+                                 accent: UIColor(theme.color(.accent)))),
+                onTap: { playback.jumpFromTranscript(episode: episode, to: cue.start) })
+        }
+    }
+
+    // Top find bar: search field + match counter + prev/next chevrons.
+    var searchBar: some View {
+        HStack(spacing: 10) {
+            BrutalSearchField("Find in transcript", text: $query, focus: $searchFocused)
+            Text(matchCounterText)
+                .scaledFont(13, weight: .semibold).monospacedDigit()
+                .foregroundStyle(theme.color(.textSecondary))
+                .fixedSize()
+            matchChevron(system: "chevron.up", label: "Previous match", action: prevMatch)
+            matchChevron(system: "chevron.down", label: "Next match", action: nextMatch)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .background(theme.color(.bg))
+    }
+
+    private func matchChevron(system: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: system).scaledFont(14, weight: .bold)
+                .foregroundStyle(theme.color(matchIndices.isEmpty ? .textTertiary : .accent))
+                .frame(width: 36, height: 36)
+                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+        }
+        .buttonStyle(.plain).disabled(matchIndices.isEmpty)
+        .accessibilityLabel(label)
+    }
+
+    var matchCounterText: String {
+        matchIndices.isEmpty ? "0 / 0" : "\(currentMatch + 1) / \(matchIndices.count)"
+    }
+
+    func closeSearch() {
+        searching = false; query = ""; matchIndices = []; currentMatch = 0
+    }
+
+    func recomputeMatches() {
+        matchIndices = TranscriptFind.matchingIndices(query: query, in: cueVMs.map(\.text))
+        currentMatch = 0
+    }
+
+    func nextMatch() {
+        guard !matchIndices.isEmpty else { return }
+        currentMatch = (currentMatch + 1) % matchIndices.count
+    }
+
+    func prevMatch() {
+        guard !matchIndices.isEmpty else { return }
+        currentMatch = (currentMatch - 1 + matchIndices.count) % matchIndices.count
+    }
+
+    /// Cue index of the current match (nil when not searching / no matches).
+    var currentMatchCue: Int? {
+        guard searching, !matchIndices.isEmpty, currentMatch < matchIndices.count else { return nil }
+        return matchIndices[currentMatch]
+    }
+
+    var selectionRange: ClosedRange<Int>? {
+        guard let s = selStart else { return nil }
+        let e = selEnd ?? s
+        return min(s, e)...max(s, e)
+    }
+
+    func handleSelectionTap(_ i: Int) {
+        if let s = selStart, selEnd == nil, i != s { selEnd = i } else { selStart = i; selEnd = nil }
+    }
+
+    func resetSelection() {
+        selecting = false; selStart = nil; selEnd = nil
+    }
+
+    func timeStr(_ s: TimeInterval) -> String {
+        let t = Int(max(0, s))
+        return t >= 3600
+            ? String(format: "%d:%02d:%02d", t / 3600, (t % 3600) / 60, t % 60)
+            : String(format: "%d:%02d", t / 60, t % 60)
     }
 }
 

@@ -6,20 +6,26 @@ import UIKit
 /// styling precedence is: search-match emphasis (accent + bold) wins over per-word active
 /// emphasis, which wins over plain base color.
 enum CueTextStyler {
+    /// Font + colors for one cue, grouped so `attributed` stays a small call.
+    struct Style {
+        let font: UIFont
+        let base: UIColor
+        let emphasis: UIColor
+        let accent: UIColor
+    }
+
     static func attributed(text: String, words: [WordTiming]?, activeWordIndex: Int?,
-                           searchQuery: String, font: UIFont,
-                           baseColor: UIColor, emphasisColor: UIColor,
-                           accentColor: UIColor) -> NSAttributedString {
+                           searchQuery: String, style: Style) -> NSAttributedString {
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         if !query.isEmpty {
             // Search styling: accent + bold on match runs over the plain cue text.
-            let bold = UIFont.systemFont(ofSize: font.pointSize, weight: .bold)
+            let bold = UIFont.systemFont(ofSize: style.font.pointSize, weight: .bold)
             let result = NSMutableAttributedString()
             for seg in TranscriptFind.segments(of: text, query: query) {
                 result.append(NSAttributedString(
                     string: seg.text,
-                    attributes: [.font: seg.isMatch ? bold : font,
-                                 .foregroundColor: seg.isMatch ? accentColor : baseColor]))
+                    attributes: [.font: seg.isMatch ? bold : style.font,
+                                 .foregroundColor: seg.isMatch ? style.accent : style.base]))
             }
             return result
         }
@@ -30,13 +36,13 @@ enum CueTextStyler {
                 let prefix = i == 0 ? "" : " "
                 result.append(NSAttributedString(
                     string: prefix + w.text,
-                    attributes: [.font: font,
-                                 .foregroundColor: i == activeWordIndex ? emphasisColor : baseColor]))
+                    attributes: [.font: style.font,
+                                 .foregroundColor: i == activeWordIndex ? style.emphasis : style.base]))
             }
             return result
         }
         return NSAttributedString(string: text,
-                                  attributes: [.font: font, .foregroundColor: baseColor])
+                                  attributes: [.font: style.font, .foregroundColor: style.base])
     }
 }
 
