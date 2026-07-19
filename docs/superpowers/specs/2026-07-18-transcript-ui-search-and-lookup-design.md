@@ -101,7 +101,7 @@ New/changed pieces:
 - **`searchBar` view** — `BrutalSearchField` + counter + chevrons, shown when `searching` is true
   (top of panel).
 - **Toolbar magnifier item** toggling `searching`.
-- **Navigation/among helpers** — `recomputeMatches()` (on query change), `nextMatch()`,
+- **Navigation helpers** — `recomputeMatches()` (on query change), `nextMatch()`,
   `prevMatch()`, and the `currentMatch`-change scroll effect.
 - **`.textSelection(.enabled)`** on the cue text, gated to read mode (disabled while `selecting`).
 - Suspend playback auto-follow while `searching`.
