@@ -2,6 +2,12 @@
 import SwiftUI
 import SwiftData
 
+// Row tap → show preview. Identifiable wrapper because PodcastDTO itself isn't Identifiable.
+struct PreviewTarget: Identifiable {
+    let id = UUID()
+    let dto: PodcastDTO
+}
+
 struct DiscoverView: View {
     @Environment(AppTheme.self) private var theme
     @Environment(SubscriptionService.self) private var subscriptions
@@ -29,6 +35,7 @@ struct DiscoverView: View {
     @State private var selectedCategory: String?
     @State private var categoryResults: [PodcastDTO] = []
     @FocusState private var searchFocused: Bool
+    @State private var previewTarget: PreviewTarget?
 
     private enum DiscoverMode: Hashable { case browse, forYou }
 
@@ -72,7 +79,10 @@ struct DiscoverView: View {
         browseStatus
         Group {
             ForEach(Array(listItems.enumerated()), id: \.element.collectionId) { i, dto in
+                // Row tap opens a preview; the inner Follow Button still wins its own taps.
                 let row = TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) { toggleFollow(dto) }
+                    .contentShape(Rectangle()).onTapGesture { previewTarget = PreviewTarget(dto: dto) }
+                    .accessibilityHint("Opens a preview of this show")
                 if shake != nil {
                     DealtCard(index: i) { row }
                 } else {
@@ -152,6 +162,11 @@ struct DiscoverView: View {
         .onDisappear { playback.tabBarHidden = false }
         .sheet(isPresented: $showAddByURL) {
             AddByURLSheet().presentationDetents([.medium, .large])
+        }
+        .sheet(item: $previewTarget) { target in
+            ShowPreviewSheet(dto: target.dto, isSubscribed: isSubscribed(target.dto),
+                             onToggle: { toggleFollow(target.dto) })
+                .presentationDetents([.medium, .large])
         }
         .background(theme.color(.bg))
         .task { await clientBox.loadTrendingIfNeeded() }
@@ -404,6 +419,8 @@ extension DiscoverView {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
+                            .contentShape(Rectangle()).onTapGesture { previewTarget = PreviewTarget(dto: rec.dto) }
+                            .accessibilityHint("Opens a preview of this show")
                         // Visible "not interested" — the context menu below stays as the
                         // secondary path, but discoverability needs an on-screen control.
                         Button { dismissRecommendation(rec) } label: {

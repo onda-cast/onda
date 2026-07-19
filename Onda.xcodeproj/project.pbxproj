@@ -76,6 +76,7 @@
 		652E023072D240017728BB95 /* ParsedCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67CE2B1E3EF1BFC12BF71E97 /* ParsedCue.swift */; };
 		6592B86626010C875344F3A9 /* SkipSilenceProbeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C754A0D185FEEF349CA200FB /* SkipSilenceProbeUITests.swift */; };
 		65C9056163045DC2CB339C1E /* ArticleExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE70603D64BABF9F05DE1072 /* ArticleExtractorTests.swift */; };
+		660097744C526EFA39D36AD6 /* ShowPreviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4B6C471B28BC2CEB492248 /* ShowPreviewSheet.swift */; };
 		67C5E5BABD29BF4D05855F20 /* SilenceDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038C26F4DBED21BB7B7008BE /* SilenceDetector.swift */; };
 		68498B8320069ECCE039581D /* Similarity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E0FF7B58A162381EDF818B /* Similarity.swift */; };
 		69DB0D1A0D70CF821C980735 /* AppearanceProbeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C117123B460457FF09056145 /* AppearanceProbeUITests.swift */; };
@@ -440,6 +441,7 @@
 		FCAFB31E4B154AAA6A16D48C /* LibrarySearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySearchView.swift; sourceTree = "<group>"; };
 		FCF6C8AE0E3030E7AE86BC20 /* Podcast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Podcast.swift; sourceTree = "<group>"; };
 		FD58548F1182E86380ABAF54 /* PrivateFeedTokenMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateFeedTokenMigration.swift; sourceTree = "<group>"; };
+		FF4B6C471B28BC2CEB492248 /* ShowPreviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowPreviewSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -567,6 +569,7 @@
 				F24D279FF00ABC8C8E030FBF /* DiscoverSuggestions.swift */,
 				A6D6D5D1903CED676E1E2D66 /* ShakeDetector.swift */,
 				09095FFCD1695D9823847A7F /* ShakeWaveOverlay.swift */,
+				FF4B6C471B28BC2CEB492248 /* ShowPreviewSheet.swift */,
 				724742E0E1635727F2999811 /* TrendingRow.swift */,
 			);
 			path = Discover;
@@ -1152,6 +1155,7 @@
 				B5B0D046340EEAB9B6F12F16 /* ShakeDetector.swift in Sources */,
 				EEDA880E7415DD01CE31C1FD /* ShakeWaveOverlay.swift in Sources */,
 				78C50A91BD56CB1F74763998 /* ShowCard.swift in Sources */,
+				660097744C526EFA39D36AD6 /* ShowPreviewSheet.swift in Sources */,
 				C4C5120BA3D15BB3B79D6421 /* ShowSettings.swift in Sources */,
 				4B70BA7C852DC578461AE64D /* ShowSettingsMigrator.swift in Sources */,
 				134B411898C677C4F030743D /* ShowSettingsSheet.swift in Sources */,
