@@ -143,6 +143,7 @@
 		A7BCE3FD3DFB5A83D604DA82 /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26BA9D1CEE05EAA5CDF381C /* ThemeTests.swift */; };
 		A88A2927E10B55F59D1EBE1A /* AudioTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E6E8386DBE4C5817B5ABEF2 /* AudioTap.swift */; };
 		AC8BFE08CC7BB14BB4BCEF06 /* PlayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF527AF76929ACA91A63D7 /* PlayerEngine.swift */; };
+		ADC102398417CE7F04092A53 /* BooksSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 332C16FFBFCB53E65BD373F1 /* BooksSheet.swift */; };
 		AE8A774FB33E846D2CF20471 /* BookLinkParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 601894673994370B0B96CF43 /* BookLinkParserTests.swift */; };
 		AF097E07975F74F4EA8226D5 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20505A324537A29B2E603405 /* ProfileView.swift */; };
 		AFCEA49459314178CF2BD336 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D08E840362422D0CB05A96C /* Theme.swift */; };
@@ -290,6 +291,7 @@
 		323028D4CD592C6D201924EF /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		325070FC3907EFEC82D6435F /* Episode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Episode.swift; sourceTree = "<group>"; };
 		32AD8CBABEE9581BA2C8BE8F /* AdvancedConfigUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedConfigUITests.swift; sourceTree = "<group>"; };
+		332C16FFBFCB53E65BD373F1 /* BooksSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BooksSheet.swift; sourceTree = "<group>"; };
 		34C33A334266DCF78E6FF739 /* itunes_search.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = itunes_search.json; sourceTree = "<group>"; };
 		35E2D3CE23588F22A749872C /* OndaShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OndaShareExtension.entitlements; sourceTree = "<group>"; };
 		368C79C69446D4484367A9AD /* SearchIndexBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchIndexBox.swift; sourceTree = "<group>"; };
@@ -727,6 +729,7 @@
 				7D5B29C646063EEBCB53A820 /* BookLinkParser.swift */,
 				78727412B5070C872E8C8B4E /* BookMentionService.swift */,
 				10A6145685B9BA56679EC024 /* BookPatternExtractor.swift */,
+				332C16FFBFCB53E65BD373F1 /* BooksSheet.swift */,
 				6563709FC59BDA8EB84AAEB1 /* BookVerifier.swift */,
 			);
 			path = Books;
@@ -1127,6 +1130,7 @@
 				385EEE3D6E9A56293AB9FE5B /* BookMentionService.swift in Sources */,
 				F6F503404F2FEA460218F881 /* BookPatternExtractor.swift in Sources */,
 				331B1C8190ED1F63B1FAF050 /* BookVerifier.swift in Sources */,
+				ADC102398417CE7F04092A53 /* BooksSheet.swift in Sources */,
 				BDDE61D7C5F26A0326671EE6 /* BoostLevel.swift in Sources */,
 				2CF01198940BDD97D046342B /* BrutalEmptyState.swift in Sources */,
 				2622AF207821F1A3F46610C3 /* BrutalSearchField.swift in Sources */,

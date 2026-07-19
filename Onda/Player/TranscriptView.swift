@@ -8,6 +8,7 @@ struct TranscriptView: View {
     @Environment(TranscriptService.self) private var transcripts
     @Environment(\.dismiss) private var dismiss
     let episode: Episode
+    var initialSearch: String?
 
     @State private var transcript: Transcript?
     @State private var loading = false
@@ -161,7 +162,13 @@ struct TranscriptView: View {
                 }
             })
         }
-        .task { await load() }
+        .task {
+            await load()
+            if let initialSearch, !initialSearch.isEmpty {
+                query = initialSearch
+                searching = true
+            }
+        }
         // A jump surfaces the player; close this transcript sheet so the player is visible.
         .onChange(of: playback.transcriptJumpNonce) { _, _ in dismiss() }
     }

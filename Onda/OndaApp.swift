@@ -19,6 +19,7 @@ struct OndaApp: App {
     @State private var searchIndexBox: SearchIndexBox
     @State private var recommendations: RecommendationService
     @State private var articles: ArticleConversionService
+    @State private var books: BookMentionService
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -59,16 +60,14 @@ struct OndaApp: App {
             let cs = ClipService(modelContext: c.mainContext, index: index)
             _clips = State(initialValue: cs)
             OndaApp.wirePlayback(pm: pm, dm: dm, cs: cs, settings: settings)
-            let rs = FeedRefreshService(modelContext: c.mainContext, subscriptions: subs,
-                                        downloads: dm, appSettings: settings)
-            rs.retention = ret
-            rs.registerBackgroundTask()
-            _refresh = State(initialValue: rs)
+            _refresh = State(initialValue: OndaApp.makeRefreshService(
+                context: c.mainContext, subs: subs, dm: dm, settings: settings, ret: ret))
             _recommendations = State(initialValue: RecommendationService(
                 modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient()))
             let articlesService = OndaApp.makeArticleService(context: c.mainContext, ts: ts)
             articlesService.registerBackgroundTask()
             _articles = State(initialValue: articlesService)
+            _books = State(initialValue: OndaApp.makeBookService(context: c.mainContext))
             pm.restoreLastEpisode()   // cold-launch: bring back the last episode (paused) into the mini-player
         } catch {
             fatalError("Failed to build ModelContainer: \(error)")
@@ -115,6 +114,27 @@ struct OndaApp: App {
             return FoundationModelsChapterGenerator()
         }
         return nil
+    }
+
+    private static func makeBookExtractor() -> BookExtracting? {
+        if #available(iOS 26, *), FoundationModelsBookExtractor.isAvailable {
+            return FoundationModelsBookExtractor()
+        }
+        return nil
+    }
+
+    private static func makeBookService(context: ModelContext) -> BookMentionService {
+        BookMentionService(modelContext: context, llm: makeBookExtractor())
+    }
+
+    private static func makeRefreshService(context: ModelContext, subs: SubscriptionService,
+                                           dm: DownloadManager, settings: AppSettings,
+                                           ret: EpisodeRetentionService) -> FeedRefreshService {
+        let rs = FeedRefreshService(modelContext: context, subscriptions: subs,
+                                    downloads: dm, appSettings: settings)
+        rs.retention = ret
+        rs.registerBackgroundTask()
+        return rs
     }
 
     private static func makeChapterService(context: ModelContext) -> ChapterGenerationService {
@@ -179,6 +199,7 @@ struct OndaApp: App {
                 .environment(searchIndexBox)
                 .environment(recommendations)
                 .environment(articles)
+                .environment(books)
                 .preferredColorScheme(theme.colorScheme)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
