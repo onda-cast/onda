@@ -49,6 +49,9 @@ final class PlaybackManager {
         engine.onEndOfItem = { [weak self] in self?.handleEndOfItem() }
         engine.onRMS = { [weak self] rms, secs in
             guard let self else { return }
+            // Clip preview is a scoped audition of exact edges: never silence-skip during it
+            // (an automatic skip is not a "manual" cancellation and would break the loop).
+            guard self.clipPreviewRange == nil else { return }
             guard self.resolved.skipSilence else {
                 if CFAbsoluteTimeGetCurrent() - self.lastSilenceDiagAt > 10 {
                     self.lastSilenceDiagAt = CFAbsoluteTimeGetCurrent()
@@ -159,6 +162,7 @@ final class PlaybackManager {
     /// Called when the Clip Review sheet appears: pause and remember where the listener was.
     /// Balanced by ``endClipPreview()`` on dismiss.
     func beginClipPreview() {
+        guard preClipPreview == nil else { return }   // already in a preview; first snapshot wins
         preClipPreview = (currentEpisode, positionSeconds, isPlaying)
         engine.pause()
         isPlaying = false
