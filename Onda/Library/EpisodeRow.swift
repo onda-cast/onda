@@ -105,7 +105,7 @@ struct EpisodeRow: View {
                 .scaledFont(13, weight: .black)
                 .foregroundStyle(.white)
                 .frame(width: 30, height: 30)
-                .background(.black)
+                .background(Color.red)
                 .brutalBorder(width: 2)
         }
     }
