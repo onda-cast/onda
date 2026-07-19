@@ -406,8 +406,11 @@ extension DiscoverView {
     func handleScroll(offsetY: CGFloat) {
         defer { lastScrollY = offsetY }
         let delta = offsetY - lastScrollY
-        if delta > 0 { downwardRun += delta; upwardRun = 0 }
-        else if delta < 0 { upwardRun -= delta; downwardRun = 0 }
+        if delta > 0 {
+            downwardRun += delta; upwardRun = 0
+        } else if delta < 0 {
+            upwardRun -= delta; downwardRun = 0
+        }
         if offsetY <= 30 || upwardRun > 80 {
             if playback.miniPlayerHidden { playback.miniPlayerHidden = false }
         } else if downwardRun > 60 {
@@ -451,9 +454,8 @@ private struct ScrollOffsetReporter: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 18.0, *) {
             content.onScrollGeometryChange(for: CGFloat.self,
-                                           of: { $0.contentOffset.y + $0.contentInsets.top }) { _, new in
-                onScroll(new)
-            }
+                                           of: { $0.contentOffset.y + $0.contentInsets.top },
+                                           action: { _, new in onScroll(new) })
         } else {
             content
         }
