@@ -10,6 +10,7 @@ final class Episode {
     var duration: TimeInterval
     var audioURL: URL
     var notes: String
+    var noteLinks: [URL] = []   // hrefs from the feed description — Books Mentioned link tier
     var playbackPosition: TimeInterval
     var played: Bool
     var playedDate: Date?   // stamped when marked played; drives the auto-delete-after-N-days rule
@@ -36,8 +37,12 @@ final class Episode {
     @Relationship(deleteRule: .cascade, inverse: \Clip.episode)
     var clips: [Clip] = []
 
+    @Relationship(deleteRule: .cascade, inverse: \BookMention.episode)
+    var bookMentions: [BookMention] = []
+
     init(guid: String, title: String, publishDate: Date, duration: TimeInterval,
-         audioURL: URL, notes: String, playbackPosition: TimeInterval = 0, played: Bool = false,
+         audioURL: URL, notes: String, noteLinks: [URL] = [], playbackPosition: TimeInterval = 0,
+         played: Bool = false,
          chaptersURL: URL? = nil, transcriptURL: URL? = nil, transcriptType: String? = nil) {
         self.chaptersURL = chaptersURL
         self.transcriptURL = transcriptURL
@@ -48,6 +53,7 @@ final class Episode {
         self.duration = duration
         self.audioURL = audioURL
         self.notes = notes
+        self.noteLinks = noteLinks
         self.playbackPosition = playbackPosition
         self.played = played
     }

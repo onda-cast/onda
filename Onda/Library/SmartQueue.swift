@@ -15,17 +15,16 @@ enum SmartQueue: String, CaseIterable, Sendable {
 
     @MainActor
     func apply(to episodes: [Episode], now: Date = .now) -> [Episode] {
-        let episodes = episodes.filter { !$0.isArchived }
+        // Every chip is a lens onto downloaded episodes only — nothing here surfaces
+        // an episode you can't play offline.
+        let episodes = episodes.filter { !$0.isArchived && $0.downloadedFile != nil }
         switch self {
         case .unplayed:
             return episodes.filter { !$0.played }
                 .sorted { $0.publishDate > $1.publishDate }
         case .downloaded:
-            // ALL downloads, played included — must mean the same thing as the in-show
-            // "Downloaded" filter (EpisodeFilter), or an episode visible in one place
-            // inexplicably vanishes in the other.
-            return episodes.filter { $0.downloadedFile != nil }
-                .sorted { $0.publishDate > $1.publishDate }
+            // ALL downloads, played included, most recently downloaded first.
+            return episodes.sorted { ($0.downloadedFile?.downloadedAt ?? .distantPast) > ($1.downloadedFile?.downloadedAt ?? .distantPast) }
         case .recentlyAdded:
             let cutoff = now.addingTimeInterval(-7 * 24 * 3600)
             return episodes.filter { $0.publishDate >= cutoff && $0.publishDate <= now }
@@ -43,12 +42,12 @@ enum SmartQueue: String, CaseIterable, Sendable {
     func hasMatches(in episodes: [Episode], now: Date = .now) -> Bool {
         switch self {
         case .unplayed, .shortestFirst:
-            return episodes.contains { !$0.isArchived && !$0.played }
+            return episodes.contains { !$0.isArchived && $0.downloadedFile != nil && !$0.played }
         case .downloaded:
             return episodes.contains { !$0.isArchived && $0.downloadedFile != nil }
         case .recentlyAdded:
             let cutoff = now.addingTimeInterval(-7 * 24 * 3600)
-            return episodes.contains { !$0.isArchived && $0.publishDate >= cutoff && $0.publishDate <= now }
+            return episodes.contains { !$0.isArchived && $0.downloadedFile != nil && $0.publishDate >= cutoff && $0.publishDate <= now }
         }
     }
 }

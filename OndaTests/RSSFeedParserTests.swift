@@ -51,4 +51,21 @@ final class RSSFeedParserTests: XCTestCase {
         XCTAssertEqual(RSSFeedParser.parseDuration("1:02:03"), 3723)
         XCTAssertEqual(RSSFeedParser.parseDuration("garbage"), 0)
     }
+
+    func test_parse_capturesNoteLinksBeforeStrippingHTML() throws {
+        let xml = """
+        <rss><channel><title>Show</title>
+        <item><title>Ep</title><guid>g1</guid>
+        <description><![CDATA[Great chat. <a href="https://www.amazon.com/dp/0735211299">Atomic Habits</a> \
+        and <a href='https://bookshop.org/p/books/deep-work-cal-newport/8339063'>Deep Work</a>]]></description>
+        <enclosure url="https://ex.com/e1.mp3" type="audio/mpeg" length="1"/>
+        </item></channel></rss>
+        """
+        let feed = try XCTUnwrap(RSSFeedParser().parse(Data(xml.utf8)))
+        let ep = try XCTUnwrap(feed.episodes.first)
+        XCTAssertEqual(ep.noteLinks.map(\.absoluteString),
+                       ["https://www.amazon.com/dp/0735211299",
+                        "https://bookshop.org/p/books/deep-work-cal-newport/8339063"])
+        XCTAssertFalse(ep.notes.contains("<a "), "notes stay stripped plain text")
+    }
 }

@@ -9,6 +9,7 @@ struct NowPlayingView: View {
     @Environment(AppSettings.self) private var appSettings
     @Environment(\.dismiss) private var dismiss
     @State private var showQueue = false
+    @State private var showBooks = false
     @State private var showSettings = false
     @State private var showTranscript = false
     @State private var showJumpToTime = false
@@ -104,6 +105,9 @@ struct NowPlayingView: View {
         .sheet(item: $pendingClip) { p in
             ClipReviewSheet(episode: p.episode, start: p.start, end: p.end)
         }
+        .sheet(isPresented: $showBooks) {
+            if let ep { BooksSheet(episode: ep).presentationDetents([.medium, .large]) }
+        }
     }
 
     private var header: some View {
@@ -116,6 +120,10 @@ struct NowPlayingView: View {
                 .disabled(ep == nil)
                 .accessibilityLabel(clipStart == nil ? "Start clip" : "End clip")
                 .accessibilityIdentifier("clip-button")
+            Button { showBooks = true } label: { headerIcon("book") }
+                .disabled(ep == nil)
+                .accessibilityLabel("Books mentioned in this episode")
+                .accessibilityIdentifier("books-button")
             SleepTimerMenu()
             Button { showTranscript = true } label: { headerIcon("text.quote") }
                 .accessibilityIdentifier("transcript-button")

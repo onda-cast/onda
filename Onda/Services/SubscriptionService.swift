@@ -207,6 +207,7 @@ final class SubscriptionService {
         for pe in feed.episodes where !existing.contains(pe.guid) {
             let ep = Episode(guid: pe.guid, title: pe.title, publishDate: pe.publishDate,
                              duration: pe.duration, audioURL: pe.audioURL, notes: pe.notes,
+                             noteLinks: pe.noteLinks,
                              chaptersURL: pe.chaptersURL,
                              transcriptURL: pe.transcriptURL, transcriptType: pe.transcriptType)
             modelContext.insert(ep)
