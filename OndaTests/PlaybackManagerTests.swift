@@ -574,4 +574,21 @@ extension PlaybackManagerTests {
         engine.emitTime(131)
         XCTAssertEqual(engine.currentTimeSeconds, 131, accuracy: 0.5, "loop cleared by stop")
     }
+
+    func test_nativeEndOfItem_duringPreview_loopsAndPreservesState() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep1 = makeEpisode(in: ctx, guid: "listening", duration: 1000)
+        let ep2 = makeEpisode(in: ctx, guid: "queued")
+        pm.play(ep1)
+        pm.enqueue(ep2)
+        engine.emitTime(500)
+        pm.beginClipPreview()
+        pm.previewRange(episode: ep1, start: 900, end: 1000)   // range ends at the true episode end
+        engine.emitEnd()                                       // native end-of-item fires during preview
+        XCTAssertFalse(ep1.played, "preview reaching media end must not mark the episode played")
+        XCTAssertEqual(pm.queue.count, 1, "a preview must not consume a queue item")
+        XCTAssertEqual(engine.currentTimeSeconds, 900, accuracy: 0.5, "preview loops back to range start")
+    }
 }

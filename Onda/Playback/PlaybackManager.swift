@@ -395,6 +395,11 @@ final class PlaybackManager {
     /// Called when the current episode reaches its (trimmed) end: marks it played, then either
     /// stops for an end-of-episode sleep timer or advances to the next queued/unplayed episode.
     func handleEndOfItem() {
+        // A preview range ending at the episode's true end reaches the native end-of-item
+        // before a time tick can loop it — loop here too, never mark played / advance the queue.
+        if let range = clipPreviewRange {
+            engine.seek(to: range.start); positionSeconds = range.start; return
+        }
         if let ep = currentEpisode { ep.played = true; ep.playedDate = .now; ep.playbackPosition = 0 }
         try? modelContext.save()
         if sleepMode == .endOfEpisode {
