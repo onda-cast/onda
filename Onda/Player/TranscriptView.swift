@@ -1,5 +1,6 @@
 //  TranscriptView.swift
 import SwiftUI
+import UIKit   // UIColor / UIFont for the SelectableCueText attributed styling
 
 struct TranscriptView: View {
     @Environment(AppTheme.self) private var theme
@@ -311,6 +312,9 @@ extension TranscriptView {
         searching = false; query = ""; matchIndices = []; currentMatch = 0
     }
 
+    // Recomputed on query change. cueVMs is built once per transcript (snapshotCues) and is not
+    // re-snapshotted while a populated transcript — and thus the search bar — is on screen, so
+    // matchIndices can't go stale against a regenerated snapshot.
     func recomputeMatches() {
         matchIndices = TranscriptFind.matchingIndices(query: query, in: cueVMs.map(\.text))
         currentMatch = 0
