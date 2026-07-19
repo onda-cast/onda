@@ -4,7 +4,7 @@
 //  type overall and per podcast.
 import Foundation
 
-struct StoragePodcastRow: Identifiable, Equatable {
+struct StoragePodcastRow: Identifiable, Equatable, Sendable {
     let id: String
     let title: String
     let audioBytes: Int64
@@ -12,14 +12,29 @@ struct StoragePodcastRow: Identifiable, Equatable {
     var totalBytes: Int64 { audioBytes + transcriptBytes }
 }
 
-struct StorageBreakdown: Equatable {
+struct StorageBreakdown: Equatable, Sendable {
     var audioBytes: Int64 = 0
     var transcriptBytes: Int64 = 0
     var podcasts: [StoragePodcastRow] = []
     var totalBytes: Int64 { audioBytes + transcriptBytes }
 }
 
+import SwiftData
+
 enum StorageCalculator {
+    /// Off-main variant: the sync `breakdown(podcasts:)` faults every episode, transcript, and
+    /// cue's text — thousands of SwiftData faults with a real library, which froze the screen
+    /// when run on the main thread per render. This computes once in a background ModelContext
+    /// and returns a Sendable value snapshot.
+    static func breakdownInBackground(container: ModelContainer) async -> StorageBreakdown {
+        await Task.detached(priority: .userInitiated) {
+            let context = ModelContext(container)
+            let pods = (try? context.fetch(FetchDescriptor<Podcast>(
+                predicate: #Predicate { $0.isSubscribed }))) ?? []
+            return breakdown(podcasts: pods)
+        }.value
+    }
+
     /// Rough on-disk cost of a transcript: the UTF-8 byte length of all its cue text.
     static func transcriptBytes(for episode: Episode) -> Int64 {
         guard let cues = episode.transcript?.cues else { return 0 }

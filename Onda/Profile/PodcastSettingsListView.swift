@@ -10,30 +10,45 @@ struct PodcastSettingsListView: View {
            sort: \Podcast.title) private var shows: [Podcast]
     @State private var selected: Podcast?
 
+    // Brutalist cards on the theme background — this screen was the last stock grouped List.
     var body: some View {
-        List {
-            if shows.isEmpty {
-                Text("No subscribed shows").foregroundStyle(theme.color(.textTertiary))
-            }
-            ForEach(shows) { show in
-                Button { selected = show } label: {
-                    HStack(spacing: 12) {
-                        ArtworkView(url: show.artworkURL, seed: show.title)
-                            .frame(width: 40, height: 40).clipped()
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(show.title).scaledFont(15, weight: .semibold)
-                                .foregroundStyle(theme.color(.text)).lineLimit(1)
-                            Text(hasOverrides(show) ? "Customized" : "Using defaults")
-                                .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
+        ScrollView {
+            LazyVStack(spacing: 10) {
+                if shows.isEmpty {
+                    BrutalEmptyState("No subscribed shows",
+                                     detail: "Follow shows in Discover to set per-show overrides.")
+                }
+                ForEach(shows) { show in
+                    Button { selected = show } label: {
+                        HStack(spacing: 12) {
+                            ArtworkView(url: show.artworkURL, seed: show.title)
+                                .frame(width: 44, height: 44).brutalBorder(width: 2)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(show.title).scaledFont(15, weight: .semibold)
+                                    .foregroundStyle(theme.color(.text)).lineLimit(1)
+                                Text(hasOverrides(show) ? "Customized" : "Using defaults")
+                                    .scaledFont(12)
+                                    .foregroundStyle(hasOverrides(show) ? theme.color(.accent)
+                                                                        : theme.color(.textTertiary))
+                            }
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.right")
+                                .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
                         }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens this show's settings")
                 }
             }
+            .padding(20)
         }
+        .background(theme.color(.bg))
         .navigationTitle("Podcast Settings")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selected) { ShowSettingsSheet(podcast: $0) }
     }
 

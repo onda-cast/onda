@@ -24,25 +24,34 @@ struct DownloadsStorageView: View {
         }
     }
 
-    private var breakdown: StorageBreakdown {
-        _ = refreshKey
-        return StorageCalculator.breakdown(podcasts: podcasts)
-    }
+    // Computed ONCE per appearance/bump in a background context — the sync per-render compute
+    // faulted every cue of every transcript on the main thread and made this screen crawl.
+    @State private var breakdown: StorageBreakdown?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                let bd = breakdown
-                typeBar(bd)
-                if bd.podcasts.isEmpty {
-                    Text("Nothing stored yet").foregroundStyle(theme.color(.textTertiary))
-                        .frame(maxWidth: .infinity).padding(.top, 40)
+                if let bd = breakdown {
+                    typeBar(bd)
+                    if bd.podcasts.isEmpty {
+                        Text("Nothing stored yet").foregroundStyle(theme.color(.textTertiary))
+                            .frame(maxWidth: .infinity).padding(.top, 40)
+                    } else {
+                        Text("By Podcast").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
+                        ForEach(bd.podcasts) { row in podcastCard(row) }
+                    }
                 } else {
-                    Text("By Podcast").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
-                    ForEach(bd.podcasts) { row in podcastCard(row) }
+                    HStack(spacing: 8) {
+                        ProgressView().tint(theme.color(.accent))
+                        Text("Measuring storage\u{2026}").scaledFont(13)
+                            .foregroundStyle(theme.color(.textTertiary))
+                    }.frame(maxWidth: .infinity).padding(.top, 60)
                 }
             }
             .padding(20)
+        }
+        .task(id: refreshKey) {
+            breakdown = await StorageCalculator.breakdownInBackground(container: modelContext.container)
         }
         .background(theme.color(.bg))
         .navigationTitle("Downloads & Storage")

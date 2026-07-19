@@ -16,12 +16,16 @@ struct ShowSettingsSheet: View {
         return podcast.settings!
     }
     static let speedSteps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
-    private var speedSteps: [Double] { Self.speedSteps }
 
     /// Where a fresh "Custom" speed starts: the next step ABOVE the global default (wrapping),
     /// so choosing Custom is immediately visible instead of silently mirroring Default.
     static func customSpeedSeed(from global: Double) -> Double {
         speedSteps.first { $0 > global } ?? speedSteps[0]
+    }
+
+    /// "1", "1.25" — no × suffix; the speed-selector segments are too narrow for it.
+    static func bareSpeedLabel(_ s: Double) -> String {
+        s == s.rounded() ? "\(Int(s))" : "\(s)"
     }
 
     @State private var showAllVoiceLanguages = false
@@ -115,31 +119,27 @@ struct ShowSettingsSheet: View {
         }
     }
 
-    // Speed override: Default segment inherits the global; Custom reveals the cycle button
-    // seeded one step above the global so the override is immediately visible.
+    // Speed override: Default inherits the global; Custom reveals a DIRECT selector of every
+    // step — one tap to any speed (the old cycle button needed up to five taps to come around).
     @ViewBuilder private var speedOverrideRow: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Speed").scaledFont(16).foregroundStyle(theme.color(.text))
-                Spacer()
-                if s.speed != nil {
-                    Button(NowPlayingView.speedText(s.speed ?? 1)) { cycleSpeed() }
-                        .scaledFont(15, weight: .bold).foregroundStyle(theme.color(.text))
-                }
-            }
+            Text("Speed").scaledFont(16).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), ("Custom", 1)],
                          selection: s.speed == nil ? 0 : 1) {
                 s.speed = $0 == 0 ? nil : Self.customSpeedSeed(from: appSettings.defaultSpeed)
                 playback.applyAudioSettings()
             }
+            if s.speed != nil {
+                // Bare numbers (no ×) so the selected segment fits its checkmark without
+                // truncating ("✓ 1.2…") in six narrow segments.
+                SegmentedRow(options: Self.speedSteps.map { (Self.bareSpeedLabel($0), $0) },
+                             selection: s.speed ?? appSettings.defaultSpeed) {
+                    s.speed = $0
+                    playback.applyAudioSettings()
+                }
+            }
             defaultCaption(NowPlayingView.speedText(appSettings.defaultSpeed), shown: s.speed == nil)
         }
-    }
-
-    private func cycleSpeed() {
-        let i = speedSteps.firstIndex(of: s.speed ?? appSettings.defaultSpeed) ?? 1
-        s.speed = speedSteps[(i + 1) % speedSteps.count]
-        playback.applyAudioSettings()
     }
 
     private var autoDeleteDefaultHint: String {
