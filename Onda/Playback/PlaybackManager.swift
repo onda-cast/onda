@@ -76,7 +76,11 @@ final class PlaybackManager {
             skipBack: { [weak self] in self?.skipBack() })
         nowPlaying.configureBookmarkCommand { [weak self] in self?.onCaptureRequested?() }
         refreshSkipIntervals()
+        observeInterruptions()
     }
+
+    // Set when an audio-session interruption pauses us mid-play — consumed when it ends.
+    private var resumeAfterInterruption = false
 
     // Wired in OndaApp: streaming an un-downloaded episode also saves it for offline (idempotent).
     var ensureDownloaded: ((Episode) -> Void)?
@@ -481,5 +485,44 @@ extension PlaybackManager {
         sleepMode = .off
         sleepFireDate = nil
         sleepTimer = nil
+    }
+}
+
+// MARK: - Audio-session interruptions
+extension PlaybackManager {
+    /// Another app taking exclusive audio (a call, Siri, a non-mixing app) interrupts our session
+    /// and the system pauses playback. Mirror that in our state, and — Overcast-style — resume
+    /// automatically when the interruption ends carrying the system's `shouldResume` hint.
+    private func observeInterruptions() {
+        NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification,
+                                               object: AVAudioSession.sharedInstance(),
+                                               queue: .main) { [weak self] note in
+            let type = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            let opts = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt
+            MainActor.assumeIsolated { self?.handleInterruption(typeRaw: type, optionsRaw: opts) }
+        }
+    }
+
+    /// Internal (not private) so tests can drive interruption sequences with raw values.
+    func handleInterruption(typeRaw: UInt?, optionsRaw: UInt?) {
+        guard let typeRaw, let type = AVAudioSession.InterruptionType(rawValue: typeRaw) else { return }
+        switch type {
+        case .began:
+            resumeAfterInterruption = isPlaying
+            if isPlaying {
+                engine.pause()   // usually already paused by the system; keep engine+state in sync
+                isPlaying = false
+                persistPosition()
+            }
+        case .ended:
+            let opts = AVAudioSession.InterruptionOptions(rawValue: optionsRaw ?? 0)
+            if resumeAfterInterruption, opts.contains(.shouldResume), currentEpisode != nil {
+                engine.play()
+                isPlaying = true
+            }
+            resumeAfterInterruption = false
+        @unknown default:
+            break
+        }
     }
 }

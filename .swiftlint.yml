@@ -25,4 +25,4 @@ line_length:
 # plus configured skips / Smart Resume); splitting it would force exposing private state
 # module-wide. Bump over the 400 default.
 file_length:
-  warning: 500
+  warning: 550

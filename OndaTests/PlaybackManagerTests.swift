@@ -1,5 +1,6 @@
 //  PlaybackManagerTests.swift
 import XCTest
+import AVFoundation
 import SwiftData
 @testable import Onda
 
@@ -423,4 +424,47 @@ extension PlaybackManagerTests {
         XCTAssertEqual(pm.currentEpisode?.guid, "current", "restore never clobbers an active episode")
         UserDefaults.standard.removeObject(forKey: "lastPlayedEpisodeGuid")
     }
+    // MARK: Audio-session interruptions
+
+    func test_interruption_pausesThenAutoResumesWithHint() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        pm.play(makeEpisode(in: ctx))
+        XCTAssertTrue(pm.isPlaying)
+
+        pm.handleInterruption(typeRaw: AVAudioSession.InterruptionType.began.rawValue, optionsRaw: nil)
+        XCTAssertFalse(pm.isPlaying, "interruption pauses")
+        XCTAssertFalse(engine.playing)
+
+        pm.handleInterruption(typeRaw: AVAudioSession.InterruptionType.ended.rawValue,
+                              optionsRaw: AVAudioSession.InterruptionOptions.shouldResume.rawValue)
+        XCTAssertTrue(pm.isPlaying, "shouldResume hint auto-resumes, Overcast-style")
+        XCTAssertTrue(engine.playing)
+    }
+
+    func test_interruptionEnd_withoutResumeHint_staysPaused() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        pm.play(makeEpisode(in: ctx))
+        pm.handleInterruption(typeRaw: AVAudioSession.InterruptionType.began.rawValue, optionsRaw: nil)
+        pm.handleInterruption(typeRaw: AVAudioSession.InterruptionType.ended.rawValue, optionsRaw: 0)
+        XCTAssertFalse(pm.isPlaying, "no shouldResume hint -> stay paused")
+        XCTAssertFalse(engine.playing)
+    }
+
+    func test_interruption_whilePaused_neverResumes() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        pm.play(makeEpisode(in: ctx))
+        pm.togglePlayPause()   // user paused before the interruption
+        pm.handleInterruption(typeRaw: AVAudioSession.InterruptionType.began.rawValue, optionsRaw: nil)
+        pm.handleInterruption(typeRaw: AVAudioSession.InterruptionType.ended.rawValue,
+                              optionsRaw: AVAudioSession.InterruptionOptions.shouldResume.rawValue)
+        XCTAssertFalse(pm.isPlaying, "was paused by the user -> an interruption ending must not start playback")
+        XCTAssertFalse(engine.playing)
+    }
+
 }
