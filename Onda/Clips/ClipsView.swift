@@ -81,7 +81,7 @@ struct ClipsView: View {
                     .disabled(allClips.isEmpty)
                 }
             }
-            .sheet(item: $editing) { ClipEditSheet(clip: $0) }
+            .sheet(item: $editing) { ClipReviewSheet(clip: $0) }
             .sheet(item: $shareItems) { items in
                 ActivityShareSheet(items: [items.fileURL, items.text])
             }
