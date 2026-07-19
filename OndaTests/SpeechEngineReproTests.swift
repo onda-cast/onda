@@ -1,5 +1,6 @@
 //  SpeechEngineReproTests.swift
 //  Integration repro for the transcribe crash — drives the real SpeechTranscriberEngine.
+import Speech
 import XCTest
 @testable import Onda
 
@@ -8,8 +9,24 @@ final class SpeechEngineReproTests: XCTestCase {
     // Regression for docs/BUGS.md #1: TCC invokes the requestAuthorization completion on a
     // background queue; a MainActor-isolated completion closure trips dispatch_assert_queue
     // and kills the process (EXC_BREAKPOINT).
-    func test_requestSpeechAuthorization_completionRunsOffMain_withoutCrashing() async {
-        _ = await TranscriptService.requestSpeechAuthorization()
+    func test_requestSpeechAuthorization_completionRunsOffMain_withoutCrashing() async throws {
+        // On a simulator with no TCC record for the app, requestAuthorization shows the
+        // permission prompt with nobody to tap it — the completion never runs (nothing to
+        // regress against) and the await stalls the whole run. Skip before triggering it.
+        guard SFSpeechRecognizer.authorizationStatus() != .notDetermined else {
+            throw XCTSkip("speech authorization prompt unanswered — no TCC record in this environment")
+        }
+        // Backstop timeout in case the status check and TCC's actual behavior disagree.
+        let granted = await withTaskGroup(of: Bool?.self) { group in
+            group.addTask { await TranscriptService.requestSpeechAuthorization() }
+            group.addTask { try? await Task.sleep(for: .seconds(60)); return nil }
+            let first = await group.next()!
+            group.cancelAll()
+            return first
+        }
+        if granted == nil {
+            throw XCTSkip("speech authorization prompt unanswered — no TCC record in this environment")
+        }
     }
 
     func test_realEngine_transcribesSpokenFixture() async throws {
