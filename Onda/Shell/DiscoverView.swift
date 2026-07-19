@@ -3,7 +3,7 @@ import SwiftUI
 import SwiftData
 
 // Row tap → show preview. Identifiable wrapper because PodcastDTO itself isn't Identifiable.
-struct PreviewTarget: Identifiable {
+private struct PreviewTarget: Identifiable {
     let id = UUID()
     let dto: PodcastDTO
 }
@@ -165,7 +165,7 @@ struct DiscoverView: View {
         }
         .sheet(item: $previewTarget) { target in
             ShowPreviewSheet(dto: target.dto, isSubscribed: isSubscribed(target.dto),
-                             onToggle: { toggleFollow(target.dto) })
+                             onToggle: { handlePreviewToggle(target) })
                 .presentationDetents([.medium, .large])
         }
         .background(theme.color(.bg))
@@ -321,6 +321,21 @@ extension DiscoverView {
 
 // MARK: - Follow / toast
 extension DiscoverView {
+    // Preview sheet's follow toggle. For an already-subscribed show, the unfollow confirmation
+    // lives on the view UNDER this sheet — dismiss first, then present (400ms: same sheet
+    // hand-off beat as the transcript-jump flow) instead of routing through toggleFollow directly.
+    fileprivate func handlePreviewToggle(_ target: PreviewTarget) {
+        if isSubscribed(target.dto) {
+            previewTarget = nil
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(400))
+                unfollowTarget = target.dto
+            }
+        } else {
+            toggleFollow(target.dto)
+        }
+    }
+
     // Follow (with a confirmation toast) or, if already following, prompt to unfollow.
     func toggleFollow(_ dto: PodcastDTO) {
         if isSubscribed(dto) {
