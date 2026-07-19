@@ -214,8 +214,15 @@ struct EpisodeListView: View {
                 Text(podcast.title).brutalHeader(size: 20).foregroundStyle(theme.color(.text))
                 Text(podcast.category).scaledFont(13)
                     .foregroundStyle(theme.color(.textTertiary))
-                Button(podcast.isLocal ? "Delete Show" : "Unsubscribe") { pendingUnsubscribe = true }
-                    .scaledFont(13, weight: .bold).foregroundStyle(.red)
+                Button { pendingUnsubscribe = true } label: {
+                    Text(podcast.isLocal ? "Delete Show" : "Unsubscribe")
+                        .scaledFont(13, weight: .bold).foregroundStyle(.red)
+                        .padding(.horizontal, 12).frame(height: 36)
+                        .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                        .frame(minHeight: 44).contentShape(Rectangle())   // HIG tap target
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
             }
             Spacer()
         }
