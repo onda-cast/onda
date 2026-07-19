@@ -4,7 +4,7 @@
 //  type overall and per podcast.
 import Foundation
 
-struct StoragePodcastRow: Identifiable, Equatable, Sendable {
+struct StoragePodcastRow: Identifiable, Equatable, Sendable, Codable {
     let id: String
     let title: String
     let audioBytes: Int64
@@ -12,7 +12,7 @@ struct StoragePodcastRow: Identifiable, Equatable, Sendable {
     var totalBytes: Int64 { audioBytes + transcriptBytes }
 }
 
-struct StorageBreakdown: Equatable, Sendable {
+struct StorageBreakdown: Equatable, Sendable, Codable {
     var audioBytes: Int64 = 0
     var transcriptBytes: Int64 = 0
     var podcasts: [StoragePodcastRow] = []
@@ -24,15 +24,34 @@ import SwiftData
 enum StorageCalculator {
     /// Off-main variant: the sync `breakdown(podcasts:)` faults every episode, transcript, and
     /// cue's text — thousands of SwiftData faults with a real library, which froze the screen
-    /// when run on the main thread per render. This computes once in a background ModelContext
-    /// and returns a Sendable value snapshot.
-    static func breakdownInBackground(container: ModelContainer) async -> StorageBreakdown {
-        await Task.detached(priority: .userInitiated) {
+    /// when run on the main thread per render. This computes once in a background ModelContext,
+    /// persists the result as the cache for the next cold open, and returns a Sendable snapshot.
+    static func breakdownInBackground(container: ModelContainer,
+                                      defaults: UserDefaults = .standard) async -> StorageBreakdown {
+        let fresh = await Task.detached(priority: .userInitiated) {
             let context = ModelContext(container)
             let pods = (try? context.fetch(FetchDescriptor<Podcast>(
                 predicate: #Predicate { $0.isSubscribed }))) ?? []
             return breakdown(podcasts: pods)
         }.value
+        saveCache(fresh, defaults: defaults)
+        return fresh
+    }
+
+    // MARK: Stale-while-revalidate cache
+    // The screen shows the LAST measurement instantly and swaps in fresh numbers when the
+    // background scan lands — storage totals drift slowly, so brief staleness is fine.
+    static let cacheKey = "storageBreakdownCache"
+
+    static func cachedBreakdown(defaults: UserDefaults = .standard) -> StorageBreakdown? {
+        guard let data = defaults.data(forKey: cacheKey) else { return nil }
+        return try? JSONDecoder().decode(StorageBreakdown.self, from: data)
+    }
+
+    static func saveCache(_ breakdown: StorageBreakdown, defaults: UserDefaults = .standard) {
+        if let data = try? JSONEncoder().encode(breakdown) {
+            defaults.set(data, forKey: cacheKey)
+        }
     }
 
     /// Rough on-disk cost of a transcript: the UTF-8 byte length of all its cue text.

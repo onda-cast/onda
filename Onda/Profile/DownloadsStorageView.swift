@@ -24,9 +24,11 @@ struct DownloadsStorageView: View {
         }
     }
 
-    // Computed ONCE per appearance/bump in a background context — the sync per-render compute
-    // faulted every cue of every transcript on the main thread and made this screen crawl.
+    // Stale-while-revalidate: the cached last measurement renders instantly; the background
+    // scan (its own ModelContext — the sync per-render compute faulted every cue's text on the
+    // main thread and made this screen crawl) then swaps in fresh numbers and re-caches.
     @State private var breakdown: StorageBreakdown?
+    @State private var measuring = false
 
     var body: some View {
         ScrollView {
@@ -51,7 +53,10 @@ struct DownloadsStorageView: View {
             .padding(20)
         }
         .task(id: refreshKey) {
+            if breakdown == nil { breakdown = StorageCalculator.cachedBreakdown() }   // instant paint
+            measuring = true
             breakdown = await StorageCalculator.breakdownInBackground(container: modelContext.container)
+            measuring = false
         }
         .background(theme.color(.bg))
         .navigationTitle("Downloads & Storage")
@@ -100,6 +105,10 @@ struct DownloadsStorageView: View {
                     Text("Downloads & Transcripts").brutalHeader(size: 13)
                         .foregroundStyle(theme.color(.textTertiary))
                     Spacer()
+                    if measuring {
+                        ProgressView().tint(theme.color(.accent)).scaleEffect(0.7)
+                            .accessibilityLabel("Updating storage sizes")
+                    }
                     // "~" because transcript bytes are estimated from cue text length
                     // (StorageBreakdown) — the legends below already mark them "~".
                     Text("~" + sizeStr(bd.totalBytes)).scaledFont(15, weight: .bold).monospacedDigit()

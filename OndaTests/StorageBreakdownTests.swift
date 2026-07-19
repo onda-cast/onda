@@ -68,4 +68,23 @@ final class StorageBreakdownTests: XCTestCase {
         XCTAssertTrue(bd.podcasts.isEmpty)
         XCTAssertEqual(bd.totalBytes, 0)
     }
+    func test_cache_roundTripsAndSurvivesForNextColdOpen() {
+        let defaults = UserDefaults(suiteName: "storage-\(UUID().uuidString)")!
+        XCTAssertNil(StorageCalculator.cachedBreakdown(defaults: defaults), "empty cache -> nil")
+
+        let bd = StorageBreakdown(audioBytes: 1500, transcriptBytes: 10, podcasts: [
+            StoragePodcastRow(id: "https://a.com/f.xml", title: "A", audioBytes: 1500, transcriptBytes: 10)
+        ])
+        StorageCalculator.saveCache(bd, defaults: defaults)
+        XCTAssertEqual(StorageCalculator.cachedBreakdown(defaults: defaults), bd,
+                       "cached snapshot round-trips exactly for the instant first paint")
+    }
+
+    func test_cache_corruptDataDecodesToNil() {
+        let defaults = UserDefaults(suiteName: "storage-\(UUID().uuidString)")!
+        defaults.set(Data("not json".utf8), forKey: StorageCalculator.cacheKey)
+        XCTAssertNil(StorageCalculator.cachedBreakdown(defaults: defaults),
+                     "corrupt/old-format cache falls back to a fresh measure, never crashes")
+    }
+
 }
