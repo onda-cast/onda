@@ -209,7 +209,7 @@ struct LibraryView: View {
                     Text(toast)
                         .scaledFont(14, weight: .bold).foregroundStyle(.white)
                         .padding(.horizontal, 18).padding(.vertical, 12)
-                        .background(theme.color(.accent)).brutalBorder(width: 2)
+                        .background(theme.color(.accentStrong)).brutalBorder(width: 2)
                         .padding(.bottom, 96)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }

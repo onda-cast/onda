@@ -91,6 +91,10 @@ final class PlaybackManager {
     // MARK: Capture (lock-screen quick clip)
     var onCaptureRequested: (() -> Void)?
     var captureToast: String?
+    /// The clip a quick-capture (lock-screen bookmark) just created, if any — lets the capture
+    /// toast be tappable into the same Review sheet the in-player scissors flow always forces,
+    /// so both capture paths land in the same place instead of one being a silent fire-and-forget.
+    var lastQuickClip: Clip?
     private var toastTask: Task<Void, Never>?
 
     /// Shows an app-wide confirmation toast (auto-dismissed after 2s) with a success haptic — used
@@ -102,6 +106,7 @@ final class PlaybackManager {
         toastTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(2))
             self?.captureToast = nil
+            self?.lastQuickClip = nil
         }
     }
 

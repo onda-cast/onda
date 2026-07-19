@@ -76,7 +76,7 @@ struct NowPlayingView: View {
                 Text(toast)
                     .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
                     .padding(.horizontal, 18).padding(.vertical, 10)
-                    .background(theme.color(.accent)).brutalBorder(width: 2)
+                    .background(theme.color(.accentStrong)).brutalBorder(width: 2)
                     .padding(.bottom, 30)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -453,7 +453,7 @@ private struct BackToTranscriptButton: View {
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 16).padding(.vertical, 10)
-            .background(theme.color(.accent)).brutalBorder(width: 2).hardShadow(offset: 3)
+            .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
         }
         .buttonStyle(.plain)
         .padding(.top, 112)   // clear the pinned header row

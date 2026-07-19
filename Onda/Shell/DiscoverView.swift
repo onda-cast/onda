@@ -133,6 +133,9 @@ struct DiscoverView: View {
         // Tapping anywhere (simultaneous so buttons still work) or scrolling dismisses the keyboard.
         .simultaneousGesture(TapGesture().onEnded { searchFocused = false })
         .scrollDismissesKeyboard(.immediately)
+        // Get the mini-player out of the way of the keyboard/results while actively searching;
+        // MiniPlayerAutoHide's own scroll logic and the tab-switch restore still apply otherwise.
+        .onChange(of: searchFocused) { _, focused in playback.miniPlayerHidden = focused }
         .sheet(isPresented: $showAddByURL) {
             AddByURLSheet().presentationDetents([.medium, .large])
         }
@@ -163,7 +166,7 @@ struct DiscoverView: View {
                 Text(toast)
                     .scaledFont(14, weight: .bold).foregroundStyle(.white)
                     .padding(.horizontal, 18).padding(.vertical, 12)
-                    .background(theme.color(.accent)).brutalBorder(width: 2).hardShadow(offset: 3)
+                    .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
                     .padding(.bottom, 40)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -254,7 +257,7 @@ extension DiscoverView {
             Button(action: action) {
                 Text("Retry").scaledFont(13, weight: .bold).foregroundStyle(.white)
                     .padding(.horizontal, 20).padding(.vertical, 10)
-                    .background(theme.color(.accent)).brutalBorder(width: 2)
+                    .background(theme.color(.accentStrong)).brutalBorder(width: 2)
             }.buttonStyle(.plain)
         }.frame(maxWidth: .infinity).padding(.top, 36)
     }

@@ -19,7 +19,12 @@ struct RetentionSettingsSection: View {
                                 get: { appSettings.wifiOnlyDownloads },
                                 set: { appSettings.wifiOnlyDownloads = $0 }))
                     divider
-                    toggleRow("Limit downloads kept", subtitle: "Oldest played episodes are removed first",
+                    // "Freed" (not "removed" / "deleted") because only the audio file goes —
+                    // the episode itself stays in the library and can re-download. That's a
+                    // different, much less destructive action than the rule below, which
+                    // archives the episode out of the library entirely.
+                    toggleRow("Limit downloads kept",
+                              subtitle: "Oldest played downloads are freed first \u{2014} episodes stay and can re-download",
                               isOn: Binding(
                                 get: { appSettings.defaultMaxDownloadsKept > 0 },
                                 set: { appSettings.defaultMaxDownloadsKept = $0 ? 10 : 0 }))
@@ -33,7 +38,13 @@ struct RetentionSettingsSection: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Delete played episodes").scaledFont(15, weight: .semibold)
                             .foregroundStyle(theme.color(.text))
-                        SegmentedRow(options: [("Never", -1), ("Done", 0), ("1 day", 1), ("Custom", 7)],
+                        // Unlike "Limit downloads kept" above, this removes the EPISODE from your
+                        // library (not just its audio) — and, per "Keep transcripts" below, may
+                        // drop its transcript too. Spelled out because the two rows sit right next
+                        // to each other and look like variations on the same (reversible) action.
+                        Text("Removes the episode from your library \u{2014} not just its download")
+                            .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
+                        SegmentedRow(options: [("Never", -1), ("When finished", 0), ("1 day", 1), ("Custom", 7)],
                                      selection: deletePlayedPreset) {
                             appSettings.defaultAutoDeleteListenedAfterDays = $0
                         }

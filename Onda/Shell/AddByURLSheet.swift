@@ -109,7 +109,7 @@ struct AddByURLSheet: View {
         Button { Task { await check() } } label: {
             Text("Check Link").scaledFont(14, weight: .bold).foregroundStyle(.white)
                 .frame(maxWidth: .infinity).frame(height: 48)
-                .background(enteredURL == nil ? theme.color(.textTertiary) : theme.color(.accent))
+                .background(enteredURL == nil ? theme.color(.textTertiary) : theme.color(.accentStrong))
                 .brutalBorder(width: 2.5)
         }
         .buttonStyle(.plain)

@@ -41,6 +41,17 @@ final class MiniPlayerProbeUITests: XCTestCase {
         _ = waitGone(mini, timeout: 5)
         app.buttons["Library"].tap()
         XCTAssertTrue(mini.waitForExistence(timeout: 5), "switching tabs restores the bar")
+
+        // Discover search: focusing the search field hides the bar; unfocusing restores it.
+        app.buttons["Discover"].tap()
+        XCTAssertTrue(mini.waitForExistence(timeout: 5))
+        let searchField = app.textFields.firstMatch
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+        searchField.tap()
+        XCTAssertTrue(waitGone(mini, timeout: 5), "focusing Discover search hides the mini-player")
+        // Tap the header title — DiscoverView's tap-anywhere gesture clears search focus.
+        app.staticTexts["Discover"].firstMatch.tap()
+        XCTAssertTrue(mini.waitForExistence(timeout: 5), "leaving search restores the mini-player")
     }
 
     @MainActor

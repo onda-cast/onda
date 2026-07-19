@@ -132,7 +132,7 @@ struct TranscriptView: View {
                         Text("Clip \(hi - lo + 1) line\(hi == lo ? "" : "s")")
                             .scaledFont(15, weight: .bold).foregroundStyle(.white)
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
-                            .background(theme.color(.accent)).brutalBorder(width: 2)
+                            .background(theme.color(.accentStrong)).brutalBorder(width: 2)
                     }
                     .buttonStyle(.plain).padding(16)
                     .background(theme.color(.bg))
@@ -395,7 +395,7 @@ extension TranscriptView {
                 Button("Transcribe episode") { Task { await transcribe() } }
                     .scaledFont(15, weight: .bold).foregroundStyle(.white)
                     .padding(.horizontal, 20).padding(.vertical, 12)
-                    .background(theme.color(.accent)).brutalBorder(width: 2)
+                    .background(theme.color(.accentStrong)).brutalBorder(width: 2)
             } else if transcripts.hasEngine {
                 Text("Download this episode to transcribe it on device")
                     .scaledFont(13).foregroundStyle(theme.color(.textTertiary))

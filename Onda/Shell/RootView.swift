@@ -8,6 +8,7 @@ struct RootView: View {
     @Environment(PlaybackManager.self) private var playback
     @Environment(TranscriptService.self) private var transcripts
     @State private var tab: Tab = .library
+    @State private var reviewingQuickClip: Clip?
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -33,8 +34,15 @@ struct RootView: View {
             // App-wide toasts (stacked so they never overlap): clip-capture confirmation and
             // backgrounded-transcription completion.
             VStack(spacing: 8) {
-                if let toast = playback.captureToast { toastLabel(toast) }
-                if let notice = transcripts.completionNotice { toastLabel(notice) }
+                // Tappable: opens the same Review sheet the in-player scissors flow always
+                // forces, so a lock-screen quick-clip and an in-player clip land in the same
+                // place instead of one being silent fire-and-forget.
+                if let toast = playback.captureToast {
+                    toastLabel(toast, action: playback.lastQuickClip.map { clip in
+                        { reviewingQuickClip = clip }
+                    })
+                }
+                if let notice = transcripts.completionNotice { toastLabel(notice, action: nil) }
             }
             .padding(.bottom, 150)
         }
@@ -50,14 +58,25 @@ struct RootView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.hidden)   // swipe-down works; the ⌄ button stays the visual affordance
         }
+        .sheet(item: $reviewingQuickClip) { ClipReviewSheet(clip: $0) }
     }
 
-    private func toastLabel(_ text: String) -> some View {
+    private func toastLabel(_ text: String, action: (() -> Void)?) -> some View {
+        Group {
+            if let action {
+                Button(action: action) { toastContent(text) }.buttonStyle(.plain)
+            } else {
+                toastContent(text)
+            }
+        }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func toastContent(_ text: String) -> some View {
         Text(text)
             .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
             .padding(.horizontal, 18).padding(.vertical, 10)
             .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     private var tabBar: some View {

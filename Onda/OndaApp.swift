@@ -81,8 +81,9 @@ struct OndaApp: App {
         dm.cellularAllowed = { !settings.wifiOnlyDownloads }
         pm.onCaptureRequested = { [weak pm] in
             guard let pm, let ep = pm.currentEpisode else { return }
-            cs.quickClip(episode: ep, at: pm.positionSeconds)
-            pm.showCaptureToast("Clipped last \(Int(ClipService.quickClipWindow))s")
+            let clip = cs.quickClip(episode: ep, at: pm.positionSeconds)
+            pm.lastQuickClip = clip
+            pm.showCaptureToast("Clipped last \(Int(ClipService.quickClipWindow))s — tap to review")
         }
     }
 

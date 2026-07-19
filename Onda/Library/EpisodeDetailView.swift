@@ -68,7 +68,7 @@ struct EpisodeDetailView: View {
                 Label(episode.played ? "Play Again" : "Play", systemImage: "play.fill")
                     .scaledFont(15, weight: .bold).foregroundStyle(.white)
                     .frame(maxWidth: .infinity).frame(height: 48)
-                    .background(theme.color(.accent)).brutalBorder(width: 2)
+                    .background(theme.color(.accentStrong)).brutalBorder(width: 2)
             }.buttonStyle(.plain)
 
             Button { showTranscript = true } label: {

@@ -19,7 +19,7 @@ struct ClipRow: View {
                 if clip.needsReview {
                     Text("NEW").scaledFont(10, weight: .black)
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(theme.color(.accent)).foregroundStyle(.white)
+                        .background(theme.color(.accentStrong)).foregroundStyle(.white)
                 }
                 Spacer()
                 Button(action: onShare) {

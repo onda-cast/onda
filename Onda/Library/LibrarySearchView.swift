@@ -13,27 +13,43 @@ struct LibrarySearchView: View {
     @State private var query = ""
     @State private var hits: [TranscriptHit] = []
 
+    private var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 BrutalSearchField("Try: gold standard by Tracy in Odd Lots", text: $query)
-                    .padding(20)
+                    .padding(.horizontal, 20).padding(.top, 20)
+                // The search only reaches what's been transcribed — make that explicit up front
+                // rather than leaving an empty result read as "broken."
+                Text("Searches your transcripts \u{2014} shows without one won\u{2019}t appear here.")
+                    .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
+                    .padding(.horizontal, 20).padding(.top, 6).padding(.bottom, 14)
 
-                List(hits) { hit in
-                    Button { open(hit) } label: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(hit.showTitle).brutalHeader(size: 12).foregroundStyle(theme.color(.accent))
-                            Text(hit.cueText).scaledFont(15).foregroundStyle(theme.color(.text))
-                                .lineLimit(2)
-                            Text(hit.episodeTitle + " · " + timeStr(hit.startTime))
-                                .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
+                if !isSearching {
+                    emptyState(
+                        "Search across every transcript",
+                        detail: "Find a phrase, topic, or speaker from any episode you\u{2019}ve transcribed.")
+                } else if hits.isEmpty {
+                    emptyState("No matches for \u{201C}\(query)\u{201D}",
+                        detail: "Try a shorter phrase, or a different show/speaker name.")
+                } else {
+                    List(hits) { hit in
+                        Button { open(hit) } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(hit.showTitle).brutalHeader(size: 12).foregroundStyle(theme.color(.accent))
+                                Text(hit.cueText).scaledFont(15).foregroundStyle(theme.color(.text))
+                                    .lineLimit(2)
+                                Text(hit.episodeTitle + " · " + timeStr(hit.startTime))
+                                    .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
+                            }
                         }
                     }
+                    .listStyle(.plain)
                 }
-                .listStyle(.plain)
             }
             .background(theme.color(.bg))
-            .navigationTitle("Search")
+            .navigationTitle("Search Transcripts")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: query) { _, q in
                 guard let index = searchIndexBox.index else {
@@ -46,6 +62,15 @@ struct LibrarySearchView: View {
                     .smartSearch(q, knownShows: subscribedShows.map(\.title))
             }
         }
+    }
+
+    private func emptyState(_ title: String, detail: String) -> some View {
+        VStack(spacing: 6) {
+            Text(title).scaledFont(14, weight: .semibold).foregroundStyle(theme.color(.textSecondary))
+            Text(detail).scaledFont(12).foregroundStyle(theme.color(.textTertiary))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity).padding(.horizontal, 32).padding(.top, 48)
     }
 
     private func open(_ hit: TranscriptHit) {
