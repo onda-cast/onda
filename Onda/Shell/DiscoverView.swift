@@ -7,6 +7,7 @@ struct DiscoverView: View {
     @Environment(SubscriptionService.self) private var subscriptions
     @Environment(ITunesSearchClientBox.self) private var clientBox
     @Environment(RecommendationService.self) private var recs
+    @Environment(PlaybackManager.self) private var playback
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }) private var subs: [Podcast]
 
     @State private var query = ""
@@ -21,6 +22,9 @@ struct DiscoverView: View {
     @State private var unfollowTarget: PodcastDTO?
     @State private var showAddByURL = false
     @FocusState private var searchFocused: Bool
+    @State private var lastScrollY: CGFloat = 0
+    @State private var upwardRun: CGFloat = 0
+    @State private var downwardRun: CGFloat = 0
 
     private enum DiscoverMode: Hashable { case browse, forYou }
 
@@ -92,57 +96,6 @@ struct DiscoverView: View {
         }
     }
 
-    // MARK: For You sub-tab (recommendations)
-
-    @ViewBuilder private var forYouTab: some View {
-        HStack {
-            Text(recs.isPersonalized ? "Recommended for you" : "Popular right now").brutalHeader(size: 13)
-                .foregroundStyle(theme.color(.textTertiary))
-            Spacer()
-            Menu {
-                Button {
-                    Task { await recs.refresh(followedCategories: followedCategories) }
-                } label: { Label("Refresh", systemImage: "arrow.clockwise") }
-                Button {
-                    Task { await recs.refreshShowingDifferent(followedCategories: followedCategories) }
-                } label: { Label("Show Different Shows", systemImage: "shuffle") }
-            } label: {
-                Image(systemName: "arrow.clockwise").scaledFont(14, weight: .bold)
-                    .foregroundStyle(theme.color(.textSecondary))
-                    .frame(width: 34, height: 34)
-                    .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-            }
-            .disabled(recs.isLoading)
-            .accessibilityLabel("Refresh recommendations")
-        }
-        if recs.isLoading && recs.recommendations.isEmpty {
-            HStack(spacing: 8) {
-                ProgressView().tint(theme.color(.accent))
-                Text("Finding shows for you…").scaledFont(13)
-                    .foregroundStyle(theme.color(.textTertiary))
-            }.padding(.top, 40).frame(maxWidth: .infinity)
-        } else if recs.recommendations.isEmpty {
-            Text("Follow a few shows and clip moments you love — recommendations get sharper as Onda learns your taste.")
-                .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
-                .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 50)
-        } else {
-            ForEach(recs.recommendations) { rec in
-                VStack(alignment: .leading, spacing: 4) {
-                    TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
-                    if let reason = rec.reasonLine {
-                        Text(reason).scaledFont(11.5).foregroundStyle(theme.color(.textTertiary))
-                            .padding(.leading, 2)
-                    }
-                }
-                .contextMenu {
-                    Button(role: .destructive) { recs.dismiss(rec) } label: {
-                        Label("Not interested", systemImage: "hand.thumbsdown")
-                    }
-                }
-            }
-        }
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -172,6 +125,8 @@ struct DiscoverView: View {
             }
             .padding(.horizontal, 20).padding(.bottom, 120)
         }
+        .modifier(ScrollOffsetReporter { handleScroll(offsetY: $0) })
+        .onDisappear { playback.miniPlayerHidden = false }
         .refreshable { await pullRefresh() }
         // The Onda wave — washes across the screen the moment a shake registers, feedback
         // that the roll is happening before the network round-trip lands the results.
@@ -359,6 +314,60 @@ extension DiscoverView {
     }
 }
 
+// MARK: - For You sub-tab
+extension DiscoverView {
+    // MARK: For You sub-tab (recommendations)
+
+    @ViewBuilder private var forYouTab: some View {
+        HStack {
+            Text(recs.isPersonalized ? "Recommended for you" : "Popular right now").brutalHeader(size: 13)
+                .foregroundStyle(theme.color(.textTertiary))
+            Spacer()
+            Menu {
+                Button {
+                    Task { await recs.refresh(followedCategories: followedCategories) }
+                } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+                Button {
+                    Task { await recs.refreshShowingDifferent(followedCategories: followedCategories) }
+                } label: { Label("Show Different Shows", systemImage: "shuffle") }
+            } label: {
+                Image(systemName: "arrow.clockwise").scaledFont(14, weight: .bold)
+                    .foregroundStyle(theme.color(.textSecondary))
+                    .frame(width: 34, height: 34)
+                    .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+            }
+            .disabled(recs.isLoading)
+            .accessibilityLabel("Refresh recommendations")
+        }
+        if recs.isLoading && recs.recommendations.isEmpty {
+            HStack(spacing: 8) {
+                ProgressView().tint(theme.color(.accent))
+                Text("Finding shows for you…").scaledFont(13)
+                    .foregroundStyle(theme.color(.textTertiary))
+            }.padding(.top, 40).frame(maxWidth: .infinity)
+        } else if recs.recommendations.isEmpty {
+            Text("Follow a few shows and clip moments you love — recommendations get sharper as Onda learns your taste.")
+                .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
+                .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 50)
+        } else {
+            ForEach(recs.recommendations) { rec in
+                VStack(alignment: .leading, spacing: 4) {
+                    TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
+                    if let reason = rec.reasonLine {
+                        Text(reason).scaledFont(11.5).foregroundStyle(theme.color(.textTertiary))
+                            .padding(.leading, 2)
+                    }
+                }
+                .contextMenu {
+                    Button(role: .destructive) { recs.dismiss(rec) } label: {
+                        Label("Not interested", systemImage: "hand.thumbsdown")
+                    }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Data loading & shake
 extension DiscoverView {
     // Shared entry point for the shake gesture and the visible Shuffle button.
@@ -387,6 +396,25 @@ extension DiscoverView {
         }
     }
 
+    // Content-focused browsing: scrolling down into Discover tucks the mini-player away;
+    // scrolling back up (or nearing the top) brings it back. Small deltas are ignored so the
+    // bar doesn't flicker on micro-drags; content minY is ≤0 and shrinks as you scroll down.
+    // offsetY is 0 at the top and grows as the user scrolls down into content. Scroll events
+    // arrive per FRAME (tiny deltas), so both directions accumulate runs: hide after ~60pt of
+    // sustained downward travel, reveal after ~80pt of sustained upward travel (a threshold a
+    // bottom rubber-band bounce rarely reaches) or near the top.
+    func handleScroll(offsetY: CGFloat) {
+        defer { lastScrollY = offsetY }
+        let delta = offsetY - lastScrollY
+        if delta > 0 { downwardRun += delta; upwardRun = 0 }
+        else if delta < 0 { upwardRun -= delta; downwardRun = 0 }
+        if offsetY <= 30 || upwardRun > 80 {
+            if playback.miniPlayerHidden { playback.miniPlayerHidden = false }
+        } else if downwardRun > 60 {
+            if !playback.miniPlayerHidden { playback.miniPlayerHidden = true }
+        }
+    }
+
     // Pull-to-refresh reloads whatever the user is looking at: an active search re-runs, Browse
     // force-refetches today's charts (bypassing the day cache), For You recomputes in place.
     // (@Sendable refreshable closure calls this MainActor func — never touch services inline.)
@@ -412,6 +440,22 @@ extension DiscoverView {
             if !results.isEmpty { recs.recordSearch(t) }   // an interest signal for future recs
         } catch {
             results = []; searchFailed = true
+        }
+    }
+}
+
+/// Reports the scroll view's vertical content offset (0 at top, growing downward) via the
+/// iOS 18 scroll-geometry API. On iOS 17 this is a no-op: the mini-player simply never hides.
+private struct ScrollOffsetReporter: ViewModifier {
+    let onScroll: (CGFloat) -> Void
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollGeometryChange(for: CGFloat.self,
+                                           of: { $0.contentOffset.y + $0.contentInsets.top }) { _, new in
+                onScroll(new)
+            }
+        } else {
+            content
         }
     }
 }

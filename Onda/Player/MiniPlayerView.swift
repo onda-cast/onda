@@ -5,6 +5,7 @@ struct MiniPlayerView: View {
     @Environment(PlaybackManager.self) private var playback
     @Environment(AppTheme.self) private var theme
     var onTap: () -> Void
+    @State private var dragX: CGFloat = 0
 
     var body: some View {
         if let ep = playback.currentEpisode {
@@ -35,7 +36,34 @@ struct MiniPlayerView: View {
                             .frame(maxHeight: .infinity, alignment: .bottom)
                     }
                 }
-            }.buttonStyle(.plain)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("mini-player")
+            // Swipe horizontally to close the player: the bar follows the finger and fades,
+            // then playback stops and the bar is removed (it won't restore at next launch).
+            .offset(x: dragX)
+            .opacity(1 - min(0.6, Double(abs(dragX)) / 300))
+            // highPriorityGesture: a swipe must not also fire the button's tap (which would
+            // open Now Playing mid-dismiss); taps under 20pt of movement still reach the button.
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 20)
+                    .onChanged { dragX = $0.translation.width }
+                    .onEnded { value in
+                        if abs(value.translation.width) > 100 {
+                            withAnimation(.easeOut(duration: 0.18)) {
+                                dragX = value.translation.width > 0 ? 500 : -500
+                            }
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(180))
+                                playback.dismissPlayer()
+                                dragX = 0
+                            }
+                        } else {
+                            withAnimation(.spring(duration: 0.3)) { dragX = 0 }
+                        }
+                    }
+            )
+            .accessibilityAction(named: "Close player") { playback.dismissPlayer() }
         }
     }
 }

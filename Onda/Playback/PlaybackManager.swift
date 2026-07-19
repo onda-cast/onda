@@ -105,6 +105,11 @@ final class PlaybackManager {
     private func resumeExternally() { guard !isPlaying, currentEpisode != nil else { return }; togglePlayPause() }
     private func pauseExternally() { guard isPlaying else { return }; togglePlayPause() }
 
+    // MARK: Mini-player coordination
+    /// True while a scroll surface (Discover) wants the mini-player out of the way; RootView
+    /// animates it off. Reset on tab switch and whenever playback starts.
+    var miniPlayerHidden = false
+
     // MARK: Jump-from-transcript coordination
     // Bound to RootView's Now Playing sheet, so a transcript jump can surface the player.
     var showNowPlaying = false
@@ -171,6 +176,7 @@ final class PlaybackManager {
         clipEndBound = nil
         pausedAt = nil                    // a new episode isn't a resume — no Smart Resume rewind
         returnToTranscriptEpisode = nil   // a new episode invalidates the pending transcript return
+        miniPlayerHidden = false          // starting playback always surfaces the mini-player
         currentEpisode = episode
         UserDefaults.standard.set(episode.guid, forKey: Self.lastEpisodeKey)  // restored on next launch
         durationSeconds = episode.duration
@@ -488,8 +494,20 @@ extension PlaybackManager {
     }
 }
 
-// MARK: - Audio-session interruptions
+// MARK: - Mini-player dismissal + audio-session interruptions
 extension PlaybackManager {
+    /// Swipe-to-dismiss on the mini-player: stop playback and remove the bar. The queue survives;
+    /// the saved last-episode guid is cleared so an explicitly closed player doesn't come back on
+    /// the next launch.
+    func dismissPlayer() {
+        if isPlaying { engine.pause(); persistPosition() }
+        isPlaying = false
+        setSleepTimer(.off)
+        currentEpisode = nil
+        returnToTranscriptEpisode = nil
+        UserDefaults.standard.removeObject(forKey: Self.lastEpisodeKey)
+    }
+
     /// Another app taking exclusive audio (a call, Siri, a non-mixing app) interrupts our session
     /// and the system pauses playback. Mirror that in our state, and — Overcast-style — resume
     /// automatically when the interruption ends carrying the system's `shouldResume` hint.

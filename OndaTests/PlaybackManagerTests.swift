@@ -467,4 +467,32 @@ extension PlaybackManagerTests {
         XCTAssertFalse(engine.playing)
     }
 
+    // MARK: Mini-player dismissal
+
+    func test_dismissPlayer_stopsAndClearsRestore_keepsQueue() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, guid: "dismiss-me")
+        let queued = makeEpisode(in: ctx, guid: "queued")
+        pm.play(ep)
+        pm.enqueue(queued)
+        pm.dismissPlayer()
+        XCTAssertNil(pm.currentEpisode)
+        XCTAssertFalse(pm.isPlaying)
+        XCTAssertFalse(engine.playing)
+        XCTAssertEqual(pm.queue.map(\.guid), ["queued"], "queue survives a dismissal")
+        XCTAssertNil(UserDefaults.standard.string(forKey: PlaybackManager.lastEpisodeKey),
+                     "an explicitly closed player must not restore at next launch")
+        XCTAssertNil(pm.sleepRemaining)
+    }
+
+    func test_play_afterScrollHide_resurfacesMiniPlayer() throws {
+        let ctx = try makeContext()
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
+        pm.miniPlayerHidden = true
+        pm.play(makeEpisode(in: ctx))
+        XCTAssertFalse(pm.miniPlayerHidden, "starting playback always shows the bar")
+    }
+
 }

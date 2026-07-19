@@ -22,8 +22,11 @@ struct RootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             VStack(spacing: 0) {
-                MiniPlayerView { playback.showNowPlaying = true }
-                    .padding(.horizontal, 10).padding(.bottom, 10)
+                if !playback.miniPlayerHidden {
+                    MiniPlayerView { playback.showNowPlaying = true }
+                        .padding(.horizontal, 10).padding(.bottom, 10)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
                 tabBar
             }
 
@@ -36,6 +39,7 @@ struct RootView: View {
             .padding(.bottom, 150)
         }
         .animation(.easeOut(duration: 0.2), value: playback.captureToast)
+        .animation(.easeInOut(duration: 0.25), value: playback.miniPlayerHidden)
         .animation(.easeOut(duration: 0.2), value: transcripts.completionNotice)
         // Dynamic Type scales the app's fonts (see scaledFont), but cap growth so the brutalist
         // fixed-height controls and two-column grid don't blow out at the largest sizes.
@@ -70,7 +74,8 @@ struct RootView: View {
 
     private func tabButton(_ t: Tab, _ label: String, _ icon: String) -> some View {
         let active = tab == t
-        return Button { tab = t } label: {
+        // Switching tabs always restores a scroll-hidden mini-player.
+        return Button { tab = t; playback.miniPlayerHidden = false } label: {
             VStack(spacing: 4) {
                 Image(systemName: icon).scaledFont(20, weight: .semibold)
                 Text(label).scaledFont(10.5, weight: .semibold)
