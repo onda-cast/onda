@@ -1,5 +1,6 @@
 //  TranscriptView.swift
 import SwiftUI
+import UIKit   // UIColor / UIFont for the SelectableCueText attributed styling
 
 struct TranscriptView: View {
     @Environment(AppTheme.self) private var theme
@@ -15,6 +16,15 @@ struct TranscriptView: View {
     @State private var selStart: Int?
     @State private var selEnd: Int?
     @State private var showClipSheet = false
+    @State private var searching = false
+    @State private var query = ""
+    @State private var matchIndices: [Int] = []
+    @State private var currentMatch = 0
+    @FocusState private var searchFocused: Bool
+
+    // UIKit-side equivalent of .scaledFont(16): @ScaledMetric honors Dynamic Type and the
+    // app-wide cap, and the resulting UIFont feeds the attributed cue text.
+    @ScaledMetric(relativeTo: .body) private var cueFontSize: CGFloat = 16
 
     // Plain-value snapshot of the cues, built ONCE per transcript. Rendering must never
     // touch (or re-sort) the SwiftData models per playback tick — that faulted thousands
@@ -80,19 +90,6 @@ struct TranscriptView: View {
         return ActiveCue.index(at: playback.positionSeconds, cues: wordRanges[cue.id])
     }
 
-    private func styledCueText(_ cue: CueVM, isActiveCue: Bool) -> Text {
-        guard isActiveCue, let words = cue.words, !words.isEmpty else {
-            return Text(cue.text)
-        }
-        let activeWord = activeWordIndex(for: cue)
-        return words.enumerated().reduce(Text("")) { acc, pair in
-            let (i, w) = pair
-            let color = i == activeWord ? theme.color(.text) : theme.color(.textTertiary)
-            let sep = i == 0 ? "" : " "
-            return acc + Text(sep + w.text).foregroundStyle(color)
-        }
-    }
-
     var body: some View {
         NavigationStack {
             Group {
@@ -101,11 +98,28 @@ struct TranscriptView: View {
             .background(theme.color(.bg))
             .navigationTitle("Transcript")
             .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .top) {
+                if searching { searchBar }
+            }
             .toolbar {
                 if transcript != nil, !(transcript?.cues.isEmpty ?? true) {
                     ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            if searching { closeSearch() } else {
+                                searching = true
+                                resetSelection()          // search and clip-select are exclusive
+                                selecting = false
+                                searchFocused = true
+                            }
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        .accessibilityLabel(searching ? "Close search" : "Search transcript")
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button(selecting ? "Done" : "Select") {
                             selecting.toggle(); selStart = nil; selEnd = nil
+                            if selecting { closeSearch() }   // entering select mode closes search
                         }
                     }
                 }
@@ -142,27 +156,6 @@ struct TranscriptView: View {
         .onChange(of: playback.transcriptJumpNonce) { _, _ in dismiss() }
     }
 
-    private var selectionRange: ClosedRange<Int>? {
-        guard let s = selStart else { return nil }
-        let e = selEnd ?? s
-        return min(s, e)...max(s, e)
-    }
-
-    private func handleSelectionTap(_ i: Int) {
-        if let s = selStart, selEnd == nil, i != s { selEnd = i } else { selStart = i; selEnd = nil }
-    }
-
-    private func resetSelection() {
-        selecting = false; selStart = nil; selEnd = nil
-    }
-
-    private func timeStr(_ s: TimeInterval) -> String {
-        let t = Int(max(0, s))
-        return t >= 3600
-            ? String(format: "%d:%02d:%02d", t / 3600, (t % 3600) / 60, t % 60)
-            : String(format: "%d:%02d", t / 60, t % 60)
-    }
-
     // Cue text/speaker/timestamp on the left; the jump-to-player control sits off to the right so
     // it never competes with tapping lines to select a clip.
     @ViewBuilder private func cueRow(_ cue: CueVM) -> some View {
@@ -175,9 +168,7 @@ struct TranscriptView: View {
                 }
                 Text(timeStr(cue.start)).scaledFont(11, weight: .medium).monospacedDigit()
                     .foregroundStyle(theme.color(.textTertiary))
-                styledCueText(cue, isActiveCue: i == activeIndex)
-                    .scaledFont(16)
-                    .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
+                cueText(cue)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
@@ -196,7 +187,8 @@ struct TranscriptView: View {
         .background(
             (selecting && (selectionRange?.contains(i) ?? false))
                 ? theme.color(.accentWash)
-                : (i == activeIndex && !selecting ? theme.color(.accentWash) : .clear))
+                : (i == currentMatchCue || (i == activeIndex && !selecting && !searching)
+                    ? theme.color(.accentWash) : .clear))
         .contentShape(Rectangle())
         // Read mode: tapping anywhere on the line jumps to the player (the side button reinforces
         // it). Select mode: tapping picks the clip range instead.
@@ -221,8 +213,14 @@ struct TranscriptView: View {
                 DragGesture(minimumDistance: 10).onChanged { _ in lastUserScrollAt = .now }
             )
             .onChange(of: activeIndex) { _, new in
-                guard let new, isFollowing,
+                guard let new, isFollowing, !searching,
                       Date.now.timeIntervalSince(lastUserScrollAt) > 4 else { return }
+                withAnimation { proxy.scrollTo(new, anchor: .center) }
+            }
+            .onChange(of: query) { _, _ in recomputeMatches() }
+            .onChange(of: currentMatchCue) { _, new in
+                // Search-driven scrolls always fire — they bypass the auto-follow throttle.
+                guard let new else { return }
                 withAnimation { proxy.scrollTo(new, anchor: .center) }
             }
             .onChange(of: cueVMs.count) { _, _ in
@@ -252,6 +250,111 @@ struct TranscriptView: View {
         transcript = await transcripts.transcript(for: episode)
         snapshotCues()
         transcribing = false
+    }
+}
+
+// MARK: - Cue text, search & clip-selection helpers
+extension TranscriptView {
+    // Read mode gets natively-selectable text (long-press → Look Up / Search Web); clip Select
+    // mode gets plain Text so the row's range-tap gesture has no competing recognizer.
+    @ViewBuilder func cueText(_ cue: CueVM) -> some View {
+        let i = cue.id
+        if selecting {
+            Text(cue.text)
+                .scaledFont(16)
+                .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
+        } else {
+            SelectableCueText(
+                attributed: CueTextStyler.attributed(
+                    text: cue.text,
+                    words: i == activeIndex ? cue.words : nil,
+                    activeWordIndex: i == activeIndex ? activeWordIndex(for: cue) : nil,
+                    searchQuery: searching ? query : "",
+                    style: .init(font: .systemFont(ofSize: cueFontSize),
+                                 base: UIColor(theme.color(i == activeIndex ? .text : .textTertiary)),
+                                 emphasis: UIColor(theme.color(.text)),
+                                 accent: UIColor(theme.color(.accent)))),
+                onTap: { playback.jumpFromTranscript(episode: episode, to: cue.start) })
+        }
+    }
+
+    // Top find bar: search field + match counter + prev/next chevrons.
+    var searchBar: some View {
+        HStack(spacing: 10) {
+            BrutalSearchField("Find in transcript", text: $query, focus: $searchFocused)
+            Text(matchCounterText)
+                .scaledFont(13, weight: .semibold).monospacedDigit()
+                .foregroundStyle(theme.color(.textSecondary))
+                .fixedSize()
+            matchChevron(system: "chevron.up", label: "Previous match", action: prevMatch)
+            matchChevron(system: "chevron.down", label: "Next match", action: nextMatch)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .background(theme.color(.bg))
+    }
+
+    private func matchChevron(system: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: system).scaledFont(14, weight: .bold)
+                .foregroundStyle(theme.color(matchIndices.isEmpty ? .textTertiary : .accent))
+                .frame(width: 36, height: 36)
+                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+        }
+        .buttonStyle(.plain).disabled(matchIndices.isEmpty)
+        .accessibilityLabel(label)
+    }
+
+    var matchCounterText: String {
+        matchIndices.isEmpty ? "0 / 0" : "\(currentMatch + 1) / \(matchIndices.count)"
+    }
+
+    func closeSearch() {
+        searching = false; query = ""; matchIndices = []; currentMatch = 0
+    }
+
+    // Recomputed on query change. cueVMs is built once per transcript (snapshotCues) and is not
+    // re-snapshotted while a populated transcript — and thus the search bar — is on screen, so
+    // matchIndices can't go stale against a regenerated snapshot.
+    func recomputeMatches() {
+        matchIndices = TranscriptFind.matchingIndices(query: query, in: cueVMs.map(\.text))
+        currentMatch = 0
+    }
+
+    func nextMatch() {
+        guard !matchIndices.isEmpty else { return }
+        currentMatch = (currentMatch + 1) % matchIndices.count
+    }
+
+    func prevMatch() {
+        guard !matchIndices.isEmpty else { return }
+        currentMatch = (currentMatch - 1 + matchIndices.count) % matchIndices.count
+    }
+
+    /// Cue index of the current match (nil when not searching / no matches).
+    var currentMatchCue: Int? {
+        guard searching, !matchIndices.isEmpty, currentMatch < matchIndices.count else { return nil }
+        return matchIndices[currentMatch]
+    }
+
+    var selectionRange: ClosedRange<Int>? {
+        guard let s = selStart else { return nil }
+        let e = selEnd ?? s
+        return min(s, e)...max(s, e)
+    }
+
+    func handleSelectionTap(_ i: Int) {
+        if let s = selStart, selEnd == nil, i != s { selEnd = i } else { selStart = i; selEnd = nil }
+    }
+
+    func resetSelection() {
+        selecting = false; selStart = nil; selEnd = nil
+    }
+
+    func timeStr(_ s: TimeInterval) -> String {
+        let t = Int(max(0, s))
+        return t >= 3600
+            ? String(format: "%d:%02d:%02d", t / 3600, (t % 3600) / 60, t % 60)
+            : String(format: "%d:%02d", t / 60, t % 60)
     }
 }
 
