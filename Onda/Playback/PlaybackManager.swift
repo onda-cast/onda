@@ -149,6 +149,67 @@ final class PlaybackManager {
 
     private var clipEndBound: TimeInterval?
 
+    // MARK: Clip preview (Clip Review sheet)
+    // Scoped, looping playback of a candidate clip range. Opening the sheet snapshots the
+    // listener's spot (episode/position/play-state); closing restores it, so previewing can
+    // never lose their place. While a preview is active, ticks do nothing but loop.
+    private var clipPreviewRange: (start: TimeInterval, end: TimeInterval)?
+    private var preClipPreview: (episode: Episode?, position: TimeInterval, wasPlaying: Bool)?
+
+    /// Called when the Clip Review sheet appears: pause and remember where the listener was.
+    /// Balanced by ``endClipPreview()`` on dismiss.
+    func beginClipPreview() {
+        preClipPreview = (currentEpisode, positionSeconds, isPlaying)
+        engine.pause()
+        isPlaying = false
+        persistPosition()
+    }
+
+    /// Plays just `[start, end)` of `episode`, looping back to `start` at the end bound.
+    /// Loads the episode (without auto-download) when it isn't the current one.
+    func previewRange(episode: Episode, start: TimeInterval, end: TimeInterval) {
+        if currentEpisode?.guid != episode.guid { play(episode, autoDownload: false) }
+        engine.seek(to: start)
+        positionSeconds = start
+        clipPreviewRange = (start, end)
+        engine.play()
+        isPlaying = true
+    }
+
+    /// Stops preview playback, leaving the playhead where it is (used by the sheet's stop
+    /// button, and by "Set to playhead" which reads ``positionSeconds`` afterwards).
+    func stopPreviewPlayback() {
+        clipPreviewRange = nil
+        engine.pause()
+        isPlaying = false
+    }
+
+    /// Called when the Clip Review sheet dismisses: restore the pre-preview episode and
+    /// position, resuming only if the listener was playing.
+    func endClipPreview() {
+        clipPreviewRange = nil
+        guard let snapshot = preClipPreview else { return }
+        preClipPreview = nil
+        guard let ep = snapshot.episode else {
+            // Nothing was loaded before the sheet (e.g. editing from the Clips list on a
+            // fresh launch): just stop; the clip's episode stays loaded, paused.
+            engine.pause()
+            isPlaying = false
+            return
+        }
+        if currentEpisode?.guid != ep.guid { play(ep, autoDownload: false) }
+        engine.seek(to: snapshot.position)
+        positionSeconds = snapshot.position
+        if snapshot.wasPlaying {
+            engine.play()
+            isPlaying = true
+        } else {
+            engine.pause()
+            isPlaying = false
+        }
+        persistPosition()
+    }
+
     /// Plays a clip's bounded range: loads its episode, seeks to `clip.startTime`, and stops
     /// playback at `clip.endTime` without marking the episode played or advancing the queue.
     func playClip(_ clip: Clip) {
@@ -165,6 +226,7 @@ final class PlaybackManager {
     ///   also saved for offline in the background via the wired `ensureDownloaded`.
     func play(_ episode: Episode, autoDownload: Bool = true) {
         clipEndBound = nil
+        clipPreviewRange = nil
         pausedAt = nil                    // a new episode isn't a resume — no Smart Resume rewind
         returnToTranscriptEpisode = nil   // a new episode invalidates the pending transcript return
         currentEpisode = episode
@@ -246,6 +308,7 @@ final class PlaybackManager {
     /// episode bounds. Cancels any active clip end-bound.
     func skip(by seconds: TimeInterval) {
         clipEndBound = nil
+        clipPreviewRange = nil
         let target = max(0, min(durationSeconds, positionSeconds + seconds))
         engine.seek(to: target); positionSeconds = target
     }
@@ -253,6 +316,7 @@ final class PlaybackManager {
     /// Seeks to a fraction `0...1` of the episode duration (the scrubber's seek path).
     func seek(toFraction f: Double) {
         clipEndBound = nil
+        clipPreviewRange = nil
         let target = max(0, min(durationSeconds, durationSeconds * f))
         engine.seek(to: target); positionSeconds = target
     }
@@ -271,6 +335,17 @@ final class PlaybackManager {
 
     private func handleTimeUpdate(_ t: TimeInterval) {
         positionSeconds = t
+
+        // Clip preview: bounce back to the range start at the end bound; skip everything
+        // else (persist, played-marking, ads, outro) — preview must not touch stored state.
+        if let range = clipPreviewRange {
+            if t >= range.end {
+                engine.seek(to: range.start)
+                positionSeconds = range.start
+            }
+            return
+        }
+
         guard let ep = currentEpisode else { return }
 
         // Clip-bounded playback: stop at the clip end without marking played/advancing.
