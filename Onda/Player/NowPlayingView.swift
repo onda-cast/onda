@@ -13,6 +13,17 @@ struct NowPlayingView: View {
     @State private var showTranscript = false
     @State private var showJumpToTime = false
     @State private var jumpText = ""
+    // In-progress clip capture: set when the user taps the scissors, cleared on End/cancel.
+    @State private var clipStart: TimeInterval?
+    @State private var pendingClip: PendingClip?
+
+    /// A captured-but-unsaved range handed to the Clip Review sheet (Cancel discards it).
+    struct PendingClip: Identifiable {
+        let id = UUID()
+        let episode: Episode
+        let start: TimeInterval
+        let end: TimeInterval
+    }
 
     private var ep: Episode? { playback.currentEpisode }
     private var settings: ShowSettings? { ep?.podcast?.settings }
@@ -71,7 +82,9 @@ struct NowPlayingView: View {
             }
         }
         .overlay(alignment: .top) {
-            if playback.returnToTranscriptEpisode != nil {
+            if let s = clipStart {
+                clipBanner(startedAt: s)
+            } else if playback.returnToTranscriptEpisode != nil {
                 BackToTranscriptButton {
                     playback.clearTranscriptReturn()
                     showTranscript = true
@@ -80,6 +93,10 @@ struct NowPlayingView: View {
         }
         .animation(.easeOut(duration: 0.2), value: playback.captureToast)
         .animation(.easeOut(duration: 0.2), value: playback.returnToTranscriptEpisode?.guid)
+        .animation(.easeOut(duration: 0.2), value: clipStart == nil)
+        // An episode change (queue advance, new play) invalidates an in-progress capture:
+        // its start time belongs to the previous episode's timeline.
+        .onChange(of: ep?.guid) { _, _ in clipStart = nil }
         .sheet(isPresented: $showQueue) { QueueView() }
         .sheet(isPresented: $showSettings) {
             if let pod = ep?.podcast { ShowSettingsSheet(podcast: pod) }
@@ -87,12 +104,21 @@ struct NowPlayingView: View {
         .sheet(isPresented: $showTranscript) {
             if let ep { TranscriptView(episode: ep) }
         }
+        .sheet(item: $pendingClip) { p in
+            ClipReviewSheet(episode: p.episode, start: p.start, end: p.end)
+        }
     }
 
     private var header: some View {
         HStack(spacing: 2) {
             Button { dismiss() } label: { headerIcon("chevron.down") }
             Spacer()
+            Button { toggleClipCapture() } label: { headerIcon("scissors") }
+                .foregroundStyle(clipStart == nil ? theme.color(.textSecondary)
+                                                  : theme.color(.accent))
+                .disabled(ep == nil)
+                .accessibilityLabel(clipStart == nil ? "Start clip" : "End clip")
+                .accessibilityIdentifier("clip-button")
             SleepTimerMenu()
             Button { showTranscript = true } label: { headerIcon("text.quote") }
                 .accessibilityIdentifier("transcript-button")
@@ -244,6 +270,33 @@ struct NowPlayingView: View {
 
 }
 
+// MARK: - Clip capture
+extension NowPlayingView {
+    /// Live capture banner: running clip length, End Clip, and a discard ×. White-on-accentStrong
+    /// for AA contrast (CLAUDE.md); same top placement as BackToTranscriptButton.
+    func clipBanner(startedAt s: TimeInterval) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "scissors").scaledFont(13, weight: .bold)
+            Text("Clipping · \(timeStr(max(0, playback.positionSeconds - s)))")
+                .scaledFont(13.5, weight: .bold).monospacedDigit()
+            Button("End Clip") { endClip() }
+                .scaledFont(13.5, weight: .bold)
+                .accessibilityIdentifier("end-clip-button")
+            Button { clipStart = nil } label: {
+                Image(systemName: "xmark").scaledFont(12, weight: .bold)
+                    .frame(width: 28, height: 28).contentShape(Rectangle())
+            }
+            .accessibilityLabel("Cancel clip")
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
+        .padding(.top, 112)   // clear the pinned header row
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+}
+
 // MARK: - Scrubber
 extension NowPlayingView {
     var scrubber: some View {
@@ -354,6 +407,36 @@ extension NowPlayingView {
 
     func timeStr(_ s: TimeInterval) -> String {
         let t = Int(max(0, s)); return String(format: "%d:%02d", t / 60, t % 60)
+    }
+
+    /// Reaction-time cushion: a Start tap marks this many seconds before the tap.
+    static let clipLookback: TimeInterval = 5
+
+    /// Where a Start tap begins the clip: 5s before the tap, floored at the episode start.
+    static func clipStartValue(position: TimeInterval) -> TimeInterval {
+        max(0, position - clipLookback)
+    }
+
+    /// Where an End tap closes the clip: the tap position, but at least minLength after start.
+    static func clipEnd(start: TimeInterval, position: TimeInterval) -> TimeInterval {
+        max(position, start + ClipReviewSheet.minLength)
+    }
+
+    /// Scissors tap: starts a capture, or ends the in-progress one.
+    func toggleClipCapture() {
+        if clipStart == nil {
+            clipStart = Self.clipStartValue(position: playback.positionSeconds)
+        } else {
+            endClip()
+        }
+    }
+
+    /// Ends the in-progress capture and opens the review sheet with the pending range.
+    func endClip() {
+        guard let ep, let s = clipStart else { return }
+        clipStart = nil
+        pendingClip = PendingClip(episode: ep, start: s,
+                                  end: Self.clipEnd(start: s, position: playback.positionSeconds))
     }
 }
 

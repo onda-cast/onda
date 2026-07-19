@@ -496,3 +496,171 @@ extension PlaybackManagerTests {
     }
 
 }
+
+// MARK: - Clip preview (Clip Review sheet)
+extension PlaybackManagerTests {
+    func test_previewRange_loopsBackToStart_atEndBound() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        pm.play(ep)
+        pm.beginClipPreview()
+        pm.previewRange(episode: ep, start: 100, end: 130)
+        XCTAssertEqual(engine.currentTimeSeconds, 100)
+        XCTAssertTrue(pm.isPlaying)
+        engine.emitTime(131)
+        XCTAssertEqual(engine.currentTimeSeconds, 100, "looped back to the clip start")
+        XCTAssertTrue(pm.isPlaying, "still playing after the loop — preview never auto-stops")
+    }
+
+    func test_beginClipPreview_pauses_andEndRestoresPositionAndResumes() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        pm.play(ep)
+        engine.emitTime(500)                    // listener at 500, playing
+        pm.beginClipPreview()
+        XCTAssertFalse(pm.isPlaying, "sheet open pauses the episode")
+        pm.previewRange(episode: ep, start: 100, end: 130)
+        engine.emitTime(120)
+        pm.endClipPreview()
+        XCTAssertEqual(pm.positionSeconds, 500, accuracy: 0.5, "back to the listener's spot")
+        XCTAssertEqual(engine.currentTimeSeconds, 500, accuracy: 0.5)
+        XCTAssertTrue(pm.isPlaying, "was playing before the sheet → resumes")
+    }
+
+    func test_endClipPreview_staysPaused_whenListenerWasPaused() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        pm.play(ep)
+        engine.emitTime(500)
+        pm.togglePlayPause()                    // paused at 500
+        pm.beginClipPreview()
+        pm.previewRange(episode: ep, start: 100, end: 130)
+        pm.endClipPreview()
+        XCTAssertEqual(pm.positionSeconds, 500, accuracy: 0.5)
+        XCTAssertFalse(pm.isPlaying, "was paused before the sheet → stays paused")
+    }
+
+    func test_previewRange_differentEpisode_loadsIt_andEndRestoresOriginal() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let listening = makeEpisode(in: ctx, guid: "listening")
+        let clipOwner = makeEpisode(in: ctx, guid: "clip-owner")
+        var downloaded: [String] = []
+        pm.ensureDownloaded = { downloaded.append($0.guid) }
+        pm.play(listening)
+        engine.emitTime(500)
+        pm.beginClipPreview()
+        pm.previewRange(episode: clipOwner, start: 40, end: 60)
+        XCTAssertEqual(pm.currentEpisode?.guid, "clip-owner")
+        XCTAssertEqual(engine.loadedURL, clipOwner.audioURL)
+        XCTAssertEqual(engine.currentTimeSeconds, 40)
+        XCTAssertFalse(downloaded.contains("clip-owner"),
+                       "preview must not auto-download the clip's episode")
+        pm.endClipPreview()
+        XCTAssertEqual(pm.currentEpisode?.guid, "listening", "original episode restored")
+        XCTAssertEqual(pm.positionSeconds, 500, accuracy: 0.5)
+        XCTAssertTrue(pm.isPlaying)
+    }
+
+    func test_previewTicks_doNotPersistPosition_orMarkPlayed() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        pm.play(ep)
+        engine.emitTime(500)                    // persists 500
+        pm.beginClipPreview()
+        pm.previewRange(episode: ep, start: 950, end: 990)
+        engine.emitTime(960)                    // >95% — must NOT mark played
+        XCTAssertFalse(ep.played, "preview past 95% never marks the episode played")
+        XCTAssertEqual(ep.playbackPosition, 500, accuracy: 0.5,
+                       "preview ticks never persist position")
+    }
+
+    func test_manualSkip_cancelsPreviewLoop() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        pm.play(ep)
+        pm.beginClipPreview()
+        pm.previewRange(episode: ep, start: 100, end: 130)
+        pm.skip(by: 200)                        // user takes over via transport
+        engine.emitTime(331)
+        XCTAssertEqual(engine.currentTimeSeconds, 331, accuracy: 0.5,
+                       "no loop-back once the user seeks manually")
+    }
+
+    func test_silenceSkip_doesNotFireDuringPreview() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        ep.podcast?.settings?.skipSilence = true
+        pm.play(ep)
+        pm.beginClipPreview()
+        pm.previewRange(episode: ep, start: 100, end: 130)
+        for _ in 0..<10 { engine.onRMS?(0.001, 0.1) }   // sustained silence
+        XCTAssertEqual(engine.currentTimeSeconds, 100, accuracy: 0.5,
+                       "no silence skip while previewing")
+        engine.emitTime(131)
+        XCTAssertEqual(engine.currentTimeSeconds, 100, accuracy: 0.5,
+                       "preview loop still intact")
+    }
+
+    func test_beginClipPreview_secondCallKeepsOriginalSnapshot() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        pm.play(ep)
+        engine.emitTime(500)                    // playing at 500
+        pm.beginClipPreview()
+        pm.beginClipPreview()                   // e.g. onAppear firing twice
+        pm.previewRange(episode: ep, start: 100, end: 130)
+        pm.endClipPreview()
+        XCTAssertEqual(pm.positionSeconds, 500, accuracy: 0.5)
+        XCTAssertTrue(pm.isPlaying, "original wasPlaying=true snapshot survives the double begin")
+    }
+
+    func test_stopPreviewPlayback_pausesAndKeepsPlayhead() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        pm.play(ep)
+        pm.beginClipPreview()
+        pm.previewRange(episode: ep, start: 100, end: 130)
+        engine.emitTime(115)
+        pm.stopPreviewPlayback()
+        XCTAssertFalse(pm.isPlaying)
+        XCTAssertEqual(pm.positionSeconds, 115, accuracy: 0.5,
+                       "playhead stays where preview stopped (used by Set to playhead)")
+        engine.emitTime(131)
+        XCTAssertEqual(engine.currentTimeSeconds, 131, accuracy: 0.5, "loop cleared by stop")
+    }
+
+    func test_nativeEndOfItem_duringPreview_loopsAndPreservesState() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep1 = makeEpisode(in: ctx, guid: "listening", duration: 1000)
+        let ep2 = makeEpisode(in: ctx, guid: "queued")
+        pm.play(ep1)
+        pm.enqueue(ep2)
+        engine.emitTime(500)
+        pm.beginClipPreview()
+        pm.previewRange(episode: ep1, start: 900, end: 1000)   // range ends at the true episode end
+        engine.emitEnd()                                       // native end-of-item fires during preview
+        XCTAssertFalse(ep1.played, "preview reaching media end must not mark the episode played")
+        XCTAssertEqual(pm.queue.count, 1, "a preview must not consume a queue item")
+        XCTAssertEqual(engine.currentTimeSeconds, 900, accuracy: 0.5, "preview loops back to range start")
+    }
+}

@@ -32,6 +32,37 @@ final class ClipService {
         return clip
     }
 
+    /// Creates a clip at the user's exact times (no cue snapping) — the Clip Review sheet's
+    /// save path. `text` is the caller-derived excerpt (see `ClipTextSnapshot.text`).
+    @discardableResult
+    func makeClipExact(episode: Episode, start: TimeInterval, end: TimeInterval,
+                       text: String, note: String?, needsReview: Bool) -> Clip {
+        let clip = Clip(startTime: start, endTime: end, text: text,
+                        note: note, createdAt: .now, needsReview: needsReview)
+        clip.episode = episode
+        episode.clips.append(clip)
+        modelContext.insert(clip)
+        try? modelContext.save()
+        reindex(clip)
+        return clip
+    }
+
+    /// Applies edited times/text/note from the Clip Review sheet. Index docs are keyed by
+    /// startTime, so the stale doc is deleted before the time changes.
+    func updateClip(_ clip: Clip, start: TimeInterval, end: TimeInterval,
+                    text: String, note: String?) {
+        if let guid = clip.episode?.guid {
+            try? index?.delete(kind: "clip", episodeGuid: guid, startTime: clip.startTime)
+        }
+        clip.startTime = start
+        clip.endTime = end
+        clip.text = text
+        clip.note = note
+        clip.needsReview = false
+        try? modelContext.save()
+        reindex(clip)
+    }
+
     @discardableResult
     func quickClip(episode: Episode, at position: TimeInterval) -> Clip {
         makeClip(episode: episode, requestedStart: max(0, position - Self.quickClipWindow),

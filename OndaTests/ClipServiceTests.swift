@@ -82,4 +82,44 @@ final class ClipServiceTests: XCTestCase {
         svc.delete(clip)
         XCTAssertTrue(try index.search("findable").isEmpty)
     }
+
+    func test_makeClipExact_storesExactTimes_noSnapping() throws {
+        let (ctx, ep) = try env()
+        let svc = ClipService(modelContext: ctx)
+        let clip = svc.makeClipExact(episode: ep, start: 12, end: 24, text: "beta gamma",
+                                     note: nil, needsReview: false)
+        XCTAssertEqual(clip.startTime, 12, "exact time — NOT snapped out to cue start 10")
+        XCTAssertEqual(clip.endTime, 24, "exact time — NOT snapped out to cue end 30")
+        XCTAssertEqual(clip.text, "beta gamma")
+        XCTAssertFalse(clip.needsReview)
+    }
+
+    func test_makeClipExact_indexesBody() throws {
+        let (ctx, ep) = try env()
+        let index = try SearchIndex(path: ":memory:")
+        let svc = ClipService(modelContext: ctx, index: index)
+        _ = svc.makeClipExact(episode: ep, start: 12, end: 24, text: "beta gamma",
+                              note: "sharp insight", needsReview: false)
+        XCTAssertEqual(try index.search("beta").count, 1)
+        XCTAssertEqual(try index.search("sharp").count, 1)
+    }
+
+    func test_updateClip_retimes_clearsNeedsReview_andReindexesUnderNewKey() throws {
+        let (ctx, ep) = try env()
+        let index = try SearchIndex(path: ":memory:")
+        let svc = ClipService(modelContext: ctx, index: index)
+        // Lock-screen-style clip: startTime 0, text "alpha", flagged for review.
+        let clip = svc.makeClip(episode: ep, requestedStart: 0, requestedEnd: 10,
+                                note: nil, needsReview: true)
+        svc.updateClip(clip, start: 15, end: 25, text: "beta gamma", note: "kept")
+        XCTAssertEqual(clip.startTime, 15)
+        XCTAssertEqual(clip.endTime, 25)
+        XCTAssertEqual(clip.note, "kept")
+        XCTAssertFalse(clip.needsReview)
+        let hits = try index.search("beta")
+        XCTAssertEqual(hits.count, 1)
+        XCTAssertEqual(hits.first?.startTime, 15, "index doc re-keyed to the new start time")
+        XCTAssertTrue(try index.search("alpha").isEmpty,
+                      "stale doc under the old startTime key is gone")
+    }
 }

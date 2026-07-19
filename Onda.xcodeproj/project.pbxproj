@@ -51,7 +51,6 @@
 		3ED5A80D04F79C5DFCD21188 /* SentenceSplitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E1836A609FCF91CC3FA1C2 /* SentenceSplitter.swift */; };
 		4202299A935C6A8B1C29A4D7 /* SpeechEngineReproTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027D2498D259920B8FD7659E /* SpeechEngineReproTests.swift */; };
 		428E071C8478342A27BBF390 /* LibraryLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E98BF35041AE7B237668DA6F /* LibraryLayout.swift */; };
-		42F19E0B54AC90908C12D1C7 /* ClipEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93942D719E2A7F24435D23FB /* ClipEditSheet.swift */; };
 		44F48DD1F54C9BAA5DD3D95D /* ChapterGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E57A3975734FA3AB29AA4CF /* ChapterGenerationService.swift */; };
 		46153D4968241035FF9D501B /* AddByURLSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F563CEA4C02736337CE21768 /* AddByURLSheet.swift */; };
 		4770621414319C21F7F00665 /* RecommendationScoringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3E715A82A51303AA8860AF /* RecommendationScoringTests.swift */; };
@@ -82,6 +81,7 @@
 		6F2AA0B192291E08AC3327F4 /* ClipExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DEEC394467B44E80611FEE /* ClipExporterTests.swift */; };
 		6F663B2EBE40D001D9C4CD7A /* FeedRefreshServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A438C9713DECE88526A93F4D /* FeedRefreshServiceTests.swift */; };
 		704D55B56F96BA2997EBAA9C /* OndaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1426D72C602B5DCF50A4F7 /* OndaApp.swift */; };
+		70A9AFB488C424F22625A74D /* ClipCaptureMathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B98647263BF22BD8EFEC1C7 /* ClipCaptureMathTests.swift */; };
 		70ACD31831CB760C1C4227BE /* EpisodeFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 896263AC9AF1023FCDCA7F1A /* EpisodeFilterTests.swift */; };
 		71BB46FF7932F1626F78DC59 /* EpisodeRetentionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAF6D681B7CFF4748E83018 /* EpisodeRetentionService.swift */; };
 		71F20F6EB3701ED06A8BAABA /* AddByURLProbeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C11A7C811976D92686C6993 /* AddByURLProbeUITests.swift */; };
@@ -116,6 +116,7 @@
 		9ABDE2818FED2062D2726C71 /* ChapterGenerating.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A3E4D37A3BFC845DD61B2DA /* ChapterGenerating.swift */; };
 		9B14A7AC3781AFF1F7E1E207 /* PendingArticlesQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C2FECA8159B70B8267DE3C /* PendingArticlesQueueTests.swift */; };
 		9B150D1A32D02071F56B63BC /* ClipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F0F6CBEC00A58EB34271DA5 /* ClipsView.swift */; };
+		9C0BA2E3CB786C375A91E8F9 /* ClipReviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67082B3967C934A7DFBD42CC /* ClipReviewSheet.swift */; };
 		9C5DAB9D2100554F4F0465D8 /* SleepTimerMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1B8CC9352D4C349C29E8D2 /* SleepTimerMenu.swift */; };
 		9C7361C8106C4475C632F971 /* ScaledFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = 093C510B4884B6D866862854 /* ScaledFont.swift */; };
 		A0501988B8A5207D9C6919F2 /* ClipExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F573C2C6E8E24BCE2842308C /* ClipExporter.swift */; };
@@ -286,6 +287,7 @@
 		46B9B9D7C7B0AAB6DB7BD076 /* MiniPlayerProbeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerProbeUITests.swift; sourceTree = "<group>"; };
 		47333DF3B2983B6E6F5506EC /* ArticleSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleSource.swift; sourceTree = "<group>"; };
 		4981733BFE82B20F4431CC7B /* ModelSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelSchema.swift; sourceTree = "<group>"; };
+		4B98647263BF22BD8EFEC1C7 /* ClipCaptureMathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipCaptureMathTests.swift; sourceTree = "<group>"; };
 		4F66A85825297F08BFE4CB57 /* ActiveCueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveCueTests.swift; sourceTree = "<group>"; };
 		5096BC65F569A4F6CCCC7E34 /* TranscriptSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptSearch.swift; sourceTree = "<group>"; };
 		51D8F6DA477608C9136A0701 /* Recommendation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recommendation.swift; sourceTree = "<group>"; };
@@ -300,6 +302,7 @@
 		64BB3761E9D6DB90106AE150 /* feed_messy.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = feed_messy.xml; sourceTree = "<group>"; };
 		653E106F8E234CC794FACBA7 /* BrutalSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrutalSearchField.swift; sourceTree = "<group>"; };
 		65EAE54DF68A8665111DB7C9 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		67082B3967C934A7DFBD42CC /* ClipReviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipReviewSheet.swift; sourceTree = "<group>"; };
 		67CE2B1E3EF1BFC12BF71E97 /* ParsedCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsedCue.swift; sourceTree = "<group>"; };
 		6FCCE1D7FDB9301A8625C3FE /* ChapterGenerationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterGenerationServiceTests.swift; sourceTree = "<group>"; };
 		706BE42C701B0693B6E11502 /* DownloadStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadStateTests.swift; sourceTree = "<group>"; };
@@ -331,7 +334,6 @@
 		8E57A3975734FA3AB29AA4CF /* ChapterGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterGenerationService.swift; sourceTree = "<group>"; };
 		9042594639A5608451B6036C /* ShowSettingsMigratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowSettingsMigratorTests.swift; sourceTree = "<group>"; };
 		93761B856854CB1C03BA35F0 /* LibrarySortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySortTests.swift; sourceTree = "<group>"; };
-		93942D719E2A7F24435D23FB /* ClipEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEditSheet.swift; sourceTree = "<group>"; };
 		93E1B51E3A6C164EC3CC2A61 /* transcript_pc20.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = transcript_pc20.json; sourceTree = "<group>"; };
 		95F89E1D02C358AFACCB68FE /* RetentionSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetentionSettingsSection.swift; sourceTree = "<group>"; };
 		96E5B1386BC83946FDD936E1 /* ArticlePendingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticlePendingRow.swift; sourceTree = "<group>"; };
@@ -472,8 +474,8 @@
 		2B17C787F5BC7D0250F680A4 /* Clips */ = {
 			isa = PBXGroup;
 			children = (
-				93942D719E2A7F24435D23FB /* ClipEditSheet.swift */,
 				F573C2C6E8E24BCE2842308C /* ClipExporter.swift */,
+				67082B3967C934A7DFBD42CC /* ClipReviewSheet.swift */,
 				D9EB09CF6995D64F1C2C2D63 /* ClipRow.swift */,
 				DF6CA1083D18778F2ED1454A /* ClipService.swift */,
 				9F0F6CBEC00A58EB34271DA5 /* ClipsView.swift */,
@@ -800,6 +802,7 @@
 				F77D28C0C5F51D87AF2C93B1 /* BoostLevelTests.swift */,
 				5AC73D73042EFA6EC9C639B5 /* ChapterFetcherTests.swift */,
 				6FCCE1D7FDB9301A8625C3FE /* ChapterGenerationServiceTests.swift */,
+				4B98647263BF22BD8EFEC1C7 /* ClipCaptureMathTests.swift */,
 				57DEEC394467B44E80611FEE /* ClipExporterTests.swift */,
 				2FBD6DA4529DE65939254E12 /* ClipServiceTests.swift */,
 				B304337388F8B89323A7B254 /* ClipTextSnapshotTests.swift */,
@@ -1059,8 +1062,8 @@
 				9ABDE2818FED2062D2726C71 /* ChapterGenerating.swift in Sources */,
 				44F48DD1F54C9BAA5DD3D95D /* ChapterGenerationService.swift in Sources */,
 				5E54B29DADA01079A6DF1B18 /* Clip.swift in Sources */,
-				42F19E0B54AC90908C12D1C7 /* ClipEditSheet.swift in Sources */,
 				A0501988B8A5207D9C6919F2 /* ClipExporter.swift in Sources */,
+				9C0BA2E3CB786C375A91E8F9 /* ClipReviewSheet.swift in Sources */,
 				98E1394BA431566B56E0A974 /* ClipRow.swift in Sources */,
 				A3D9E187B81A340564863C46 /* ClipService.swift in Sources */,
 				E46FC800AB3C3970E7ABFF1A /* ClipTextSnapshot.swift in Sources */,
@@ -1164,6 +1167,7 @@
 				7F1D62A752FED725ABAA8DC3 /* BoostLevelTests.swift in Sources */,
 				398589EBC0C1BEA39A1F315D /* ChapterFetcherTests.swift in Sources */,
 				C5A9FDB08A7F426CA3A6ED4A /* ChapterGenerationServiceTests.swift in Sources */,
+				70A9AFB488C424F22625A74D /* ClipCaptureMathTests.swift in Sources */,
 				6F2AA0B192291E08AC3327F4 /* ClipExporterTests.swift in Sources */,
 				8749A1ED18DCA2188C4CB47E /* ClipServiceTests.swift in Sources */,
 				DFEE6FE03FF874A436002DA2 /* ClipTextSnapshotTests.swift in Sources */,

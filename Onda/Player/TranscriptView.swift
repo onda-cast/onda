@@ -131,9 +131,9 @@ struct TranscriptView: View {
             }
             .sheet(isPresented: $showClipSheet, onDismiss: resetSelection, content: {
                 if let r = selectionRange {
-                    ClipEditSheet(episode: episode,
-                                  requestedStart: cueVMs[r.lowerBound].start,
-                                  requestedEnd: cueVMs[r.upperBound].end)
+                    ClipReviewSheet(episode: episode,
+                                    start: cueVMs[r.lowerBound].start,
+                                    end: cueVMs[r.upperBound].end)
                 }
             })
         }
