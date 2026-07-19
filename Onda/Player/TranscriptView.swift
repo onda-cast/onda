@@ -16,6 +16,10 @@ struct TranscriptView: View {
     @State private var selEnd: Int?
     @State private var showClipSheet = false
 
+    // UIKit-side equivalent of .scaledFont(16): @ScaledMetric honors Dynamic Type and the
+    // app-wide cap, and the resulting UIFont feeds the attributed cue text.
+    @ScaledMetric(relativeTo: .body) private var cueFontSize: CGFloat = 16
+
     // Plain-value snapshot of the cues, built ONCE per transcript. Rendering must never
     // touch (or re-sort) the SwiftData models per playback tick — that faulted thousands
     // of models twice a second and hung the main thread on device (watchdog kill).
@@ -78,19 +82,6 @@ struct TranscriptView: View {
             return ActiveCue.index(at: playback.positionSeconds, cues: words.map { ($0.startTime, $0.endTime) })
         }
         return ActiveCue.index(at: playback.positionSeconds, cues: wordRanges[cue.id])
-    }
-
-    private func styledCueText(_ cue: CueVM, isActiveCue: Bool) -> Text {
-        guard isActiveCue, let words = cue.words, !words.isEmpty else {
-            return Text(cue.text)
-        }
-        let activeWord = activeWordIndex(for: cue)
-        return words.enumerated().reduce(Text("")) { acc, pair in
-            let (i, w) = pair
-            let color = i == activeWord ? theme.color(.text) : theme.color(.textTertiary)
-            let sep = i == 0 ? "" : " "
-            return acc + Text(sep + w.text).foregroundStyle(color)
-        }
     }
 
     var body: some View {
@@ -175,9 +166,23 @@ struct TranscriptView: View {
                 }
                 Text(timeStr(cue.start)).scaledFont(11, weight: .medium).monospacedDigit()
                     .foregroundStyle(theme.color(.textTertiary))
-                styledCueText(cue, isActiveCue: i == activeIndex)
-                    .scaledFont(16)
-                    .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
+                if selecting {
+                    Text(cue.text)
+                        .scaledFont(16)
+                        .foregroundStyle(i == activeIndex ? theme.color(.text) : theme.color(.textTertiary))
+                } else {
+                    SelectableCueText(
+                        attributed: CueTextStyler.attributed(
+                            text: cue.text,
+                            words: i == activeIndex ? cue.words : nil,
+                            activeWordIndex: i == activeIndex ? activeWordIndex(for: cue) : nil,
+                            searchQuery: "",
+                            font: .systemFont(ofSize: cueFontSize),
+                            baseColor: UIColor(theme.color(i == activeIndex ? .text : .textTertiary)),
+                            emphasisColor: UIColor(theme.color(.text)),
+                            accentColor: UIColor(theme.color(.accent))),
+                        onTap: { playback.jumpFromTranscript(episode: episode, to: cue.start) })
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
