@@ -21,6 +21,11 @@ struct DiscoverView: View {
     @State private var toast: String?
     @State private var unfollowTarget: PodcastDTO?
     @State private var showAddByURL = false
+    // Category chips are real filters: selection drives its own result set and NEVER writes
+    // into the visible search text (that made them read as a search shortcut, unlike every
+    // other chip in the app).
+    @State private var selectedCategory: String?
+    @State private var categoryResults: [PodcastDTO] = []
     @FocusState private var searchFocused: Bool
 
     private enum DiscoverMode: Hashable { case browse, forYou }
@@ -84,6 +89,8 @@ struct DiscoverView: View {
             } else if !searching && results.isEmpty {
                 statusNote("No results for “\(query)”")
             }
+        } else if let cat = selectedCategory, categoryResults.isEmpty {
+            loadingRow("Loading \(cat)…")
         } else if shake == nil && trending.isEmpty {
             if loading {
                 loadingRow("Loading trending…")
@@ -148,7 +155,10 @@ struct DiscoverView: View {
         .task { await clientBox.loadTrendingIfNeeded() }
         .task { await recs.refreshIfStale(followedCategories: followedCategories) }
         .onChange(of: query) { _, new in
-            if !new.trimmingCharacters(in: .whitespaces).isEmpty { shake = nil }
+            if !new.trimmingCharacters(in: .whitespaces).isEmpty {
+                shake = nil
+                selectedCategory = nil; categoryResults = []   // typed search supersedes a category
+            }
             Task { await runSearch(new) }
         }
         .onShake { triggerShake() }
@@ -179,13 +189,18 @@ struct DiscoverView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(categories, id: \.self) { cat in
-                    let selected = query.caseInsensitiveCompare(cat) == .orderedSame
-                    Button { query = selected ? "" : cat } label: {
-                        Text(cat).brutalHeader(size: 11.5)
-                            .foregroundStyle(selected ? .white : theme.color(.text))
-                            .padding(.horizontal, 16).padding(.vertical, 9)
-                            .background(selected ? theme.color(.accent) : theme.color(.bgElevated))
-                            .brutalBorder(width: 2)
+                    let selected = selectedCategory == cat
+                    Button { selectCategory(selected ? nil : cat) } label: {
+                        HStack(spacing: 4) {
+                            if selected {
+                                Image(systemName: "checkmark").scaledFont(10, weight: .black)
+                            }
+                            Text(cat).brutalHeader(size: 11.5)
+                        }
+                        .foregroundStyle(selected ? .white : theme.color(.text))
+                        .padding(.horizontal, 16).padding(.vertical, 9)
+                        .background(selected ? theme.color(.accentStrong) : theme.color(.bgElevated))
+                        .brutalBorder(width: 2)
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
@@ -195,7 +210,10 @@ struct DiscoverView: View {
     }
 
     private var listItems: [PodcastDTO] {
-        shake?.picks ?? (results.isEmpty ? trending : results)
+        if let picks = shake?.picks { return picks }
+        if !results.isEmpty { return results }
+        if selectedCategory != nil { return categoryResults }
+        return trending
     }
 
     @ViewBuilder private var listHeader: some View {
@@ -206,7 +224,8 @@ struct DiscoverView: View {
                     insertion: .scale(scale: 1.35, anchor: .leading).combined(with: .opacity),
                     removal: .opacity))
         } else {
-            Text(results.isEmpty ? "Trending Today" : "Results")
+            Text(!results.isEmpty ? "Results"
+                 : selectedCategory.map { $0.uppercased() } ?? "Trending Today")
                 .brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
         }
     }
@@ -414,6 +433,20 @@ extension DiscoverView {
             await runSearch(query)
         } else {
             await clientBox.loadTrendingIfNeeded(force: true)
+        }
+    }
+
+    /// Category chip tap: toggles a category browse with its own result set. Typing a search
+    /// clears it (see onChange(of: query)); the visible query text is never modified.
+    func selectCategory(_ cat: String?) {
+        selectedCategory = cat
+        categoryResults = []
+        shake = nil
+        guard let cat else { return }
+        Task { [clientBox] in
+            let found = (try? await clientBox.client.search(term: cat)) ?? []
+            // Only publish if this category is still the selected one (user may have moved on).
+            if selectedCategory == cat { categoryResults = found }
         }
     }
 
