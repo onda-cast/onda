@@ -8,6 +8,7 @@ struct ParsedEpisode {
     let duration: TimeInterval
     let audioURL: URL
     let notes: String
+    var noteLinks: [URL] = []
     let chaptersURL: URL?
     var transcriptURL: URL?
     var transcriptType: String?
@@ -50,6 +51,7 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
 
     private struct Item {
         var guid = "", title = "", notes = ""
+        var noteLinks: [URL] = []
         var pubDate: Date = .distantPast
         var duration: TimeInterval = 0
         var audioURL: URL?
@@ -130,7 +132,10 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
         case "title": current?.title = value
         case "guid": current?.guid = value
         case "description", "itunes:summary":
-            if current?.notes.isEmpty ?? true { current?.notes = stripHTML(value) }
+            if current?.notes.isEmpty ?? true {
+                current?.noteLinks = FeedDelegate.extractLinks(value)
+                current?.notes = stripHTML(value)
+            }
         case "pubDate": current?.pubDate = FeedDelegate.rfc822.date(from: value) ?? .distantPast
         case "itunes:duration": current?.duration = RSSFeedParser.parseDuration(value)
         case "item":
@@ -146,6 +151,22 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
         case "itunes:author": channelAuthor = value
         default: break
         }
+    }
+
+    /// Hrefs from raw description HTML, captured BEFORE stripHTML destroys them —
+    /// the Books Mentioned link tier reads Amazon/Bookshop/Goodreads URLs from these.
+    static func extractLinks(_ raw: String) -> [URL] {
+        var links: [URL] = []
+        var search = raw[raw.startIndex...]
+        while let r = search.range(of: "href=[\"']([^\"']+)[\"']", options: .regularExpression) {
+            let match = search[r]
+            let urlText = match.dropFirst(6).dropLast()   // strip href=" and trailing quote
+            if let url = URL(string: String(urlText)), url.scheme?.hasPrefix("http") == true {
+                links.append(url)
+            }
+            search = search[r.upperBound...]
+        }
+        return links
     }
 
     private func stripHTML(_ s: String) -> String {
@@ -187,6 +208,7 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
             let guid = it.guid.isEmpty ? audio.absoluteString : it.guid
             return ParsedEpisode(guid: guid, title: it.title, publishDate: it.pubDate,
                                  duration: it.duration, audioURL: audio, notes: it.notes,
+                                 noteLinks: it.noteLinks,
                                  chaptersURL: it.chaptersURL,
                                  transcriptURL: it.transcriptURL, transcriptType: it.transcriptType)
         }
