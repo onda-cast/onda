@@ -15,6 +15,11 @@ struct TranscriptView: View {
     @State private var selStart: Int?
     @State private var selEnd: Int?
     @State private var showClipSheet = false
+    @State private var searching = false
+    @State private var query = ""
+    @State private var matchIndices: [Int] = []
+    @State private var currentMatch = 0
+    @FocusState private var searchFocused: Bool
 
     // UIKit-side equivalent of .scaledFont(16): @ScaledMetric honors Dynamic Type and the
     // app-wide cap, and the resulting UIFont feeds the attributed cue text.
@@ -92,11 +97,54 @@ struct TranscriptView: View {
             .background(theme.color(.bg))
             .navigationTitle("Transcript")
             .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .top) {
+                if searching {
+                    HStack(spacing: 10) {
+                        BrutalSearchField("Find in transcript", text: $query, focus: $searchFocused)
+                        Text(matchCounterText)
+                            .scaledFont(13, weight: .semibold).monospacedDigit()
+                            .foregroundStyle(theme.color(.textSecondary))
+                            .fixedSize()
+                        Button { prevMatch() } label: {
+                            Image(systemName: "chevron.up").scaledFont(14, weight: .bold)
+                                .foregroundStyle(theme.color(matchIndices.isEmpty ? .textTertiary : .accent))
+                                .frame(width: 36, height: 36)
+                                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                        }
+                        .buttonStyle(.plain).disabled(matchIndices.isEmpty)
+                        .accessibilityLabel("Previous match")
+                        Button { nextMatch() } label: {
+                            Image(systemName: "chevron.down").scaledFont(14, weight: .bold)
+                                .foregroundStyle(theme.color(matchIndices.isEmpty ? .textTertiary : .accent))
+                                .frame(width: 36, height: 36)
+                                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                        }
+                        .buttonStyle(.plain).disabled(matchIndices.isEmpty)
+                        .accessibilityLabel("Next match")
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(theme.color(.bg))
+                }
+            }
             .toolbar {
                 if transcript != nil, !(transcript?.cues.isEmpty ?? true) {
                     ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            if searching { closeSearch() } else {
+                                searching = true
+                                resetSelection()          // search and clip-select are exclusive
+                                selecting = false
+                                searchFocused = true
+                            }
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        .accessibilityLabel(searching ? "Close search" : "Search transcript")
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button(selecting ? "Done" : "Select") {
                             selecting.toggle(); selStart = nil; selEnd = nil
+                            if selecting { closeSearch() }   // entering select mode closes search
                         }
                     }
                 }
@@ -147,6 +195,35 @@ struct TranscriptView: View {
         selecting = false; selStart = nil; selEnd = nil
     }
 
+    private var matchCounterText: String {
+        matchIndices.isEmpty ? "0 / 0" : "\(currentMatch + 1) / \(matchIndices.count)"
+    }
+
+    private func closeSearch() {
+        searching = false; query = ""; matchIndices = []; currentMatch = 0
+    }
+
+    private func recomputeMatches() {
+        matchIndices = TranscriptFind.matchingIndices(query: query, in: cueVMs.map(\.text))
+        currentMatch = 0
+    }
+
+    private func nextMatch() {
+        guard !matchIndices.isEmpty else { return }
+        currentMatch = (currentMatch + 1) % matchIndices.count
+    }
+
+    private func prevMatch() {
+        guard !matchIndices.isEmpty else { return }
+        currentMatch = (currentMatch - 1 + matchIndices.count) % matchIndices.count
+    }
+
+    /// Cue index of the current match (nil when not searching / no matches).
+    private var currentMatchCue: Int? {
+        guard searching, !matchIndices.isEmpty, currentMatch < matchIndices.count else { return nil }
+        return matchIndices[currentMatch]
+    }
+
     private func timeStr(_ s: TimeInterval) -> String {
         let t = Int(max(0, s))
         return t >= 3600
@@ -176,7 +253,7 @@ struct TranscriptView: View {
                             text: cue.text,
                             words: i == activeIndex ? cue.words : nil,
                             activeWordIndex: i == activeIndex ? activeWordIndex(for: cue) : nil,
-                            searchQuery: "",
+                            searchQuery: searching ? query : "",
                             font: .systemFont(ofSize: cueFontSize),
                             baseColor: UIColor(theme.color(i == activeIndex ? .text : .textTertiary)),
                             emphasisColor: UIColor(theme.color(.text)),
@@ -201,7 +278,8 @@ struct TranscriptView: View {
         .background(
             (selecting && (selectionRange?.contains(i) ?? false))
                 ? theme.color(.accentWash)
-                : (i == activeIndex && !selecting ? theme.color(.accentWash) : .clear))
+                : (i == currentMatchCue || (i == activeIndex && !selecting && !searching)
+                    ? theme.color(.accentWash) : .clear))
         .contentShape(Rectangle())
         // Read mode: tapping anywhere on the line jumps to the player (the side button reinforces
         // it). Select mode: tapping picks the clip range instead.
@@ -226,8 +304,14 @@ struct TranscriptView: View {
                 DragGesture(minimumDistance: 10).onChanged { _ in lastUserScrollAt = .now }
             )
             .onChange(of: activeIndex) { _, new in
-                guard let new, isFollowing,
+                guard let new, isFollowing, !searching,
                       Date.now.timeIntervalSince(lastUserScrollAt) > 4 else { return }
+                withAnimation { proxy.scrollTo(new, anchor: .center) }
+            }
+            .onChange(of: query) { _, _ in recomputeMatches() }
+            .onChange(of: currentMatchCue) { _, new in
+                // Search-driven scrolls always fire — they bypass the auto-follow throttle.
+                guard let new else { return }
                 withAnimation { proxy.scrollTo(new, anchor: .center) }
             }
             .onChange(of: cueVMs.count) { _, _ in
