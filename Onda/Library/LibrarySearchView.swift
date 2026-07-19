@@ -27,11 +27,11 @@ struct LibrarySearchView: View {
                     .padding(.horizontal, 20).padding(.top, 6).padding(.bottom, 14)
 
                 if !isSearching {
-                    emptyState(
+                    BrutalEmptyState(
                         "Search across every transcript",
                         detail: "Find a phrase, topic, or speaker from any episode you\u{2019}ve transcribed.")
                 } else if hits.isEmpty {
-                    emptyState("No matches for \u{201C}\(query)\u{201D}",
+                    BrutalEmptyState("No matches for \u{201C}\(query)\u{201D}",
                         detail: "Try a shorter phrase, or a different show/speaker name.")
                 } else {
                     List(hits) { hit in
@@ -62,15 +62,6 @@ struct LibrarySearchView: View {
                     .smartSearch(q, knownShows: subscribedShows.map(\.title))
             }
         }
-    }
-
-    private func emptyState(_ title: String, detail: String) -> some View {
-        VStack(spacing: 6) {
-            Text(title).scaledFont(14, weight: .semibold).foregroundStyle(theme.color(.textSecondary))
-            Text(detail).scaledFont(12).foregroundStyle(theme.color(.textTertiary))
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity).padding(.horizontal, 32).padding(.top, 48)
     }
 
     private func open(_ hit: TranscriptHit) {

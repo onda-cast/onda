@@ -64,9 +64,7 @@ struct EpisodeListView: View {
                     }.buttonStyle(.plain)
                 }
                 if isSearching && results.isEmpty {
-                    Text("No episodes match “\(query)”")
-                        .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
-                        .frame(maxWidth: .infinity).padding(.top, 24)
+                    BrutalEmptyState("No episodes match “\(query)”")
                 }
             }
             .listRowBackground(theme.color(.bg))
