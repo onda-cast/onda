@@ -56,6 +56,7 @@ struct OndaApp: App {
             OndaApp.wireRetention(subs: subs, dm: dm, ret: ret, ts: ts, context: c.mainContext)
             _chapterGen = State(initialValue: OndaApp.makeChapterService(context: c.mainContext))
             UITestSeed.seed(context: c.mainContext)
+            UITestScaleSeed.seed(context: c.mainContext)
             OndaApp.seedSearchIndexIfEmpty(index, context: c.mainContext)
             let cs = ClipService(modelContext: c.mainContext, index: index)
             _clips = State(initialValue: cs)

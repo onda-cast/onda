@@ -18,6 +18,11 @@ enum UITestSeed {
         let existing = (try? context.fetch(FetchDescriptor<Podcast>(
             predicate: #Predicate { $0.title == "UITest Show" }))) ?? []
         for stale in existing { context.delete(stale) }   // cascades episodes/transcript/clips
+        // A perf-probe run (UITestScaleSeed) may have left its big library behind on a shared
+        // simulator — it buries the seeded show off-screen and breaks firstMatch taps.
+        let scale = (try? context.fetch(FetchDescriptor<Podcast>(
+            predicate: #Predicate { $0.author == "ScaleSeed" }))) ?? []
+        for stale in scale { context.delete(stale) }
         try? context.save()
 
         // Copy bundled audio into the Downloads dir so the clip has a local source.

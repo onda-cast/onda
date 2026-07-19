@@ -23,33 +23,29 @@ enum LibrarySort: String, CaseIterable {
         }
     }
 
-    func sorted(_ shows: [Podcast]) -> [Podcast] {
+    /// Sorts using precomputed `LibrarySortKeys` — the render path must NEVER touch
+    /// `podcast.episodes` (each access faults the whole relationship; seconds on device).
+    func sorted(_ shows: [Podcast], keys: LibrarySortKeys) -> [Podcast] {
         switch self {
         case .alphabetical:
             return shows.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
         case .newestEpisode:
-            return shows.sorted { keyed($0, Self.newestEpisodeDate, tieBreak: $1) }
+            return keySorted(shows) { keys.newestEpisode[$0.feedURL.absoluteString] }
         case .mostListened:
-            return shows.sorted { keyed($0, { Double(Self.playedCount($0)) }, tieBreak: $1) }
+            return keySorted(shows) { keys.playedCount[$0.feedURL.absoluteString].map(Double.init) }
         case .recentlyPlayed:
-            return shows.sorted { keyed($0, Self.lastPlayedDate, tieBreak: $1) }
+            return keySorted(shows) { keys.lastPlayed[$0.feedURL.absoluteString] }
         }
     }
 
-    /// Descending by `key`, falling back to title A→Z on ties (and for equal/absent keys).
-    private func keyed(_ a: Podcast, _ key: (Podcast) -> Double, tieBreak b: Podcast) -> Bool {
-        let ka = key(a), kb = key(b)
-        if ka != kb { return ka > kb }
-        return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
-    }
-
-    private static func newestEpisodeDate(_ p: Podcast) -> Double {
-        p.episodes.map(\.publishDate).max().map(\.timeIntervalSince1970) ?? -.greatestFiniteMagnitude
-    }
-    private static func lastPlayedDate(_ p: Podcast) -> Double {
-        p.episodes.compactMap(\.playedDate).max().map(\.timeIntervalSince1970) ?? -.greatestFiniteMagnitude
-    }
-    private static func playedCount(_ p: Podcast) -> Int {
-        p.episodes.filter(\.played).count
+    /// Descending by `key`, falling back to title A→Z on ties; shows with no cached key
+    /// (fresh subscribe before the background recompute lands) sort last.
+    private func keySorted(_ shows: [Podcast], by key: (Podcast) -> Double?) -> [Podcast] {
+        shows.map { (show: $0, key: key($0) ?? -.greatestFiniteMagnitude) }
+            .sorted {
+                if $0.key != $1.key { return $0.key > $1.key }
+                return $0.show.title.localizedCaseInsensitiveCompare($1.show.title) == .orderedAscending
+            }
+            .map(\.show)
     }
 }

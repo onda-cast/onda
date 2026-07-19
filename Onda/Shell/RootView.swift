@@ -95,7 +95,18 @@ struct RootView: View {
     private func tabButton(_ t: Tab, _ label: String, _ icon: String) -> some View {
         let active = tab == t
         // Switching tabs always restores a scroll-hidden mini-player.
-        return Button { tab = t; playback.miniPlayerHidden = false } label: {
+        return Button {
+            let t0 = CFAbsoluteTimeGetCurrent()
+            tab = t; playback.miniPlayerHidden = false
+            if UITestScaleSeed.isActive {
+                // Runs on the runloop turn AFTER SwiftUI's commit: delta = main-thread time the
+                // switch's body evaluation + layout actually blocked. Perf-probe builds only.
+                DispatchQueue.main.async {
+                    NSLog("PERFAPP switch-to-%@ blocked-main %.0fms", label,
+                          (CFAbsoluteTimeGetCurrent() - t0) * 1000)
+                }
+            }
+        } label: {
             VStack(spacing: 4) {
                 Image(systemName: icon).scaledFont(20, weight: .semibold)
                 Text(label).scaledFont(10.5, weight: .semibold)

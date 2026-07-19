@@ -29,7 +29,19 @@ struct LibraryView: View {
     @AppStorage("librarySort") private var sortRaw = LibrarySort.alphabetical.rawValue
     private var layout: LibraryLayout { LibraryLayout(rawValue: layoutRaw) ?? .grid }
     private var sort: LibrarySort { LibrarySort(rawValue: sortRaw) ?? .alphabetical }
-    private var sortedShows: [Podcast] { sort.sorted(shows) }
+    // Stale-while-revalidate: last run's keys sort instantly; a background recompute lands
+    // fresh keys each time the Library appears. Sorting must never fault episodes (see
+    // LibrarySortKeys) — that was the multi-second tab switch on device.
+    @State private var sortKeys = LibrarySortKeys.cached() ?? LibrarySortKeys()
+    @Environment(\.modelContext) private var modelContext
+    private var sortedShows: [Podcast] {
+        let t0 = CFAbsoluteTimeGetCurrent()
+        let result = sort.sorted(shows, keys: sortKeys)
+        if UITestScaleSeed.isActive {
+            NSLog("PERFAPP sortedShows %.0fms n=%d", (CFAbsoluteTimeGetCurrent() - t0) * 1000, result.count)
+        }
+        return result
+    }
     @State private var showSearch = false
     @State private var showClips = false
     @State private var showAddByURL = false
@@ -165,6 +177,10 @@ struct LibraryView: View {
             }
             .background(theme.color(.bg))
             .miniPlayerAutoHide(playback)
+            .task {
+                let fresh = await LibrarySortKeys.computeInBackground(container: modelContext.container)
+                if fresh != sortKeys { sortKeys = fresh }
+            }
             .navigationDestination(for: Podcast.self) { EpisodeListView(podcast: $0) }
             .sheet(isPresented: $showSearch) { LibrarySearchView() }
             .sheet(isPresented: $showClips) { ClipsView() }
