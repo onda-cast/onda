@@ -28,6 +28,11 @@ final class DismissedShows {
         feeds.insert(feed)
     }
 
+    func undismiss(_ dto: PodcastDTO) {
+        guard let feed = dto.feedUrl?.absoluteString else { return }
+        feeds.remove(feed)
+    }
+
     func contains(_ dto: PodcastDTO) -> Bool {
         guard let feed = dto.feedUrl?.absoluteString else { return false }
         return feeds.contains(feed)

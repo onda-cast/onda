@@ -221,5 +221,30 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertEqual(svc.recommendations.count, 2, "plain refresh is unaffected by prior exclusion")
     }
 
+    func test_dismiss_thenUndo_restoresRecAndUnpersists() async throws {
+        let ctx = try ctx()
+        let defaults = freshDefaults()
+        let chart = dto("Top Show", feed: "https://top.com/f.xml")
+        let client = StubSearch(chartIds: [1], chartLookup: [chart])
+        let feeds = StubFeeds(byURL: [URL(string: "https://top.com/f.xml")!:
+                                        feed("Top Show", episodes: [("Ep", "hi")])])
+        let svc = RecommendationService(modelContext: ctx, client: client, feeds: feeds, embedding: nil,
+                                        searchLog: SearchTermLog(defaults: defaults),
+                                        dismissed: DismissedShows(defaults: defaults))
+        await svc.refresh(followedCategories: [])
+        XCTAssertEqual(svc.recommendations.count, 1)
+
+        svc.dismiss(svc.recommendations[0])
+        XCTAssertTrue(svc.recommendations.isEmpty)
+        XCTAssertNotNil(svc.lastDismissed)
+
+        svc.undoDismiss()
+        XCTAssertEqual(svc.recommendations.map(\.dto.collectionName), ["Top Show"],
+                       "undo restores the recommendation in place")
+        XCTAssertFalse(DismissedShows(defaults: defaults).contains(chart),
+                       "undo also removes the persisted dismissal")
+        XCTAssertNil(svc.lastDismissed)
+    }
+
     private func freshDefaults() -> UserDefaults { UserDefaults(suiteName: "rec-\(UUID().uuidString)")! }
 }

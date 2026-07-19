@@ -21,6 +21,8 @@ struct DiscoverView: View {
     @State private var toast: String?
     @State private var unfollowTarget: PodcastDTO?
     @State private var showAddByURL = false
+    @State private var undoToastTask: Task<Void, Never>?
+    @State private var showUndoToast = false
     // Category chips are real filters: selection drives its own result set and NEVER writes
     // into the visible search text (that made them read as a search shortcut, unlike every
     // other chip in the app).
@@ -183,6 +185,24 @@ struct DiscoverView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .overlay(alignment: .bottom) {
+            if showUndoToast, let rec = recs.lastDismissed {
+                Button {
+                    undoToastTask?.cancel()
+                    withAnimation { showUndoToast = false }
+                    recs.undoDismiss()
+                } label: {
+                    Text("Not interested: \(rec.dto.collectionName) \u{2014} UNDO")
+                        .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
+                        .padding(.horizontal, 18).padding(.vertical, 10)
+                        .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, 40)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .accessibilityLabel("Dismissed \(rec.dto.collectionName). Double-tap to undo.")
+            }
+        }
     }
 
     private var categoryChips: some View {
@@ -338,6 +358,16 @@ extension DiscoverView {
 extension DiscoverView {
     // MARK: For You sub-tab (recommendations)
 
+    func dismissRecommendation(_ rec: Recommendation) {
+        recs.dismiss(rec)
+        withAnimation { showUndoToast = true }
+        undoToastTask?.cancel()
+        undoToastTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            if !Task.isCancelled { withAnimation { showUndoToast = false } }
+        }
+    }
+
     @ViewBuilder private var forYouTab: some View {
         HStack {
             Text(recs.isPersonalized ? "Recommended for you" : "Popular right now").brutalHeader(size: 13)
@@ -372,14 +402,25 @@ extension DiscoverView {
         } else {
             ForEach(recs.recommendations) { rec in
                 VStack(alignment: .leading, spacing: 4) {
-                    TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
+                    HStack(spacing: 8) {
+                        TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
+                        // Visible "not interested" — the context menu below stays as the
+                        // secondary path, but discoverability needs an on-screen control.
+                        Button { dismissRecommendation(rec) } label: {
+                            Image(systemName: "xmark").scaledFont(12, weight: .bold)
+                                .foregroundStyle(theme.color(.textTertiary))
+                                .frame(width: 32, height: 44).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Not interested in \(rec.dto.collectionName)")
+                    }
                     if let reason = rec.reasonLine {
                         Text(reason).scaledFont(11.5).foregroundStyle(theme.color(.textTertiary))
                             .padding(.leading, 2)
                     }
                 }
                 .contextMenu {
-                    Button(role: .destructive) { recs.dismiss(rec) } label: {
+                    Button(role: .destructive) { dismissRecommendation(rec) } label: {
                         Label("Not interested", systemImage: "hand.thumbsdown")
                     }
                 }
