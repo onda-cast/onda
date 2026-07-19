@@ -29,11 +29,10 @@ struct DiscoverView: View {
     @State private var showAddByURL = false
     @State private var undoToastTask: Task<Void, Never>?
     @State private var showUndoToast = false
-    // Category chips are real filters: selection drives its own result set and NEVER writes
-    // into the visible search text (that made them read as a search shortcut, unlike every
-    // other chip in the app).
+    // Category chips are real filters: own result set, never writes into the visible search text.
     @State private var selectedCategory: String?
     @State private var categoryResults: [PodcastDTO] = []
+    @State private var categoryFailed = false
     @FocusState private var searchFocused: Bool
     @State private var previewTarget: PreviewTarget?
 
@@ -91,25 +90,6 @@ struct DiscoverView: View {
             }
         }
         .id(dealID)   // new identity per shake so every deal replays from the top
-    }
-
-    // Distinguish loading / error / genuinely-empty so a network failure never looks like "no results".
-    @ViewBuilder private var browseStatus: some View {
-        if isSearching {
-            if searchFailed {
-                errorRetry("Search failed — check your connection") { Task { await runSearch(query) } }
-            } else if !searching && results.isEmpty {
-                statusNote("No results for “\(query)”")
-            }
-        } else if let cat = selectedCategory, categoryResults.isEmpty {
-            loadingRow("Loading \(cat)…")
-        } else if shake == nil && trending.isEmpty {
-            if loading {
-                loadingRow("Loading trending…")
-            } else if trendingFailed {
-                errorRetry("Couldn't load trending") { Task { await clientBox.loadTrendingIfNeeded(force: true) } }
-            }
-        }
     }
 
     var body: some View {
@@ -174,7 +154,7 @@ struct DiscoverView: View {
         .onChange(of: query) { _, new in
             if !new.trimmingCharacters(in: .whitespaces).isEmpty {
                 shake = nil
-                selectedCategory = nil; categoryResults = []   // typed search supersedes a category
+                selectedCategory = nil; categoryResults = []; categoryFailed = false   // typed search supersedes a category
             }
             Task { await runSearch(new) }
         }
@@ -384,8 +364,31 @@ extension DiscoverView {
     }
 }
 
-// MARK: - For You sub-tab
+// MARK: - Browse status + For You sub-tab
 extension DiscoverView {
+    // Distinguish loading / error / genuinely-empty so a network failure never looks like "no results".
+    @ViewBuilder private var browseStatus: some View {
+        if isSearching {
+            if searchFailed {
+                errorRetry("Search failed — check your connection") { Task { await runSearch(query) } }
+            } else if !searching && results.isEmpty {
+                statusNote("No results for “\(query)”")
+            }
+        } else if let cat = selectedCategory, categoryResults.isEmpty {
+            if categoryFailed {
+                errorRetry("Couldn't load \(cat) — check your connection") { selectCategory(cat) }
+            } else {
+                loadingRow("Loading \(cat)…")
+            }
+        } else if shake == nil && trending.isEmpty {
+            if loading {
+                loadingRow("Loading trending…")
+            } else if trendingFailed {
+                errorRetry("Couldn't load trending") { Task { await clientBox.loadTrendingIfNeeded(force: true) } }
+            }
+        }
+    }
+
     // MARK: For You sub-tab (recommendations)
 
     func dismissRecommendation(_ rec: Recommendation) {
@@ -514,12 +517,19 @@ extension DiscoverView {
     func selectCategory(_ cat: String?) {
         selectedCategory = cat
         categoryResults = []
+        categoryFailed = false
         shake = nil
         guard let cat else { return }
         Task { [clientBox] in
-            let found = (try? await clientBox.client.search(term: cat)) ?? []
-            // Only publish if this category is still the selected one (user may have moved on).
-            if selectedCategory == cat { categoryResults = found }
+            do {
+                let found = try await clientBox.client.search(term: cat)
+                // Only publish if this category is still the selected one (user may have moved on).
+                if selectedCategory == cat { categoryResults = found }
+            } catch {
+                // Distinguish a failed fetch from "still loading" — otherwise a network error
+                // leaves the category row on "Loading…" forever with no way to retry.
+                if selectedCategory == cat { categoryFailed = true }
+            }
         }
     }
 
