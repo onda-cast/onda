@@ -62,7 +62,7 @@ struct ShowSettingsSheet: View {
                         stepperRow("Skip Outro", value: Binding(get: { s.outroTrimSec }, set: { s.outroTrimSec = $0 }))
                     }
                     section("Downloads & Retention") {
-                        overridePicker("Keep Downloads",
+                        overridePicker("Limit Downloads Kept",
                                        state: overrideState(s.maxDownloadsKeptOverride, offValue: 0),
                                        offLabel: "No limit",
                                        defaultHint: appSettings.defaultMaxDownloadsKept == 0
@@ -75,9 +75,9 @@ struct ShowSettingsSheet: View {
                                                         set: { s.maxDownloadsKeptOverride = $0 }),
                                          range: 1...50, label: { "\($0)" })
                         }
-                        overridePicker("Auto-Delete Listened",
+                        overridePicker("Delete Played Episodes",
                                        state: overrideState(s.autoDeleteListenedAfterDaysOverride, offValue: -1),
-                                       offLabel: "Off",
+                                       offLabel: "Never",
                                        defaultHint: autoDeleteDefaultHint) { mode in
                             s.autoDeleteListenedAfterDaysOverride = [nil, -1, 7][mode]
                         }
@@ -86,7 +86,7 @@ struct ShowSettingsSheet: View {
                                          value: Binding(get: { days },
                                                         set: { s.autoDeleteListenedAfterDaysOverride = $0 }),
                                          range: 0...30,
-                                         label: { $0 == 0 ? "Immediately" : "\($0) day\($0 == 1 ? "" : "s")" })
+                                         label: { $0 == 0 ? "When finished" : "After \($0) day\($0 == 1 ? "" : "s")" })
                         }
                         boolOverridePicker("Auto-Transcribe Downloads",
                                            defaultHint: appSettings.defaultAutoTranscribeOnDownload ? "On" : "Off",
@@ -243,13 +243,13 @@ struct ShowSettingsSheet: View {
                 }
             } label: {
                 Text(selectedVoiceName)
-                    .font(.system(size: 15, weight: .bold)).foregroundStyle(theme.color(.text))
+                    .scaledFont(15, weight: .bold).foregroundStyle(theme.color(.text))
             }
         }
         Toggle("All Languages", isOn: $showAllVoiceLanguages)
             .tint(theme.color(.accent)).foregroundStyle(theme.color(.text))
         Text("New articles are narrated with this voice. Already-converted episodes keep theirs.")
-            .font(.system(size: 12)).foregroundStyle(theme.color(.textTertiary))
+            .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
     }
 
     private var selectedVoiceName: String {

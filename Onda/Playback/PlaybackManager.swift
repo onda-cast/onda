@@ -117,6 +117,11 @@ final class PlaybackManager {
     /// True while a scroll surface (Discover) wants the mini-player out of the way; RootView
     /// animates it off. Reset on tab switch and whenever playback starts.
     var miniPlayerHidden = false
+    /// True while an active search wants the whole bottom chrome (tab bar included) out of the
+    /// way of the keyboard and results; RootView animates it off. Restored when search focus ends
+    /// (the tap-anywhere / scroll keyboard dismissal in DiscoverView), so the bar is never
+    /// stranded off-screen.
+    var tabBarHidden = false
 
     // MARK: Jump-from-transcript coordination
     // Bound to RootView's Now Playing sheet, so a transcript jump can surface the player.
@@ -173,8 +178,9 @@ final class PlaybackManager {
     private var clipPreviewRange: (start: TimeInterval, end: TimeInterval)?
     private var preClipPreview: (episode: Episode?, position: TimeInterval, wasPlaying: Bool)?
 
-    /// Called when the Clip Review sheet appears: pause and remember where the listener was.
-    /// Balanced by ``endClipPreview()`` on dismiss.
+    /// Snapshot of the listener's spot, taken lazily on the FIRST ``previewRange(...)`` call —
+    /// merely opening the clip editor must not stop whatever is playing (you might be editing a
+    /// clip of a different episode than the one in your ears). Balanced by ``endClipPreview()``.
     func beginClipPreview() {
         guard preClipPreview == nil else { return }   // already in a preview; first snapshot wins
         preClipPreview = (currentEpisode, positionSeconds, isPlaying)
@@ -184,8 +190,10 @@ final class PlaybackManager {
     }
 
     /// Plays just `[start, end)` of `episode`, looping back to `start` at the end bound.
-    /// Loads the episode (without auto-download) when it isn't the current one.
+    /// Loads the episode (without auto-download) when it isn't the current one. The first call
+    /// snapshots the listener's spot so dismissing the editor restores it.
     func previewRange(episode: Episode, start: TimeInterval, end: TimeInterval) {
+        beginClipPreview()
         if currentEpisode?.guid != episode.guid { play(episode, autoDownload: false) }
         engine.seek(to: start)
         positionSeconds = start
@@ -513,11 +521,11 @@ extension PlaybackManager {
         try? modelContext.save()
     }
 
-    /// Tapping a queue item skips ahead to it: the item and everything above it leave the queue.
+    /// Tapping a queue item jumps to it; everything else stays queued in order.
     func playFromQueue(_ episode: Episode) {
-        if let idx = queue.firstIndex(where: { $0.guid == episode.guid }) {
-            for ep in Array(queue.prefix(idx + 1)) { removeFromQueue(ep) }
-        }
+        // Only the tapped item leaves the queue. Skipped-over episodes stay put (they play after
+        // this one) — silently dropping them was surprising and unrecoverable.
+        removeFromQueue(episode)
         play(episode)
     }
 

@@ -64,6 +64,7 @@
 		515A6963BCF14A81E0C28174 /* itunes_search.json in Resources */ = {isa = PBXBuildFile; fileRef = 34C33A334266DCF78E6FF739 /* itunes_search.json */; };
 		5239FAEE5BF91E2ABCCB942F /* TasteProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52905A254FB014F6996A3F98 /* TasteProfile.swift */; };
 		5696B33BCF9054FA4C4AFA68 /* EpisodeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C792A2C9B971CE0D7699E235 /* EpisodeRow.swift */; };
+		582EDA4D057EEB861DE4D426 /* BrutalToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3EC9C451D3C3C01C9399AA4 /* BrutalToast.swift */; };
 		5B0B4421DE2B016E023BD2B8 /* SentenceSplitterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D18FDD8DA49FCE2A18222B1E /* SentenceSplitterTests.swift */; };
 		5B54B2D6E16769270511936D /* OndaShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E475BD9A02F75CF190A99018 /* OndaShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		5C15F2B941F255B4FF18B4FE /* TranscriptFollowProbeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5250FDAF2A9DAB3533A8926 /* TranscriptFollowProbeUITests.swift */; };
@@ -396,6 +397,7 @@
 		D18FDD8DA49FCE2A18222B1E /* SentenceSplitterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceSplitterTests.swift; sourceTree = "<group>"; };
 		D2CF0359FFD2A2518DFC0CFC /* ITunesSearchClientBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ITunesSearchClientBox.swift; sourceTree = "<group>"; };
 		D3E6D458C6BF61C120857B24 /* SearchTermLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchTermLog.swift; sourceTree = "<group>"; };
+		D3EC9C451D3C3C01C9399AA4 /* BrutalToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrutalToast.swift; sourceTree = "<group>"; };
 		D408A1F28C67945F8F98FE3C /* MarkdownExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownExport.swift; sourceTree = "<group>"; };
 		D63E6294643BFFAEC88CC362 /* AddByURLClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddByURLClassifierTests.swift; sourceTree = "<group>"; };
 		D77A07433A0F72FEBAFC86FC /* PrivateFeedTokenMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateFeedTokenMigrationTests.swift; sourceTree = "<group>"; };
@@ -791,6 +793,7 @@
 				323028D4CD592C6D201924EF /* AppSettings.swift */,
 				653E106F8E234CC794FACBA7 /* BrutalSearchField.swift */,
 				7D11CA7EC934C9F4DA99381A /* BrutalStyle.swift */,
+				D3EC9C451D3C3C01C9399AA4 /* BrutalToast.swift */,
 				C56597246CCC6EC9FC34A3C6 /* Palette.swift */,
 				093C510B4884B6D866862854 /* ScaledFont.swift */,
 				3D08E840362422D0CB05A96C /* Theme.swift */,
@@ -1067,6 +1070,7 @@
 				BDDE61D7C5F26A0326671EE6 /* BoostLevel.swift in Sources */,
 				2622AF207821F1A3F46610C3 /* BrutalSearchField.swift in Sources */,
 				27584798B97AA15CE864F386 /* BrutalStyle.swift in Sources */,
+				582EDA4D057EEB861DE4D426 /* BrutalToast.swift in Sources */,
 				C9FAF33D15B690EA7BB6BA52 /* CandidateReranker.swift in Sources */,
 				F7D496C5C54E8FE48330ECA2 /* CandidateRetriever.swift in Sources */,
 				E10FE48367E1073EB58FC0D9 /* Chapter.swift in Sources */,

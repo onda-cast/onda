@@ -9,11 +9,14 @@ struct BrutalSearchField: View {
     private let placeholder: String
     @Binding private var text: String
     private let focus: FocusState<Bool>.Binding?
+    private let fieldIdentifier: String?
 
-    init(_ placeholder: String, text: Binding<String>, focus: FocusState<Bool>.Binding? = nil) {
+    init(_ placeholder: String, text: Binding<String>, focus: FocusState<Bool>.Binding? = nil,
+         fieldIdentifier: String? = nil) {
         self.placeholder = placeholder
         self._text = text
         self.focus = focus
+        self.fieldIdentifier = fieldIdentifier
     }
 
     var body: some View {
@@ -35,6 +38,7 @@ struct BrutalSearchField: View {
         let base = TextField(placeholder, text: $text)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
+            .accessibilityIdentifier(fieldIdentifier ?? "search-field")
         if let focus {
             base.focused(focus)
         } else {

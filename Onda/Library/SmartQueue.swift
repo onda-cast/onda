@@ -21,7 +21,10 @@ enum SmartQueue: String, CaseIterable, Sendable {
             return episodes.filter { !$0.played }
                 .sorted { $0.publishDate > $1.publishDate }
         case .downloaded:
-            return episodes.filter { !$0.played && $0.downloadedFile != nil }
+            // ALL downloads, played included — must mean the same thing as the in-show
+            // "Downloaded" filter (EpisodeFilter), or an episode visible in one place
+            // inexplicably vanishes in the other.
+            return episodes.filter { $0.downloadedFile != nil }
                 .sorted { $0.publishDate > $1.publishDate }
         case .recentlyAdded:
             let cutoff = now.addingTimeInterval(-7 * 24 * 3600)
@@ -42,7 +45,7 @@ enum SmartQueue: String, CaseIterable, Sendable {
         case .unplayed, .shortestFirst:
             return episodes.contains { !$0.isArchived && !$0.played }
         case .downloaded:
-            return episodes.contains { !$0.isArchived && !$0.played && $0.downloadedFile != nil }
+            return episodes.contains { !$0.isArchived && $0.downloadedFile != nil }
         case .recentlyAdded:
             let cutoff = now.addingTimeInterval(-7 * 24 * 3600)
             return episodes.contains { !$0.isArchived && $0.publishDate >= cutoff && $0.publishDate <= now }

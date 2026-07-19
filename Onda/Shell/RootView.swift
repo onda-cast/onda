@@ -28,7 +28,10 @@ struct RootView: View {
                         .padding(.horizontal, 10).padding(.bottom, 10)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                tabBar
+                if !playback.tabBarHidden {
+                    tabBar
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
 
             // App-wide toasts (stacked so they never overlap): clip-capture confirmation and
@@ -48,6 +51,7 @@ struct RootView: View {
         }
         .animation(.easeOut(duration: 0.2), value: playback.captureToast)
         .animation(.easeInOut(duration: 0.25), value: playback.miniPlayerHidden)
+        .animation(.easeInOut(duration: 0.25), value: playback.tabBarHidden)
         .animation(.easeOut(duration: 0.2), value: transcripts.completionNotice)
         // Dynamic Type scales the app's fonts (see scaledFont), but cap growth so the brutalist
         // fixed-height controls and two-column grid don't blow out at the largest sizes.
@@ -73,10 +77,7 @@ struct RootView: View {
     }
 
     private func toastContent(_ text: String) -> some View {
-        Text(text)
-            .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
-            .padding(.horizontal, 18).padding(.vertical, 10)
-            .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
+        BrutalToast(text: text)
     }
 
     private var tabBar: some View {
@@ -103,5 +104,6 @@ struct RootView: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 }

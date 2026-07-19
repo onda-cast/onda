@@ -164,6 +164,9 @@ struct EpisodeListView: View {
         } message: {
             Text(podcast.isLocal
                  ? "Permanently deletes every converted article in this show. This can't be undone."
+                 : podcast.isPrivateFeed
+                 ? "Removes this show and frees its downloads. Re-adding it requires the original "
+                       + "private feed URL \u{2014} it can't be found by search."
                  : "Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
         }
         .confirmationDialog("Delete this download?",
@@ -176,20 +179,9 @@ struct EpisodeListView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
-            TextField("Search episodes & transcripts", text: $query)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
-                .accessibilityIdentifier("episode-search")
-            if isSearching {
-                Button { query = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(theme.color(.textTertiary))
-                }.buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 14).frame(height: 44)
-        .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
-        .padding(.top, 8)
+        BrutalSearchField("Search episodes & transcripts", text: $query,
+                          fieldIdentifier: "episode-search")
+            .padding(.top, 8)
     }
 
     private func runSearch() {

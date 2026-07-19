@@ -39,7 +39,12 @@ struct PodcastSettingsListView: View {
 
     private func hasOverrides(_ show: Podcast) -> Bool {
         guard let s = show.settings else { return false }
+        // Every per-show override — playback AND retention. A show with a custom speed
+        // must not claim "Using defaults".
         return s.maxDownloadsKeptOverride != nil || s.autoDeleteListenedAfterDaysOverride != nil
             || s.autoTranscribeOnDownloadOverride != nil || s.keepTranscriptsOverride != nil
+            || s.speed != nil || s.voiceBoost != nil || s.skipSilence != nil
+            || s.adSkipMode != nil || s.autoDownload != nil
+            || s.introTrimSec != 0 || s.outroTrimSec != 0
     }
 }

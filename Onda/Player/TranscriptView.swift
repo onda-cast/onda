@@ -126,18 +126,28 @@ struct TranscriptView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 if selecting, let lo = selectionRange?.lowerBound, let hi = selectionRange?.upperBound {
-                    Button {
-                        showClipSheet = true
-                    } label: {
-                        Text("Clip \(hi - lo + 1) line\(hi == lo ? "" : "s")")
-                            .scaledFont(15, weight: .bold).foregroundStyle(.white)
-                            .frame(maxWidth: .infinity).padding(.vertical, 14)
-                            .background(theme.color(.accentStrong)).brutalBorder(width: 2)
+                    VStack(spacing: 8) {
+                        // Staged guidance: a single anchored line is easy to mistake for a
+                        // finished selection — say explicitly that an end tap is expected.
+                        Text(selEnd == nil
+                             ? "Now tap the last line \u{2014} or clip just this one."
+                             : "Tap another line to adjust the end.")
+                            .scaledFont(12, weight: .semibold)
+                            .foregroundStyle(theme.color(.textSecondary))
+                        Button {
+                            showClipSheet = true
+                        } label: {
+                            Text("Clip \(hi - lo + 1) line\(hi == lo ? "" : "s")")
+                                .scaledFont(15, weight: .bold).foregroundStyle(.white)
+                                .frame(maxWidth: .infinity).padding(.vertical, 14)
+                                .background(theme.color(.accentStrong)).brutalBorder(width: 2)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain).padding(16)
+                    .padding(16)
                     .background(theme.color(.bg))
                 } else if selecting {
-                    Text("Tap the first and last line to clip.")
+                    Text("Tap the first line of your clip.")
                         .scaledFont(13, weight: .semibold).foregroundStyle(theme.color(.textSecondary))
                         .frame(maxWidth: .infinity).padding(.vertical, 14).padding(.horizontal, 16)
                         .background(theme.color(.bg))
@@ -343,7 +353,16 @@ extension TranscriptView {
     }
 
     func handleSelectionTap(_ i: Int) {
-        if let s = selStart, selEnd == nil, i != s { selEnd = i } else { selStart = i; selEnd = nil }
+        // First tap anchors the start; later taps set/ADJUST the other edge (the anchor holds,
+        // so a stray tap refines the range instead of throwing the whole selection away).
+        // Re-tapping the lone anchor deselects it.
+        if selStart == nil {
+            selStart = i
+        } else if selEnd == nil, i == selStart {
+            selStart = nil
+        } else {
+            selEnd = i
+        }
     }
 
     func resetSelection() {

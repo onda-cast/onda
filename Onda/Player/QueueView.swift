@@ -68,7 +68,7 @@ struct QueueView: View {
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(isCurrent ? "Now playing, \(ep.title)" : "\(ep.title), tap to play next")
+        .accessibilityLabel(isCurrent ? "Now playing, \(ep.title)" : "\(ep.title), tap to play now; other queued episodes stay")
     }
 
     private func durationText(_ ep: Episode) -> String {

@@ -19,6 +19,13 @@ struct RetentionSettingsSection: View {
                                 get: { appSettings.wifiOnlyDownloads },
                                 set: { appSettings.wifiOnlyDownloads = $0 }))
                     divider
+                    // The value every show's "Default" auto-download hint resolves to — it was
+                    // previously unwritable anywhere in the UI.
+                    toggleRow("Auto-download new episodes", subtitle: "Newest episode of each show, on refresh",
+                              isOn: Binding(
+                                get: { appSettings.defaultAutoDownload },
+                                set: { appSettings.defaultAutoDownload = $0 }))
+                    divider
                     // "Freed" (not "removed" / "deleted") because only the audio file goes —
                     // the episode itself stays in the library and can re-download. That's a
                     // different, much less destructive action than the rule below, which

@@ -34,13 +34,7 @@ struct ClipsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "magnifyingglass").foregroundStyle(theme.color(.textTertiary))
-                        TextField("Search clips", text: $query)
-                            .textInputAutocapitalization(.never)
-                    }
-                    .padding(.horizontal, 14).frame(height: 48)
-                    .background(theme.color(.bgElevated)).brutalBorder(width: 2.5)
+                    BrutalSearchField("Search clips", text: $query)
 
                     if results.isEmpty {
                         Text(emptyStateText)
@@ -101,8 +95,8 @@ struct ClipsView: View {
     private var emptyStateText: String {
         guard query.isEmpty else { return "No clips match" }
         let secs = Int(ClipService.quickClipWindow)
-        return "No clips yet — select transcript lines, or tap the bookmark on your "
-            + "lock screen while listening to save the last \(secs)s."
+        return "No clips yet — tap the scissors in the player, select transcript lines, or tap "
+            + "the bookmark on your lock screen to save the last \(secs)s."
     }
 
     private func share(_ clip: Clip) {

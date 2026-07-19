@@ -191,6 +191,9 @@ struct LibraryView: View {
             } message: { show in
                 Text(show.isLocal
                      ? "Permanently deletes every converted article in this show. This can't be undone."
+                     : show.isPrivateFeed
+                     ? "Removes this show and frees its downloads. Re-adding it requires the original "
+                       + "private feed URL \u{2014} it can't be found by search."
                      : "Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
             }
             .confirmationDialog("Replace your queue?",
@@ -206,10 +209,7 @@ struct LibraryView: View {
             }
             .overlay(alignment: .bottom) {
                 if let toast {
-                    Text(toast)
-                        .scaledFont(14, weight: .bold).foregroundStyle(.white)
-                        .padding(.horizontal, 18).padding(.vertical, 12)
-                        .background(theme.color(.accentStrong)).brutalBorder(width: 2)
+                    BrutalToast(text: toast)
                         .padding(.bottom, 96)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }

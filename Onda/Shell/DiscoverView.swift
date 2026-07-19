@@ -135,7 +135,12 @@ struct DiscoverView: View {
         .scrollDismissesKeyboard(.immediately)
         // Get the mini-player out of the way of the keyboard/results while actively searching;
         // MiniPlayerAutoHide's own scroll logic and the tab-switch restore still apply otherwise.
-        .onChange(of: searchFocused) { _, focused in playback.miniPlayerHidden = focused }
+        .onChange(of: searchFocused) { _, focused in
+            playback.miniPlayerHidden = focused
+            playback.tabBarHidden = focused
+        }
+        // Belt: if Discover unloads while search is focused, never strand the chrome off-screen.
+        .onDisappear { playback.tabBarHidden = false }
         .sheet(isPresented: $showAddByURL) {
             AddByURLSheet().presentationDetents([.medium, .large])
         }
@@ -163,10 +168,7 @@ struct DiscoverView: View {
         } message: { _ in Text("Removes the show and frees its downloads.") }
         .overlay(alignment: .bottom) {
             if let toast {
-                Text(toast)
-                    .scaledFont(14, weight: .bold).foregroundStyle(.white)
-                    .padding(.horizontal, 18).padding(.vertical, 12)
-                    .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
+                BrutalToast(text: toast)
                     .padding(.bottom, 40)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -385,8 +387,12 @@ extension DiscoverView {
             subscribedFeeds: subscribedFeeds,
             using: clientBox.client,
             rng: &rng)
-        // Nothing new to show → stay on Trending rather than an empty "success" state.
-        guard !result.picks.isEmpty else { return }
+        // Nothing new to show → say so; the wave/haptic already fired, so silence here
+        // reads as a broken button.
+        guard !result.picks.isEmpty else {
+            showToast("Nothing new right now \u{2014} try again later")
+            return
+        }
         let title = Self.shakeTitles.randomElement() ?? "Shaken for you"
         withAnimation(.spring(duration: 0.35, bounce: 0.35)) {
             shake = ShakeState(picks: result.picks, categories: result.categories,

@@ -73,10 +73,7 @@ struct NowPlayingView: View {
         .background(theme.color(.bg).ignoresSafeArea())
         .overlay(alignment: .bottom) {
             if let toast = playback.captureToast {
-                Text(toast)
-                    .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
-                    .padding(.horizontal, 18).padding(.vertical, 10)
-                    .background(theme.color(.accentStrong)).brutalBorder(width: 2)
+                BrutalToast(text: toast)
                     .padding(.bottom, 30)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -284,7 +281,7 @@ extension NowPlayingView {
                 .accessibilityIdentifier("end-clip-button")
             Button { clipStart = nil } label: {
                 Image(systemName: "xmark").scaledFont(12, weight: .bold)
-                    .frame(width: 28, height: 28).contentShape(Rectangle())
+                    .frame(width: 44, height: 44).contentShape(Rectangle())   // HIG tap target
             }
             .accessibilityLabel("Cancel clip")
         }

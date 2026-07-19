@@ -123,7 +123,7 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertTrue(pm.isPlaying)
     }
 
-    func test_playFromQueue_removesTappedAndEverythingAbove() throws {
+    func test_playFromQueue_removesOnlyTappedItem() throws {
         let ctx = try makeContext()
         let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
         let a = makeEpisode(in: ctx, guid: "a")
@@ -132,7 +132,8 @@ final class PlaybackManagerTests: XCTestCase {
         pm.enqueue(a); pm.enqueue(b); pm.enqueue(c)
         pm.playFromQueue(b)
         XCTAssertEqual(pm.currentEpisode?.guid, "b")
-        XCTAssertEqual(pm.queue.map(\.guid), ["c"], "tapped item and everything above it leave the queue")
+        XCTAssertEqual(pm.queue.map(\.guid), ["a", "c"],
+                       "skipped-over episodes stay queued — jumping ahead must not silently drop them")
     }
 
     func test_sleepTimer_reportsRemaining_andClearsOnOff() throws {

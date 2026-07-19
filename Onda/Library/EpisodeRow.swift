@@ -22,7 +22,10 @@ struct EpisodeRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Button(action: onPlay) {
-                Image(systemName: episode.played ? "checkmark" : "play.fill")
+                // Replay arrow (not a checkmark) for played episodes: the button STARTS playback,
+                // and a checkmark made it read as a played-state toggle. Muted colors still carry
+                // the played-ness; the mark-played toggle stays in swipe/context menus.
+                Image(systemName: episode.played ? "arrow.counterclockwise" : "play.fill")
                     .scaledFont(14, weight: .black)
                     .foregroundStyle(episode.played ? theme.color(.textTertiary) : .white)
                     .frame(width: 34, height: 34)
@@ -30,6 +33,7 @@ struct EpisodeRow: View {
                     .brutalBorder(width: 2)
             }.buttonStyle(.plain)
             .accessibilityIdentifier("play-episode")
+            .accessibilityLabel(episode.played ? "Play again" : "Play")
 
             Button(action: onOpen) {
                 VStack(alignment: .leading, spacing: 4) {

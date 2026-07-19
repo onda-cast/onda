@@ -12,22 +12,22 @@ struct ArticlePendingRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(item.id.host() ?? item.id.absoluteString)
-                .font(.system(size: 14, weight: .bold)).foregroundStyle(theme.color(.text))
+                .scaledFont(14, weight: .bold).foregroundStyle(theme.color(.text))
                 .lineLimit(1)
             if let failure = item.failure {
-                Text(failure).font(.system(size: 13))
+                Text(failure).scaledFont(13)
                     .foregroundStyle(theme.color(.accent))
                 HStack(spacing: 10) {
                     Button("RETRY") { onRetry() }
                     Button("DISMISS") { onDismiss() }
                 }
-                .font(.system(size: 12, weight: .bold))
+                .scaledFont(12, weight: .bold)
                 .foregroundStyle(theme.color(.textSecondary))
                 .buttonStyle(.plain)
             } else {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text(stageLabel).font(.system(size: 13))
+                    Text(stageLabel).scaledFont(13)
                         .foregroundStyle(theme.color(.textTertiary))
                 }
             }

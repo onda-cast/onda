@@ -19,6 +19,11 @@ struct EpisodeDetailView: View {
         return "\(episode.publishDate.formatted(.dateTime.month().day().year())) · \(dur)"
     }
 
+    /// A transcript exists or is fetchable from the feed; drives the transcript button's dimming.
+    private var hasTranscript: Bool {
+        !(episode.transcript?.cues.isEmpty ?? true) || episode.transcriptURL != nil
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -71,12 +76,16 @@ struct EpisodeDetailView: View {
                     .background(theme.color(.accentStrong)).brutalBorder(width: 2)
             }.buttonStyle(.plain)
 
+            // Dimmed (not hidden) when no transcript exists yet — the sheet it opens IS the
+            // transcription entry point, so it stays tappable; the muted glyph signals "nothing
+            // here yet" instead of promising a transcript that doesn't exist.
             Button { showTranscript = true } label: {
                 Image(systemName: "text.quote").scaledFont(17, weight: .bold)
-                    .foregroundStyle(theme.color(.text))
+                    .foregroundStyle(hasTranscript ? theme.color(.text) : theme.color(.textTertiary))
                     .frame(width: 48, height: 48)
                     .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-            }.buttonStyle(.plain).accessibilityLabel("Transcript")
+            }.buttonStyle(.plain)
+            .accessibilityLabel(hasTranscript ? "Transcript" : "No transcript yet \u{2014} opens transcription options")
 
             Button { downloadAction() } label: {
                 Image(systemName: downloadSymbol).scaledFont(17, weight: .bold)

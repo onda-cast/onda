@@ -90,8 +90,18 @@ struct ClipReviewSheet: View {
                 Text("Enter a time like 12:34, 1:02:30, or seconds.")
             }
         }
-        .onAppear { playback.beginClipPreview() }
+        // No pause on open: playback keeps going until Preview is actually tapped (the first
+        // previewRange call snapshots the listener's spot); dismissal restores it if it was taken.
         .onDisappear { playback.endClipPreview() }
+        // Editing an edge mid-preview restarts the loop with the new bounds, so what you hear
+        // always matches the range on screen.
+        .onChange(of: start) { _, _ in restartPreviewIfActive() }
+        .onChange(of: end) { _, _ in restartPreviewIfActive() }
+    }
+
+    private func restartPreviewIfActive() {
+        guard previewing, let episode else { return }
+        playback.previewRange(episode: episode, start: start, end: end)
     }
 
     private var previewButton: some View {

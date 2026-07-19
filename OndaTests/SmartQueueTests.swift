@@ -36,13 +36,14 @@ final class SmartQueueTests: XCTestCase {
         XCTAssertEqual(result.map(\.guid), ["new", "old"])
     }
 
-    func test_downloaded_onlyDownloadedAndUnplayed() throws {
+    func test_downloaded_allDownloads_playedIncluded_matchingInShowFilter() throws {
         let c = try ctx()
         let a = episode(in: c, guid: "a", daysAgo: 1, duration: 100, downloaded: true)
         let b = episode(in: c, guid: "b", daysAgo: 2, duration: 100, downloaded: false)
         let playedDownloaded = episode(in: c, guid: "pd", daysAgo: 0, duration: 100, played: true, downloaded: true)
         let result = SmartQueue.downloaded.apply(to: [a, b, playedDownloaded])
-        XCTAssertEqual(result.map(\.guid), ["a"])
+        XCTAssertEqual(result.map(\.guid), ["pd", "a"],
+                       "Downloaded means every download — same as EpisodeFilter.downloaded in a show")
     }
 
     func test_recentlyAdded_last7Days() throws {
@@ -75,7 +76,8 @@ final class SmartQueueTests: XCTestCase {
         let c = try ctx()
         let played = episode(in: c, guid: "p", daysAgo: 1, duration: 100, played: true)
         XCTAssertFalse(SmartQueue.unplayed.hasMatches(in: [played]))
-        XCTAssertFalse(SmartQueue.downloaded.hasMatches(in: [played]))
+        XCTAssertFalse(SmartQueue.downloaded.hasMatches(in: [played]),
+                       "played but never downloaded — still no match")
         XCTAssertFalse(SmartQueue.shortestFirst.hasMatches(in: [played]))
         XCTAssertTrue(SmartQueue.recentlyAdded.hasMatches(in: [played]))
 
