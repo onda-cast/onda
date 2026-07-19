@@ -86,9 +86,11 @@ state mirrors `TranscriptService`'s shape.
 
 ## UX
 
-- **EpisodeDetailView** gains a "Books Mentioned" section: rows of cover thumbnail (ArtworkView
-  fallback seeded by title), canonical title, author, and a source badge only for
-  transcript-derived rows (a small timestamp chip).
+- **Entry point: the player.** NowPlayingView's header gains a book icon that opens a
+  **BooksSheet for the current episode** — the listener asks mid-listen, which is exactly when
+  the question arises. The sheet holds the "Find Books" CTA, progress, and the results list:
+  rows of cover thumbnail (ArtworkView fallback seeded by title), canonical title, author, and
+  a timestamp chip on transcript-derived rows.
 - Tapping a row with a timestamp = the existing transcript-jump flow (seek + open player, "Back
   to transcript" affordance). Rows without timestamps open THIS episode's transcript with the
   in-panel search prefilled with the title — never the library-wide transcript search; the
