@@ -132,6 +132,7 @@ struct EpisodeListView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .miniPlayerAutoHide(playback)
         .background(theme.color(.bg))
         .refreshable { await refresh() }
         .navigationTitle(podcast.title)

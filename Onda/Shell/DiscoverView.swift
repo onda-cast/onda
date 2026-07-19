@@ -22,9 +22,6 @@ struct DiscoverView: View {
     @State private var unfollowTarget: PodcastDTO?
     @State private var showAddByURL = false
     @FocusState private var searchFocused: Bool
-    @State private var lastScrollY: CGFloat = 0
-    @State private var upwardRun: CGFloat = 0
-    @State private var downwardRun: CGFloat = 0
 
     private enum DiscoverMode: Hashable { case browse, forYou }
 
@@ -125,8 +122,7 @@ struct DiscoverView: View {
             }
             .padding(.horizontal, 20).padding(.bottom, 120)
         }
-        .modifier(ScrollOffsetReporter { handleScroll(offsetY: $0) })
-        .onDisappear { playback.miniPlayerHidden = false }
+        .miniPlayerAutoHide(playback)
         .refreshable { await pullRefresh() }
         // The Onda wave — washes across the screen the moment a shake registers, feedback
         // that the roll is happening before the network round-trip lands the results.
@@ -399,25 +395,6 @@ extension DiscoverView {
     // Content-focused browsing: scrolling down into Discover tucks the mini-player away;
     // scrolling back up (or nearing the top) brings it back. Small deltas are ignored so the
     // bar doesn't flicker on micro-drags; content minY is ≤0 and shrinks as you scroll down.
-    // offsetY is 0 at the top and grows as the user scrolls down into content. Scroll events
-    // arrive per FRAME (tiny deltas), so both directions accumulate runs: hide after ~60pt of
-    // sustained downward travel, reveal after ~80pt of sustained upward travel (a threshold a
-    // bottom rubber-band bounce rarely reaches) or near the top.
-    func handleScroll(offsetY: CGFloat) {
-        defer { lastScrollY = offsetY }
-        let delta = offsetY - lastScrollY
-        if delta > 0 {
-            downwardRun += delta; upwardRun = 0
-        } else if delta < 0 {
-            upwardRun -= delta; downwardRun = 0
-        }
-        if offsetY <= 30 || upwardRun > 80 {
-            if playback.miniPlayerHidden { playback.miniPlayerHidden = false }
-        } else if downwardRun > 60 {
-            if !playback.miniPlayerHidden { playback.miniPlayerHidden = true }
-        }
-    }
-
     // Pull-to-refresh reloads whatever the user is looking at: an active search re-runs, Browse
     // force-refetches today's charts (bypassing the day cache), For You recomputes in place.
     // (@Sendable refreshable closure calls this MainActor func — never touch services inline.)
@@ -443,21 +420,6 @@ extension DiscoverView {
             if !results.isEmpty { recs.recordSearch(t) }   // an interest signal for future recs
         } catch {
             results = []; searchFailed = true
-        }
-    }
-}
-
-/// Reports the scroll view's vertical content offset (0 at top, growing downward) via the
-/// iOS 18 scroll-geometry API. On iOS 17 this is a no-op: the mini-player simply never hides.
-private struct ScrollOffsetReporter: ViewModifier {
-    let onScroll: (CGFloat) -> Void
-    func body(content: Content) -> some View {
-        if #available(iOS 18.0, *) {
-            content.onScrollGeometryChange(for: CGFloat.self,
-                                           of: { $0.contentOffset.y + $0.contentInsets.top },
-                                           action: { _, new in onScroll(new) })
-        } else {
-            content
         }
     }
 }

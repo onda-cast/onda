@@ -162,6 +162,7 @@ struct LibraryView: View {
                 }
             }
             .background(theme.color(.bg))
+            .miniPlayerAutoHide(playback)
             .navigationDestination(for: Podcast.self) { EpisodeListView(podcast: $0) }
             .sheet(isPresented: $showSearch) { LibrarySearchView() }
             .sheet(isPresented: $showClips) { ClipsView() }

@@ -37,6 +37,7 @@
 		28497CC078C08533CF32F0BD /* ActiveCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = E805DE0D40D2B33E85D10F1F /* ActiveCue.swift */; };
 		2BBF04B5CCE01017EF766B5B /* transcript_pc20.json in Resources */ = {isa = PBXBuildFile; fileRef = 93E1B51E3A6C164EC3CC2A61 /* transcript_pc20.json */; };
 		2D85CAB8112CDEB1F8DA2C5E /* transcript.srt in Resources */ = {isa = PBXBuildFile; fileRef = 7D4A4C78D59DF948B8BD06A8 /* transcript.srt */; };
+		3069A7E651DB10F768E9BC05 /* MiniPlayerAutoHide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEA73F740A1A6CA02844459 /* MiniPlayerAutoHide.swift */; };
 		30C1A58FEB8B7BF7EA77947D /* ChapterFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73EDE887722F9B111D8D3594 /* ChapterFetcher.swift */; };
 		333629FC09E0125EB5F20838 /* Readability.js in Resources */ = {isa = PBXBuildFile; fileRef = 83C556A2430E721B84B95C90 /* Readability.js */; };
 		3372A46B0B026B1B9D03CF76 /* DownloadedFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17790937A7B431A19F327E1 /* DownloadedFile.swift */; };
@@ -272,6 +273,7 @@
 		3755FD31224D33A231E6B9D4 /* FeedFetching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedFetching.swift; sourceTree = "<group>"; };
 		3918C3B972CAA4CCA5678FFE /* Onda.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Onda.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D08E840362422D0CB05A96C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		3DEA73F740A1A6CA02844459 /* MiniPlayerAutoHide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerAutoHide.swift; sourceTree = "<group>"; };
 		3E1D79E94F62A6115A760DA3 /* ArticleSpeechRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleSpeechRendererTests.swift; sourceTree = "<group>"; };
 		3EE2B49FBD5405DE238541D8 /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
 		3F65138271FBACF93B441DAA /* uitest-audio.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = "uitest-audio.aiff"; sourceTree = "<group>"; };
@@ -580,6 +582,7 @@
 				E98BF35041AE7B237668DA6F /* LibraryLayout.swift */,
 				02CC59D6F9385B3EF735B13B /* LibrarySort.swift */,
 				B8CB6A8C8BE847F612F95699 /* LibraryView.swift */,
+				3DEA73F740A1A6CA02844459 /* MiniPlayerAutoHide.swift */,
 				20505A324537A29B2E603405 /* ProfileView.swift */,
 				0D98EBBD5A1C251BF9D3E293 /* RootView.swift */,
 			);
@@ -1084,6 +1087,7 @@
 				0637D74E7FCCF172E74E0B53 /* LibrarySort.swift in Sources */,
 				00CCB3C9EC4EF568C89F1E15 /* LibraryView.swift in Sources */,
 				C61DA16DE661C17ACFAE2B9E /* MarkdownExport.swift in Sources */,
+				3069A7E651DB10F768E9BC05 /* MiniPlayerAutoHide.swift in Sources */,
 				7BEAC7BA90BBA4D79BF4E562 /* MiniPlayerView.swift in Sources */,
 				0EF858DBCF0C958D90B463D7 /* ModelSchema.swift in Sources */,
 				C8862665D462667A35E17445 /* NowPlayingCenter.swift in Sources */,
