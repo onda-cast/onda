@@ -7,7 +7,7 @@ struct ShowCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            ArtworkView(url: podcast.artworkURL, seed: podcast.title)
+            ArtworkView(url: podcast.artworkURL, seed: podcast.title, cached: true)
                 .aspectRatio(1, contentMode: .fit)
                 .hardShadow(offset: 4)
             HStack(spacing: 6) {

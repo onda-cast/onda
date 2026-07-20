@@ -208,7 +208,7 @@ struct EpisodeListView: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: 14) {
-            ArtworkView(url: podcast.artworkURL, seed: podcast.title)
+            ArtworkView(url: podcast.artworkURL, seed: podcast.title, cached: true)
                 .frame(width: 96, height: 96).hardShadow(offset: 4)
             VStack(alignment: .leading, spacing: 6) {
                 Text(podcast.title).brutalHeader(size: 20).foregroundStyle(theme.color(.text))

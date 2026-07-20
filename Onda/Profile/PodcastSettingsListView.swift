@@ -21,7 +21,7 @@ struct PodcastSettingsListView: View {
                 ForEach(shows) { show in
                     Button { selected = show } label: {
                         HStack(spacing: 12) {
-                            ArtworkView(url: show.artworkURL, seed: show.title)
+                            ArtworkView(url: show.artworkURL, seed: show.title, cached: true)
                                 .frame(width: 44, height: 44).brutalBorder(width: 2)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(show.title).scaledFont(15, weight: .semibold)

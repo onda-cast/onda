@@ -5,6 +5,9 @@ struct ArtworkView: View {
     @Environment(AppTheme.self) private var theme
     let url: URL?
     let seed: String
+    // Only subscribed-show contexts opt in — Discover/preview covers are ephemeral and
+    // shouldn't take cache slots from the library's art.
+    var cached: Bool = false
 
     private var hue: Double { Double(abs(seed.hashValue) % 360) }
     @State private var loaded: UIImage?
@@ -22,7 +25,7 @@ struct ArtworkView: View {
         .brutalBorder(width: 2.5)
         .task(id: url) {
             guard let url, ArtworkCache.shared.image(for: url) == nil else { return }
-            loaded = await ArtworkCache.shared.load(url)
+            loaded = await ArtworkCache.shared.load(url, store: cached)
         }
     }
 

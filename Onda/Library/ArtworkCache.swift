@@ -27,16 +27,19 @@ final class ArtworkCache {
         cache.object(forKey: url as NSURL)
     }
 
-    /// Fetches, force-decodes off the render pass, and caches. Failures return nil and are
-    /// not cached, so a later appearance retries.
-    func load(_ url: URL) async -> UIImage? {
+    /// Fetches, force-decodes off the render pass, and (when `store`) caches. Failures return
+    /// nil and are never cached, so a later appearance retries. `store: false` is the Discover
+    /// path: covers that just scrolled by shouldn't evict subscribed shows' art.
+    func load(_ url: URL, store: Bool = true) async -> UIImage? {
         if let hit = image(for: url) { return hit }
         guard let data = try? await transport(url), let raw = UIImage(data: data) else { return nil }
         // byPreparingForDisplay decodes the bitmap now, off-main — otherwise the first draw
         // of each image pays JPEG decode during scrolling.
         let decoded = await raw.byPreparingForDisplay() ?? raw
-        let cost = Int(decoded.size.width * decoded.size.height * decoded.scale * decoded.scale * 4)
-        cache.setObject(decoded, forKey: url as NSURL, cost: cost)
+        if store {
+            let cost = Int(decoded.size.width * decoded.size.height * decoded.scale * decoded.scale * 4)
+            cache.setObject(decoded, forKey: url as NSURL, cost: cost)
+        }
         return decoded
     }
 }

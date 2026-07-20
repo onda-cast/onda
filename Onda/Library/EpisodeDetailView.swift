@@ -29,7 +29,8 @@ struct EpisodeDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack(alignment: .top, spacing: 14) {
-                        ArtworkView(url: episode.podcast?.artworkURL, seed: episode.podcast?.title ?? episode.title)
+                        ArtworkView(url: episode.podcast?.artworkURL, seed: episode.podcast?.title ?? episode.title,
+                                    cached: true)
                             .frame(width: 84, height: 84).brutalBorder(width: 2)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(episode.podcast?.title ?? "").scaledFont(12, weight: .bold)

@@ -311,7 +311,7 @@ extension LibraryView {
     private func rowCard(_ show: Podcast, showArt: Bool) -> some View {
         HStack(spacing: 12) {
             if showArt {
-                ArtworkView(url: show.artworkURL, seed: show.title)
+                ArtworkView(url: show.artworkURL, seed: show.title, cached: true)
                     .frame(width: 52, height: 52).brutalBorder(width: 2)
             }
             VStack(alignment: .leading, spacing: 2) {

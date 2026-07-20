@@ -11,7 +11,7 @@ struct MiniPlayerView: View {
         if let ep = playback.currentEpisode {
             Button(action: onTap) {
                 HStack(spacing: 14) {
-                    ArtworkView(url: ep.podcast?.artworkURL, seed: ep.podcast?.title ?? ep.title)
+                    ArtworkView(url: ep.podcast?.artworkURL, seed: ep.podcast?.title ?? ep.title, cached: true)
                         .frame(width: 56, height: 56)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(ep.title).brutalHeader(size: 14).foregroundStyle(theme.color(.text))

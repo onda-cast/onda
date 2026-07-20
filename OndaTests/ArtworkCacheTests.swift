@@ -22,6 +22,16 @@ final class ArtworkCacheTests: XCTestCase {
         XCTAssertNotNil(cache.image(for: url), "synchronous hit after load")
     }
 
+    func test_loadWithoutStore_decodesButDoesNotCache() async {
+        // Discover artwork: shown while the row is alive, never kept — only subscribed
+        // shows' art earns a cache slot.
+        let cache = ArtworkCache(transport: { [data = pngData] _ in data })
+        let url = URL(string: "https://ex.com/discover.png")!
+        let loaded = await cache.load(url, store: false)
+        XCTAssertNotNil(loaded, "image still decodes for display")
+        XCTAssertNil(cache.image(for: url), "but is not retained in the cache")
+    }
+
     func test_failedFetch_staysEmpty_noCrash() async {
         let cache = ArtworkCache(transport: { _ in throw URLError(.notConnectedToInternet) })
         let url = URL(string: "https://ex.com/art.png")!

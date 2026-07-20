@@ -37,7 +37,7 @@ struct NowPlayingView: View {
         ScrollView {
             VStack(spacing: 20) {
                 if let ep {
-                    ArtworkView(url: ep.podcast?.artworkURL, seed: ep.podcast?.title ?? ep.title)
+                    ArtworkView(url: ep.podcast?.artworkURL, seed: ep.podcast?.title ?? ep.title, cached: true)
                         .frame(maxWidth: 240).aspectRatio(1, contentMode: .fit)
                         .hardShadow(offset: 8)
                     Text(ep.title).brutalHeader(size: 18).multilineTextAlignment(.center)
