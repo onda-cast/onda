@@ -25,6 +25,11 @@ final class DownloadManager: NSObject {
     /// Wired in OndaApp to kick off auto-transcription when the resolved setting is on.
     var onDownloadCompleted: ((String) -> Void)?
 
+    /// Bumped once per completed download. Views that cache a derived count (e.g. the Library
+    /// "new episodes" badge, which counts unplayed *downloaded* episodes) observe this to
+    /// recompute when a download lands while they're on screen.
+    private(set) var completedDownloadCount = 0
+
     /// Wired in OndaApp to the Wi-Fi-only setting; consulted per download request so
     /// flipping the toggle applies immediately without recreating the background session.
     var cellularAllowed: () -> Bool = { true }
@@ -88,6 +93,9 @@ final class DownloadManager: NSObject {
 
     func handleFinished(guid: String, tempURL: URL, totalBytes: Int64) async {
         activeTasks[guid] = nil
+        // Release the routing entries added in download() — otherwise every completed download
+        // leaves a permanent entry in both maps for the life of this long-lived singleton.
+        if let url = urlByGuid.removeValue(forKey: guid) { guidByTaskURL.removeValue(forKey: url) }
         if pendingDeleteGuids.remove(guid) != nil {
             try? FileManager.default.removeItem(at: tempURL)   // episode was deleted mid-download
             return
@@ -103,6 +111,7 @@ final class DownloadManager: NSObject {
         retries[guid] = nil
         try? await persistence.recordDownload(episodeGuid: guid,
                                               fileName: Self.fileName(for: guid), sizeBytes: totalBytes)
+        completedDownloadCount += 1
         onDownloadCompleted?(guid)
     }
 

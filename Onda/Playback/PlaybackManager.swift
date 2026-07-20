@@ -366,7 +366,7 @@ final class PlaybackManager {
         clipPreviewRange = nil
         let target = max(0, min(durationSeconds, positionSeconds + seconds))
         engine.seek(to: target); positionSeconds = target
-        if let ep = currentEpisode { checkForEndOfEpisode(ep, at: target) }
+        if let ep = currentEpisode { checkForEndOfEpisode(ep, at: target, honorOutroTrim: false) }
     }
 
     /// Seeks to a fraction `0...1` of the episode duration (the scrubber's seek path).
@@ -375,7 +375,7 @@ final class PlaybackManager {
         clipPreviewRange = nil
         let target = max(0, min(durationSeconds, durationSeconds * f))
         engine.seek(to: target); positionSeconds = target
-        if let ep = currentEpisode { checkForEndOfEpisode(ep, at: target) }
+        if let ep = currentEpisode { checkForEndOfEpisode(ep, at: target, honorOutroTrim: false) }
     }
 
     /// The on-disk URL of `episode`'s downloaded audio, or `nil` if it isn't downloaded. Checks the
@@ -425,10 +425,11 @@ final class PlaybackManager {
             adActive = false
         }
 
-        // Outro trim: treat (duration - outro) as the effective end. Not gated on outro > 0 —
-        // this is also the fallback for reaching the true end when outro is 0 (the default), in
-        // case AVPlayerItemDidPlayToEndTime doesn't fire (seek-to-end doesn't reliably raise it).
-        if checkForEndOfEpisode(ep, at: t) { return }
+        // Outro trim: during natural playback, treat (duration - outro) as the effective end.
+        // Not gated on outro > 0 — this is also the fallback for reaching the true end when outro
+        // is 0 (the default), in case AVPlayerItemDidPlayToEndTime doesn't fire (seek-to-end
+        // doesn't reliably raise it).
+        if checkForEndOfEpisode(ep, at: t, honorOutroTrim: true) { return }
 
         if t - lastPersistedAt >= 5 { persistPosition() }
         if ep.duration > 0, t >= ep.duration * 0.95, !ep.played {
@@ -440,15 +441,20 @@ final class PlaybackManager {
                           rate: isPlaying ? Float(resolved.speed) : 0)
     }
 
-    /// True (and triggers `handleEndOfItem`) once `t` reaches `ep`'s (outro-trimmed) end.
-    /// Shared by natural playback ticks AND manual seeks (scrubber, skip-forward button, AirPods
-    /// next) — a seek landing at/past the end must still mark played + advance, since a paused or
-    /// just-jumped position may never get another periodic tick, and AVPlayerItemDidPlayToEndTime
-    /// isn't reliably raised by an explicit seek rather than playing through.
+    /// True (and triggers `handleEndOfItem`) once `t` reaches `ep`'s end. Shared by natural
+    /// playback ticks AND manual seeks (scrubber, skip-forward button, AirPods next) — a seek
+    /// landing at/past the end must still mark played + advance, since a paused or just-jumped
+    /// position may never get another periodic tick, and AVPlayerItemDidPlayToEndTime isn't
+    /// reliably raised by an explicit seek rather than playing through.
+    ///
+    /// - Parameter honorOutroTrim: natural playback ends early at (duration - outro) so the outro
+    ///   music is skipped; an explicit seek must NOT — otherwise scrubbing into the outro zone (or
+    ///   a skip-forward landing there) would auto-advance mid-gesture instead of letting the
+    ///   listener hear the final seconds. Explicit seeks complete only at the true duration.
     @discardableResult
-    private func checkForEndOfEpisode(_ ep: Episode, at t: TimeInterval) -> Bool {
+    private func checkForEndOfEpisode(_ ep: Episode, at t: TimeInterval, honorOutroTrim: Bool) -> Bool {
         guard ep.duration > 0 else { return false }
-        let outro = TimeInterval(settings?.outroTrimSec ?? 0)
+        let outro = honorOutroTrim ? TimeInterval(settings?.outroTrimSec ?? 0) : 0
         guard t >= ep.duration - outro else { return false }
         handleEndOfItem()
         return true
@@ -472,7 +478,13 @@ final class PlaybackManager {
         if let ep = currentEpisode { ep.played = true; ep.playedDate = .now; ep.playbackPosition = 0 }
         try? modelContext.save()
         if let podcast = currentEpisode?.podcast { retention?.evictEligibleEpisodes(for: podcast) }
+        // Both stop branches MUST pause the engine, not just flip the model flag. When this fires
+        // early (a natural tick at duration - outro, with outro > 0), the item hasn't reached its
+        // true end yet — leaving the engine running would keep the outro audible and then fire the
+        // native AVPlayerItemDidPlayToEndTime at the true end, re-entering handleEndOfItem a second
+        // time (defeating the end-of-episode sleep timer, or double-saving on autoplay-off).
         if sleepMode == .endOfEpisode {
+            engine.pause()
             isPlaying = false
             sleepMode = .off
             return
@@ -481,6 +493,7 @@ final class PlaybackManager {
             // Autoplay off is a distinct, deliberate "stop after this one" — the mini-player
             // (and any queue) stays put so a manual tap can resume it; only the truly-nothing-
             // left path in playNextInQueue (below) closes the player.
+            engine.pause()
             isPlaying = false
             return
         }

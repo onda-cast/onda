@@ -65,8 +65,16 @@ final class ClipService {
 
     @discardableResult
     func quickClip(episode: Episode, at position: TimeInterval) -> Clip {
-        makeClip(episode: episode, requestedStart: max(0, position - Self.quickClipWindow),
-                 requestedEnd: position, note: nil, needsReview: true)
+        // Normally the trailing quickClipWindow seconds up to `position`. Near the very start of
+        // the episode there isn't a full window of history — a bookmark tapped in the first moment
+        // would otherwise produce a zero-length clip that exports as silent audio with no error.
+        // Guarantee at least ClipReviewSheet.minLength (bounded by the episode's own duration).
+        let minLen = ClipReviewSheet.minLength
+        let cap = episode.duration > 0 ? episode.duration : position + minLen
+        let end = min(cap, max(position, minLen))
+        let start = max(0, end - Self.quickClipWindow)
+        return makeClip(episode: episode, requestedStart: start, requestedEnd: end,
+                        note: nil, needsReview: true)
     }
 
     func updateNote(_ clip: Clip, note: String?) {

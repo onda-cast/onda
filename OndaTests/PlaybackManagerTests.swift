@@ -167,6 +167,36 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertEqual(pm.currentEpisode?.guid, "g2", "must advance just like a natural finish")
     }
 
+    // Regression: an explicit seek must NOT honor outro trim — scrubbing into the outro zone (or a
+    // skip landing there) should let the listener hear the final seconds, not auto-advance. Only
+    // natural playback ends early at (duration - outro).
+    func test_seekIntoOutroZone_doesNotAutoAdvance() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep1 = makeEpisode(in: ctx, guid: "g", duration: 1000, outro: 30)
+        let ep2 = makeEpisode(in: ctx, guid: "g2")
+        pm.play(ep1)
+        pm.enqueue(ep2)
+        pm.seek(toFraction: 0.99)   // 990s — inside the 30s outro zone, but before the true end
+        XCTAssertFalse(ep1.played, "scrubbing into the outro zone must not complete the episode")
+        XCTAssertEqual(pm.currentEpisode?.guid, "g", "must stay on the same episode")
+    }
+
+    // Natural playback, by contrast, still ends early at (duration - outro) to skip outro music.
+    func test_naturalTick_intoOutroZone_stillCompletes() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep1 = makeEpisode(in: ctx, guid: "g", duration: 1000, outro: 30)
+        let ep2 = makeEpisode(in: ctx, guid: "g2")
+        pm.play(ep1)
+        pm.enqueue(ep2)
+        engine.emitTime(970)   // reaches (duration - outro) by playing through
+        XCTAssertTrue(ep1.played, "natural playback ends early at the outro-trimmed end")
+        XCTAssertEqual(pm.currentEpisode?.guid, "g2")
+    }
+
     // Regression: with the default outro trim of 0s, the fallback end-check in handleTimeUpdate
     // used to be gated behind `outro > 0`, so "regular" playback that reaches the end via time
     // ticks (not the native AVPlayerItemDidPlayToEndTime notification) never marked played.
@@ -249,6 +279,10 @@ final class PlaybackManagerTests: XCTestCase {
         engine.emitEnd()
         XCTAssertEqual(pm.currentEpisode?.guid, "g", "stays on the finished episode, does not auto-advance")
         XCTAssertFalse(pm.isPlaying)
+        // Regression: the engine must actually be paused, not just the model flag flipped —
+        // otherwise (with outro trim) audio plays on to the true end and the native end fires
+        // handleEndOfItem a second time, auto-advancing past the armed sleep timer.
+        XCTAssertFalse(engine.playing, "engine is paused, not left running")
     }
 
     func test_skipSilenceSetting_seeksOnDetectedSilence() throws {
@@ -467,6 +501,7 @@ extension PlaybackManagerTests {
         pm.enqueue(ep2)
         engine.emitEnd()
         XCTAssertFalse(pm.isPlaying)
+        XCTAssertFalse(engine.playing, "engine is paused, not just the model flag flipped")
         XCTAssertTrue(ep1.played)
         XCTAssertEqual(pm.queue.count, 1)          // queue untouched
         XCTAssertEqual(pm.currentEpisode?.guid, "a")

@@ -85,4 +85,18 @@ final class TranscriptParserTests: XCTestCase {
         XCTAssertEqual(cues.count, 1, "end < start is rejected rather than rendered")
         XCTAssertEqual(cues[0].text, "A valid cue after it.")
     }
+
+    // Regression: the JSON path lacked the end >= start guard the VTT/SRT path enforces, so a
+    // malformed Podcasting 2.0 JSON segment (end < start) was persisted as a negative-length cue.
+    func test_json_endBeforeStart_cueSkipped() {
+        let json = """
+        { "segments": [
+          { "startTime": 30, "endTime": 25, "body": "Garbled backwards segment." },
+          { "startTime": 40, "endTime": 42, "body": "A valid segment after it." }
+        ] }
+        """
+        let cues = TranscriptParser().parse(Data(json.utf8), type: "application/json")
+        XCTAssertEqual(cues.count, 1, "end < start is rejected in the JSON path too")
+        XCTAssertEqual(cues[0].text, "A valid segment after it.")
+    }
 }

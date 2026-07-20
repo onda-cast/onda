@@ -22,8 +22,13 @@ struct TranscriptParser: Sendable {
         guard let doc = try? JSONDecoder().decode(TranscriptDoc.self, from: data) else { return [] }
         return doc.segments.compactMap { seg in
             guard let body = seg.body, !body.isEmpty else { return nil }
-            return ParsedCue(startTime: seg.startTime ?? 0, endTime: seg.endTime ?? (seg.startTime ?? 0),
-                             text: body, speaker: seg.speaker)
+            let start = seg.startTime ?? 0
+            let end = seg.endTime ?? start
+            // Same guard as the VTT/SRT path: a malformed segment (end < start) must never be
+            // persisted as a negative-length cue — downstream overlap/highlight logic assumes
+            // end >= start. A missing end is fine (falls back to a zero-length point cue).
+            guard end >= start else { return nil }
+            return ParsedCue(startTime: start, endTime: end, text: body, speaker: seg.speaker)
         }
     }
 

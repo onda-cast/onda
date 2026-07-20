@@ -188,10 +188,9 @@ struct LibraryView: View {
             .background(theme.color(.bg))
             .refreshable { await pullRefresh() }
             .miniPlayerAutoHide(playback)
-            .task {
-                let fresh = await LibrarySortKeys.computeInBackground(container: modelContext.container)
-                if fresh != sortKeys { sortKeys = fresh }
-            }
+            .task { await refreshSortKeys() }
+            // A download landing while the grid is on screen changes a show's badge count.
+            .onChange(of: downloads.completedDownloadCount) { _, _ in Task { await refreshSortKeys() } }
             .navigationDestination(for: Podcast.self) { EpisodeListView(podcast: $0) }
             .sheet(isPresented: $showSearch) { LibrarySearchView() }
             .sheet(isPresented: $showClips) { ClipsView() }
@@ -202,7 +201,10 @@ struct LibraryView: View {
                                 isPresented: Binding(get: { pendingDownloadDelete != nil },
                                                      set: { if !$0 { pendingDownloadDelete = nil } }),
                                 titleVisibility: .visible, presenting: pendingDownloadDelete) { ep in
-                Button("Delete Download", role: .destructive) { downloads.delete(ep) }
+                Button("Delete Download", role: .destructive) {
+                    downloads.delete(ep)
+                    Task { await refreshSortKeys() }   // removing a download changes the badge count
+                }
                 Button("Cancel", role: .cancel) {}
             } message: { _ in
                 Text("The episode stays in your library and can stream or re-download.")
@@ -253,6 +255,14 @@ struct LibraryView: View {
     /// (@Sendable refreshable closure — hop through here, same pattern as Discover.)
     private func pullRefresh() async {
         await refresh.refreshAll(force: true)
+        await refreshSortKeys()
+    }
+
+    /// Recompute the cached sort keys / badge counts off the main actor. Called on appear,
+    /// pull-to-refresh, and after in-view mutations that change a show's unplayed-downloaded
+    /// count (mark-all-played, download delete, download completion) — without this the "new
+    /// episodes" badge would show a stale count until the next tab switch.
+    private func refreshSortKeys() async {
         let fresh = await LibrarySortKeys.computeInBackground(container: modelContext.container)
         if fresh != sortKeys { sortKeys = fresh }
     }
@@ -367,7 +377,10 @@ extension LibraryView {
             Button { downloadLatest(show) } label: { Label("Download Latest", systemImage: "arrow.down.circle") }
         }
         Button { settingsPodcast = show } label: { Label("Show Settings", systemImage: "gearshape") }
-        Button { subscriptions.markAllPlayed(for: show) } label: {
+        Button {
+            subscriptions.markAllPlayed(for: show)
+            Task { await refreshSortKeys() }   // drop this show's badge to 0 immediately
+        } label: {
             Label("Mark All Played", systemImage: "checkmark.circle")
         }
         Divider()

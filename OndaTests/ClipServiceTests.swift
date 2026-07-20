@@ -40,6 +40,22 @@ final class ClipServiceTests: XCTestCase {
         XCTAssertTrue(clip.text.contains("alpha") && clip.text.contains("delta"))
     }
 
+    // Regression: a quick-clip taken in the first moment of an episode (e.g. lock-screen bookmark
+    // at position ≈ 0) used to produce start == end ≈ 0 — a zero-length clip that exports as
+    // silent audio with no error. It must span at least the minimum clip length.
+    func test_quickClip_nearStart_isNotZeroLength() throws {
+        let c = try ModelContainer(for: Schema(ondaSchema),
+                                   configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let ctx = ModelContext(c)
+        let ep = Episode(guid: "z", title: "E", publishDate: .now, duration: 600,
+                         audioURL: URL(string: "https://ex.com/z.mp3")!, notes: "")   // no transcript cues
+        ctx.insert(ep); try ctx.save()
+        let svc = ClipService(modelContext: ctx)
+        let clip = svc.quickClip(episode: ep, at: 0.2)
+        XCTAssertGreaterThanOrEqual(clip.endTime - clip.startTime, ClipReviewSheet.minLength,
+                                    "a quick-clip at the very start must still meet the minimum length")
+    }
+
     func test_search_matchesTextAndNote() throws {
         let (ctx, ep) = try env()
         let svc = ClipService(modelContext: ctx)
