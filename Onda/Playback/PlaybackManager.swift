@@ -75,6 +75,7 @@ final class PlaybackManager {
         nowPlaying.configureRemoteCommands(
             play: { [weak self] in self?.resumeExternally() },
             pause: { [weak self] in self?.pauseExternally() },
+            toggle: { [weak self] in self?.toggleExternally() },
             skipForward: { [weak self] in self?.skipForward() },
             skipBack: { [weak self] in self?.skipBack() })
         nowPlaying.configureBookmarkCommand { [weak self] in self?.onCaptureRequested?() }
@@ -112,6 +113,9 @@ final class PlaybackManager {
 
     private func resumeExternally() { guard !isPlaying, currentEpisode != nil else { return }; togglePlayPause() }
     private func pauseExternally() { guard isPlaying else { return }; togglePlayPause() }
+    // AirPods stem press: flip whatever state we're in (guarding on an episode so a stray
+    // press with nothing loaded stays a no-op).
+    private func toggleExternally() { guard currentEpisode != nil else { return }; togglePlayPause() }
 
     // MARK: Mini-player coordination
     /// True while a scroll surface (Discover) wants the mini-player out of the way; RootView

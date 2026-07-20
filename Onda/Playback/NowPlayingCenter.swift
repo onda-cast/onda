@@ -20,15 +20,24 @@ final class NowPlayingCenter {
 
     func configureRemoteCommands(play: @escaping @MainActor () -> Void,
                                  pause: @escaping @MainActor () -> Void,
+                                 toggle: @escaping @MainActor () -> Void,
                                  skipForward: @escaping @MainActor () -> Void,
                                  skipBack: @escaping @MainActor () -> Void) {
         // Remote commands can arrive on a non-main MediaRemote queue — hop, never assume.
         center.playCommand.addTarget { _ in Task { @MainActor in play() }; return .success }
         center.pauseCommand.addTarget { _ in Task { @MainActor in pause() }; return .success }
+        // AirPods/headset stem presses send togglePlayPauseCommand — NOT play/pause. Without
+        // a target here iOS drops the press entirely (lock-screen buttons still worked, which
+        // is how this went unnoticed).
+        center.togglePlayPauseCommand.addTarget { _ in Task { @MainActor in toggle() }; return .success }
         center.skipForwardCommand.preferredIntervals = [30]
         center.skipForwardCommand.addTarget { _ in Task { @MainActor in skipForward() }; return .success }
         center.skipBackwardCommand.preferredIntervals = [15]
         center.skipBackwardCommand.addTarget { _ in Task { @MainActor in skipBack() }; return .success }
+        // AirPods double/triple press arrive as track commands; podcasts have no tracks, so
+        // map them to the skip actions (the Overcast/Apple Podcasts convention).
+        center.nextTrackCommand.addTarget { _ in Task { @MainActor in skipForward() }; return .success }
+        center.previousTrackCommand.addTarget { _ in Task { @MainActor in skipBack() }; return .success }
     }
 
     /// Re-registers the lock-screen skip button intervals (called at startup and when the
