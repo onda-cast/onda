@@ -35,6 +35,7 @@ struct ProfileView: View {
                     }
                     BrutalCard { navRow("Podcast Settings", destination: PodcastSettingsListView()) }
                     BrutalCard { navRow("Hidden Podcasts", destination: HiddenPodcastsView()) }
+                    BrutalCard { navRow("Hidden Categories", destination: HiddenCategoriesView()) }
                     BrutalCard { navRow("Downloads & Storage", destination: DownloadsStorageView()) }
                 }
                 .padding(.horizontal, 20)

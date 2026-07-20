@@ -157,6 +157,7 @@
 		B0228DFAE18C44398B412D9F /* ArticleExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27966D66ED838121B8DF2928 /* ArticleExtractor.swift */; };
 		B1D4DC65D8D3FEC9A0A0E11D /* RecommendationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70749F2A00202BD66D627655 /* RecommendationService.swift */; };
 		B250C5F90359158005061ACE /* article_basic.html in Resources */ = {isa = PBXBuildFile; fileRef = EFA828C6EE830C3B05D66ECD /* article_basic.html */; };
+		B45BB5A3C65C27AFD2812CAC /* HiddenCategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D72D17212A2351DDB05AF /* HiddenCategoriesView.swift */; };
 		B55EAF0466798DD45EC1BFD1 /* ClipShareUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 614D7FDBFE03DB9BE928110D /* ClipShareUITests.swift */; };
 		B5B0D046340EEAB9B6F12F16 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D6D5D1903CED676E1E2D66 /* ShakeDetector.swift */; };
 		B76FE3AFC6105791CB1F8EE7 /* AdWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB76E9F921E83B4F3D008312 /* AdWindowTests.swift */; };
@@ -367,6 +368,7 @@
 		79C2283DA18F5EA37D53EFBB /* SmartQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQuery.swift; sourceTree = "<group>"; };
 		7B9EF093482D7A3CB1420F55 /* transcript.vtt */ = {isa = PBXFileReference; path = transcript.vtt; sourceTree = "<group>"; };
 		7BE71BDDBD112ADDEA676983 /* DiscoverSuggestionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverSuggestionsTests.swift; sourceTree = "<group>"; };
+		7C7D72D17212A2351DDB05AF /* HiddenCategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenCategoriesView.swift; sourceTree = "<group>"; };
 		7C838F68B4D6C4EAC88B7904 /* BrutalEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrutalEmptyState.swift; sourceTree = "<group>"; };
 		7D11CA7EC934C9F4DA99381A /* BrutalStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrutalStyle.swift; sourceTree = "<group>"; };
 		7D4A4C78D59DF948B8BD06A8 /* transcript.srt */ = {isa = PBXFileReference; path = transcript.srt; sourceTree = "<group>"; };
@@ -866,6 +868,7 @@
 			isa = PBXGroup;
 			children = (
 				F054A4C32FC6891BC6555A06 /* DownloadsStorageView.swift */,
+				7C7D72D17212A2351DDB05AF /* HiddenCategoriesView.swift */,
 				BEF6D92650A8BDA8EFBECFEE /* HiddenPodcastsView.swift */,
 				A037C532323B242CCE781A4D /* PlaybackSettingsSection.swift */,
 				9E24712575D9A7F84E2503D3 /* PodcastSettingsListView.swift */,
@@ -1208,6 +1211,7 @@
 				8069B53EAE437591EAA39CB6 /* FeedFetching.swift in Sources */,
 				C8B4B77568FBA30D2A026F1C /* FeedRefreshService.swift in Sources */,
 				58D2397747359472458600FC /* HiddenCategories.swift in Sources */,
+				B45BB5A3C65C27AFD2812CAC /* HiddenCategoriesView.swift in Sources */,
 				2834E0DF1136C09D04B8E079 /* HiddenPodcastsView.swift in Sources */,
 				204EF66371A62A9569817BC5 /* HiddenShows.swift in Sources */,
 				BA5A213ABE3A407DB6C4B4E8 /* ITunesSearchClient.swift in Sources */,
