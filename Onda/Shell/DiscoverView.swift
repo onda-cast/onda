@@ -14,6 +14,7 @@ struct DiscoverView: View {
     @Environment(ITunesSearchClientBox.self) private var clientBox
     @Environment(RecommendationService.self) private var recs
     @Environment(PlaybackManager.self) private var playback
+    @Environment(HiddenShows.self) private var hidden
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }) private var subs: [Podcast]
 
     @State private var query = ""
@@ -29,6 +30,8 @@ struct DiscoverView: View {
     @State private var showAddByURL = false
     @State private var undoToastTask: Task<Void, Never>?
     @State private var showUndoToast = false
+    @State private var hideToastTask: Task<Void, Never>?
+    @State private var showHideToast = false
     // Category chips are real filters: own result set, never writes into the visible search text.
     @State private var selectedCategory: String?
     @State private var categoryResults: [PodcastDTO] = []
@@ -82,6 +85,13 @@ struct DiscoverView: View {
                 let row = TrendingRow(dto: dto, isSubscribed: isSubscribed(dto)) { toggleFollow(dto) }
                     .contentShape(Rectangle()).onTapGesture { previewTarget = PreviewTarget(dto: dto) }
                     .accessibilityHint("Opens a preview of this show")
+                    .swipeToHide { hideShow(dto) }
+                    .contextMenu {
+                        // A11y/discoverable path to the same action the swipe performs.
+                        Button(role: .destructive) { hideShow(dto) } label: {
+                            Label("Hide from Discover", systemImage: "eye.slash")
+                        }
+                    }
                 if shake != nil {
                     DealtCard(index: i) { row }
                 } else {
@@ -182,20 +192,24 @@ struct DiscoverView: View {
         }
         .overlay(alignment: .bottom) {
             if showUndoToast, let rec = recs.lastDismissed {
-                Button {
-                    undoToastTask?.cancel()
-                    withAnimation { showUndoToast = false }
-                    recs.undoDismiss()
-                } label: {
-                    Text("Not interested: \(rec.dto.collectionName) \u{2014} UNDO")
-                        .scaledFont(13.5, weight: .semibold).foregroundStyle(.white)
-                        .padding(.horizontal, 18).padding(.vertical, 10)
-                        .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
-                }
-                .buttonStyle(.plain)
-                .padding(.bottom, 40)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .accessibilityLabel("Dismissed \(rec.dto.collectionName). Double-tap to undo.")
+                UndoToastButton(
+                    text: "Not interested: \(rec.dto.collectionName) \u{2014} UNDO",
+                    accessibility: "Dismissed \(rec.dto.collectionName). Double-tap to undo.") {
+                        undoToastTask?.cancel()
+                        withAnimation { showUndoToast = false }
+                        recs.undoDismiss()
+                    }
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if showHideToast, let hiddenShow = hidden.lastHidden {
+                UndoToastButton(
+                    text: "Hidden: \(hiddenShow.title) \u{2014} UNDO",
+                    accessibility: "Hid \(hiddenShow.title) from Discover. Double-tap to undo.") {
+                        hideToastTask?.cancel()
+                        withAnimation { showHideToast = false }
+                        hidden.undoHide()
+                    }
             }
         }
     }
@@ -225,10 +239,15 @@ struct DiscoverView: View {
     }
 
     private var listItems: [PodcastDTO] {
-        if let picks = shake?.picks { return picks }
-        if !results.isEmpty { return results }
-        if selectedCategory != nil { return categoryResults }
-        return trending
+        let items: [PodcastDTO]
+        if let picks = shake?.picks { items = picks } else if !results.isEmpty {
+            items = results
+        } else if selectedCategory != nil {
+            items = categoryResults
+        } else {
+            items = trending
+        }
+        return items.filter { !hidden.isHidden($0) }
     }
 
     @ViewBuilder private var listHeader: some View {
@@ -391,6 +410,18 @@ extension DiscoverView {
 
     // MARK: For You sub-tab (recommendations)
 
+    /// Swipe/context "hide from Discover": adds to the Settings-managed hidden list and
+    /// offers a 5s undo (same shape as the recommendation "not interested" toast).
+    func hideShow(_ dto: PodcastDTO) {
+        hidden.hide(dto)
+        withAnimation { showHideToast = true }
+        hideToastTask?.cancel()
+        hideToastTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            if !Task.isCancelled { withAnimation { showHideToast = false } }
+        }
+    }
+
     func dismissRecommendation(_ rec: Recommendation) {
         recs.dismiss(rec)
         withAnimation { showUndoToast = true }
@@ -433,32 +464,12 @@ extension DiscoverView {
                 .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
                 .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 50)
         } else {
-            ForEach(recs.recommendations) { rec in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        TrendingRow(dto: rec.dto, isSubscribed: isSubscribed(rec.dto)) { toggleFollow(rec.dto) }
-                            .contentShape(Rectangle()).onTapGesture { previewTarget = PreviewTarget(dto: rec.dto) }
-                            .accessibilityHint("Opens a preview of this show")
-                        // Visible "not interested" — the context menu below stays as the
-                        // secondary path, but discoverability needs an on-screen control.
-                        Button { dismissRecommendation(rec) } label: {
-                            Image(systemName: "xmark").scaledFont(12, weight: .bold)
-                                .foregroundStyle(theme.color(.textTertiary))
-                                .frame(width: 32, height: 44).contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Not interested in \(rec.dto.collectionName)")
-                    }
-                    if let reason = rec.reasonLine {
-                        Text(reason).scaledFont(11.5).foregroundStyle(theme.color(.textTertiary))
-                            .padding(.leading, 2)
-                    }
-                }
-                .contextMenu {
-                    Button(role: .destructive) { dismissRecommendation(rec) } label: {
-                        Label("Not interested", systemImage: "hand.thumbsdown")
-                    }
-                }
+            ForEach(recs.recommendations.filter { !hidden.isHidden($0.dto) }) { rec in
+                RecommendationRow(rec: rec, isSubscribed: isSubscribed(rec.dto),
+                                  onFollow: { toggleFollow(rec.dto) },
+                                  onPreview: { previewTarget = PreviewTarget(dto: rec.dto) },
+                                  onDismiss: { dismissRecommendation(rec) },
+                                  onHide: { hideShow(rec.dto) })
             }
         }
     }

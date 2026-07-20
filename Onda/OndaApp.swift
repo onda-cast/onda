@@ -12,6 +12,7 @@ struct OndaApp: App {
     @State private var playback: PlaybackManager
     @State private var downloads: DownloadManager
     @State private var refresh: FeedRefreshService
+    @State private var hiddenShows = HiddenShows()
     @State private var transcripts: TranscriptService
     @State private var retention: EpisodeRetentionService
     @State private var chapterGen: ChapterGenerationService
@@ -201,6 +202,8 @@ struct OndaApp: App {
                 .environment(recommendations)
                 .environment(articles)
                 .environment(books)
+                .environment(hiddenShows)
+                .environment(refresh)
                 .preferredColorScheme(theme.colorScheme)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {

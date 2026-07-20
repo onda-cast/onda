@@ -17,6 +17,7 @@ struct LibraryView: View {
     @Environment(SubscriptionService.self) private var subscriptions
     @Environment(DownloadManager.self) private var downloads
     @Environment(ArticleConversionService.self) private var articles
+    @Environment(FeedRefreshService.self) private var refresh
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed },
            sort: \Podcast.title) private var shows: [Podcast]
     // Chips are downloaded-only lenses, so their candidate set comes from the small
@@ -176,6 +177,7 @@ struct LibraryView: View {
                 }
             }
             .background(theme.color(.bg))
+            .refreshable { await pullRefresh() }
             .miniPlayerAutoHide(playback)
             .task {
                 let fresh = await LibrarySortKeys.computeInBackground(container: modelContext.container)
@@ -233,6 +235,15 @@ struct LibraryView: View {
                 }
             }
         }
+    }
+
+    /// Pull-to-refresh: force a feed check for every subscribed show (bypasses the 15-min
+    /// foreground throttle), then refresh the sort keys so a new episode reorders the grid.
+    /// (@Sendable refreshable closure — hop through here, same pattern as Discover.)
+    private func pullRefresh() async {
+        await refresh.refreshAll(force: true)
+        let fresh = await LibrarySortKeys.computeInBackground(container: modelContext.container)
+        if fresh != sortKeys { sortKeys = fresh }
     }
 
     // Only confirm when there's a hand-built queue to lose; otherwise start straight away.

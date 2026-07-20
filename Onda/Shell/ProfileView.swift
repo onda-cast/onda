@@ -34,6 +34,7 @@ struct ProfileView: View {
                         Button { showClips = true } label: { row("Saved Clips") }.buttonStyle(.plain)
                     }
                     BrutalCard { navRow("Podcast Settings", destination: PodcastSettingsListView()) }
+                    BrutalCard { navRow("Hidden Podcasts", destination: HiddenPodcastsView()) }
                     BrutalCard { navRow("Downloads & Storage", destination: DownloadsStorageView()) }
                 }
                 .padding(.horizontal, 20)

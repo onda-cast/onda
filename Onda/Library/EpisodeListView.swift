@@ -130,6 +130,9 @@ struct EpisodeListView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        // The tab bar + mini-player are a RootView overlay, not real safe area — without this
+        // inset the last row scrolls to a stop half-hidden behind them (reported on device).
+        .contentMargins(.bottom, 120, for: .scrollContent)
         .miniPlayerAutoHide(playback)
         .background(theme.color(.bg))
         .refreshable { await refresh() }
