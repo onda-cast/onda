@@ -15,6 +15,7 @@ struct DiscoverView: View {
     @Environment(RecommendationService.self) private var recs
     @Environment(PlaybackManager.self) private var playback
     @Environment(HiddenShows.self) private var hidden
+    @Environment(HiddenCategories.self) private var hiddenCategories
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }) private var subs: [Podcast]
 
     @State private var query = ""
@@ -52,10 +53,15 @@ struct DiscoverView: View {
         var title: String
     }
 
-    private let categories = ["Technology", "Comedy", "News", "Business", "Health", "Science"]
+    private static let allChipCategories = ["Technology", "Comedy", "News", "Business",
+                                             "Health & Fitness", "Science"]
+    private var categories: [String] {
+        Self.allChipCategories.filter { !hiddenCategories.isHidden(category: $0) }
+    }
     private var subscribedFeeds: Set<URL> { Set(subs.map(\.feedURL)) }
     private var followedCategories: [String] {
         Array(Set(subs.map(\.category))).sorted()
+            .filter { !hiddenCategories.isHidden(category: $0) }
     }
 
     private func isSubscribed(_ dto: PodcastDTO) -> Bool {
@@ -240,14 +246,19 @@ struct DiscoverView: View {
 
     private var listItems: [PodcastDTO] {
         let items: [PodcastDTO]
-        if let picks = shake?.picks { items = picks } else if !results.isEmpty {
+        var filterHiddenCategories = false
+        if let picks = shake?.picks {
+            items = picks; filterHiddenCategories = true
+        } else if !results.isEmpty {
             items = results
         } else if selectedCategory != nil {
             items = categoryResults
         } else {
-            items = trending
+            items = trending; filterHiddenCategories = true
         }
-        return items.filter { !hidden.isHidden($0) }
+        return items.filter { dto in
+            !hidden.isHidden(dto) && (!filterHiddenCategories || !hiddenCategories.isHidden(dto))
+        }
     }
 
     @ViewBuilder private var listHeader: some View {
@@ -485,12 +496,12 @@ extension DiscoverView {
     }
 
     func runShake() async {
-        let followed = Array(Set(subs.map(\.category))).sorted()
         var rng = SystemRandomNumberGenerator()
         let result = await shakeSuggestions(
-            followedCategories: followed,
+            followedCategories: followedCategories,
             fallbackCategories: categories,
             subscribedFeeds: subscribedFeeds,
+            hiddenCategories: hiddenCategories.hidden,
             using: clientBox.client,
             rng: &rng)
         // Nothing new to show → say so; the wave/haptic already fired, so silence here
