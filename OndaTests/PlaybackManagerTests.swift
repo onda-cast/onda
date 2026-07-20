@@ -137,6 +137,52 @@ final class PlaybackManagerTests: XCTestCase {
                        "closing must not clobber the just-set reset position with a stale tick value")
     }
 
+    // Regression: skip(by:)/seek(toFraction:) used to set positionSeconds directly without ever
+    // routing through the played-marking/end-of-episode logic, so landing at the end via the
+    // scrubber or the skip-forward button silently did nothing.
+
+    func test_seekToFraction_landingAtEnd_marksPlayed_andAdvances() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep1 = makeEpisode(in: ctx, guid: "g")
+        let ep2 = makeEpisode(in: ctx, guid: "g2")
+        pm.play(ep1)
+        pm.enqueue(ep2)
+        pm.seek(toFraction: 1.0)   // scrubbing all the way to the end
+        XCTAssertTrue(ep1.played, "scrubbing to the end must mark the episode played")
+        XCTAssertEqual(pm.currentEpisode?.guid, "g2", "must advance just like a natural finish")
+    }
+
+    func test_skipForward_pastEnd_marksPlayed_andAdvances() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep1 = makeEpisode(in: ctx, guid: "g", duration: 100)
+        let ep2 = makeEpisode(in: ctx, guid: "g2")
+        pm.play(ep1)
+        pm.enqueue(ep2)
+        pm.skip(by: 500)   // skip-forward button (or AirPods next) overshooting the end
+        XCTAssertTrue(ep1.played, "skipping past the end must mark the episode played")
+        XCTAssertEqual(pm.currentEpisode?.guid, "g2", "must advance just like a natural finish")
+    }
+
+    // Regression: with the default outro trim of 0s, the fallback end-check in handleTimeUpdate
+    // used to be gated behind `outro > 0`, so "regular" playback that reaches the end via time
+    // ticks (not the native AVPlayerItemDidPlayToEndTime notification) never marked played.
+    func test_timeTicksReachingEnd_marksPlayed_evenWithoutNativeEndNotification() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep1 = makeEpisode(in: ctx, guid: "g", duration: 100)
+        let ep2 = makeEpisode(in: ctx, guid: "g2")
+        pm.play(ep1)
+        pm.enqueue(ep2)
+        engine.emitTime(100)   // reaches the true end via a tick; emitEnd() is never called
+        XCTAssertTrue(ep1.played)
+        XCTAssertEqual(pm.currentEpisode?.guid, "g2")
+    }
+
     func test_endOfItem_noQueue_butAnotherUnplayedInShow_advancesAndStaysOpen() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()

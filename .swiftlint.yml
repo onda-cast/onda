@@ -23,6 +23,9 @@ line_length:
 
 # PlaybackManager is the central transport hub (state + transport + queue + sleep + restore,
 # plus configured skips / Smart Resume); splitting it would force exposing private state
-# module-wide. Bump over the 400 default.
+# module-wide. Its 1:1 test file mirrors that breadth. Bump over the 400 default.
 file_length:
-  warning: 550
+  warning: 850
+
+type_body_length:
+  warning: 340
