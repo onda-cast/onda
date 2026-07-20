@@ -50,7 +50,7 @@ struct DownloadsStorageView: View {
                     }.frame(maxWidth: .infinity).padding(.top, 60)
                 }
             }
-            .padding(20)
+            .padding(20).padding(.bottom, BottomChrome.clearance)
         }
         .task(id: refreshKey) {
             if breakdown == nil { breakdown = StorageCalculator.cachedBreakdown() }   // instant paint

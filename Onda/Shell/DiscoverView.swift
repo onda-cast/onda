@@ -129,7 +129,7 @@ struct DiscoverView: View {
 
                 if mode == .browse { browseTab } else { forYouTab }
             }
-            .padding(.horizontal, 20).padding(.bottom, 120)
+            .padding(.horizontal, 20).padding(.bottom, BottomChrome.clearance)
         }
         .miniPlayerAutoHide(playback)
         .refreshable { await pullRefresh() }
@@ -186,7 +186,7 @@ struct DiscoverView: View {
         .overlay(alignment: .bottom) {
             if let toast {
                 BrutalToast(text: toast)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, BottomChrome.clearance)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }

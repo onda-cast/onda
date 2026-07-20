@@ -43,7 +43,7 @@ struct HiddenPodcastsView: View {
                     }
                 }
             }
-            .padding(20)
+            .padding(20).padding(.bottom, BottomChrome.clearance)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(theme.color(.bg))

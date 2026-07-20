@@ -60,13 +60,21 @@ struct LibraryView: View {
     @State private var detailEpisode: Episode?
     @State private var pendingDownloadDelete: Episode?
 
+    // Anchor id for the layout-menu button's scroll-to-top (tapping it opens the sort/layout
+    // menu, which is easy to miss if the list is scrolled down — jump up first so the header
+    // and the reordered/relaid-out content are both visible).
+    private let topAnchor = "library-top"
+    @State private var scrollProxy: ScrollViewProxy?
+
     var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack {
                         Text("Library").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
                             .lineLimit(1).minimumScaleFactor(0.6)
+                            .accessibilityIdentifier("library-title")
                         Spacer()
                         Button { showClips = true } label: {
                             HStack(spacing: 5) {
@@ -169,12 +177,13 @@ struct LibraryView: View {
                         BrutalEmptyState("No shows yet", detail: "Find some in Discover.")
                     } else if let filter = activeFilter {
                         filteredEpisodeList(filter)
-                            .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 120)
+                            .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, BottomChrome.clearance)
                     } else {
                         libraryContent
-                            .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 120)
+                            .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, BottomChrome.clearance)
                     }
                 }
+                .id(topAnchor)
             }
             .background(theme.color(.bg))
             .refreshable { await pullRefresh() }
@@ -230,9 +239,11 @@ struct LibraryView: View {
             .overlay(alignment: .bottom) {
                 if let toast {
                     BrutalToast(text: toast)
-                        .padding(.bottom, 96)
+                        .padding(.bottom, BottomChrome.clearance)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+            }
+            .onAppear { scrollProxy = proxy }
             }
         }
     }
@@ -285,6 +296,11 @@ extension LibraryView {
                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
         }
         .accessibilityLabel("Library view options")
+        // simultaneousGesture (not onTapGesture): a Menu's own tap opens the menu; this rides
+        // along without stealing that tap, same moment the menu appears.
+        .simultaneousGesture(TapGesture().onEnded {
+            withAnimation { scrollProxy?.scrollTo(topAnchor, anchor: .top) }
+        })
     }
 
     private var pendingArticlesSection: some View {

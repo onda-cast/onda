@@ -47,7 +47,7 @@ struct RootView: View {
                 }
                 if let notice = transcripts.completionNotice { toastLabel(notice, action: nil) }
             }
-            .padding(.bottom, 150)
+            .padding(.bottom, BottomChrome.clearance)
         }
         .animation(.easeOut(duration: 0.2), value: playback.captureToast)
         .animation(.easeInOut(duration: 0.25), value: playback.miniPlayerHidden)

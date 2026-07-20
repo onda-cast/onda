@@ -61,7 +61,7 @@ struct UndoToastButton: View {
                 .background(theme.color(.accentStrong)).brutalBorder(width: 2).hardShadow(offset: 3)
         }
         .buttonStyle(.plain)
-        .padding(.bottom, 40)
+        .padding(.bottom, BottomChrome.clearance)
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .accessibilityLabel(accessibility)
     }

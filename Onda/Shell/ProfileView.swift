@@ -38,7 +38,7 @@ struct ProfileView: View {
                     BrutalCard { navRow("Downloads & Storage", destination: DownloadsStorageView()) }
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 120)
+                .padding(.bottom, BottomChrome.clearance)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(theme.color(.bg))

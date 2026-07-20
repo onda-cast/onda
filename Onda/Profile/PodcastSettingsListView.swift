@@ -44,7 +44,7 @@ struct PodcastSettingsListView: View {
                     .accessibilityHint("Opens this show's settings")
                 }
             }
-            .padding(20)
+            .padding(20).padding(.bottom, BottomChrome.clearance)
         }
         .background(theme.color(.bg))
         .navigationTitle("Podcast Settings")
