@@ -634,8 +634,10 @@ extension PlaybackManager {
                 persistPosition()
             }
         case .ended:
-            let opts = AVAudioSession.InterruptionOptions(rawValue: optionsRaw ?? 0)
-            if resumeAfterInterruption, opts.contains(.shouldResume), currentEpisode != nil {
+            // Resume with or without the shouldResume hint: Instagram-style interrupters end
+            // the interruption without it, and we only paused because they barged in. The
+            // user-paused case never reaches here (resumeAfterInterruption stays false).
+            if resumeAfterInterruption, currentEpisode != nil {
                 engine.play()
                 isPlaying = true
             }
@@ -643,5 +645,14 @@ extension PlaybackManager {
         @unknown default:
             break
         }
+    }
+
+    /// Foreground fallback for interrupters that never post `.ended` (their session is never
+    /// deactivated): returning to the app is the user's "it's over" signal.
+    func handleAppBecameActive() {
+        guard resumeAfterInterruption, !isPlaying, currentEpisode != nil else { return }
+        resumeAfterInterruption = false
+        engine.play()
+        isPlaying = true
     }
 }

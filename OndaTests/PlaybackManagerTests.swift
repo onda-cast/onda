@@ -444,14 +444,41 @@ extension PlaybackManagerTests {
         XCTAssertTrue(engine.playing)
     }
 
-    func test_interruptionEnd_withoutResumeHint_staysPaused() throws {
+    func test_interruptionEnd_withoutResumeHint_stillResumes() throws {
+        // Instagram-style interrupters end the interruption WITHOUT the shouldResume hint;
+        // we resume anyway — we only paused because they barged in.
         let ctx = try makeContext()
         let engine = FakeEngine()
         let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
         pm.play(makeEpisode(in: ctx))
         pm.handleInterruption(typeRaw: AVAudioSession.InterruptionType.began.rawValue, optionsRaw: nil)
         pm.handleInterruption(typeRaw: AVAudioSession.InterruptionType.ended.rawValue, optionsRaw: 0)
-        XCTAssertFalse(pm.isPlaying, "no shouldResume hint -> stay paused")
+        XCTAssertTrue(pm.isPlaying, "interruption over -> resume even without the hint")
+        XCTAssertTrue(engine.playing)
+    }
+
+    func test_appBecameActive_afterUnendedInterruption_resumes() throws {
+        // Some interrupters never post .ended (session never deactivated). Coming back to the
+        // app is the user's "it's over" signal — resume then.
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        pm.play(makeEpisode(in: ctx))
+        pm.handleInterruption(typeRaw: AVAudioSession.InterruptionType.began.rawValue, optionsRaw: nil)
+        XCTAssertFalse(pm.isPlaying)
+        pm.handleAppBecameActive()
+        XCTAssertTrue(pm.isPlaying, "foregrounding after an un-ended interruption resumes")
+        XCTAssertTrue(engine.playing)
+    }
+
+    func test_appBecameActive_withoutPendingInterruption_noops() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        pm.play(makeEpisode(in: ctx))
+        pm.togglePlayPause()   // user paused; foregrounding must not restart
+        pm.handleAppBecameActive()
+        XCTAssertFalse(pm.isPlaying, "plain foregrounding never starts playback")
         XCTAssertFalse(engine.playing)
     }
 

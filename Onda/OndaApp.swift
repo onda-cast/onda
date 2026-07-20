@@ -204,6 +204,7 @@ struct OndaApp: App {
                 .preferredColorScheme(theme.colorScheme)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
+                        playback.handleAppBecameActive()
                         articles.resumePersisted()
                         Task { [refresh] in await refresh.refreshAll() }
                     } else if phase == .background {

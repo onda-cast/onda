@@ -194,6 +194,7 @@ struct EpisodeListView: View {
         if let start = results.first(where: { $0.episode.guid == ep.guid })?.snippetStartTime {
             playback.seek(toFraction: start / max(1, ep.duration))
         }
+        playback.showNowPlaying = true   // play from the show page opens the full player
     }
 
     private func deleteEpisode(_ ep: Episode) {
