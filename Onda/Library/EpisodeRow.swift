@@ -25,12 +25,16 @@ struct EpisodeRow: View {
                 // Replay arrow (not a checkmark) for played episodes: the button STARTS playback,
                 // and a checkmark made it read as a played-state toggle. Muted colors still carry
                 // the played-ness; the mark-played toggle stays in swipe/context menus.
+                // The visible glyph stays a tight 34pt (this row is dense); the tappable area
+                // still meets the 44pt HIG minimum via the frame below.
                 Image(systemName: episode.played ? "arrow.counterclockwise" : "play.fill")
                     .scaledFont(14, weight: .black)
                     .foregroundStyle(episode.played ? theme.color(.textTertiary) : .white)
                     .frame(width: 34, height: 34)
                     .background(episode.played ? theme.color(.bgElevated) : theme.color(.accent))
                     .brutalBorder(width: 2)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }.buttonStyle(.plain)
             .accessibilityIdentifier("play-episode")
             .accessibilityLabel(episode.played ? "Play again" : "Play")
@@ -60,6 +64,8 @@ struct EpisodeRow: View {
             Spacer(minLength: 8)
             Button(action: onDownload) {
                 downloadIcon
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityLabel(downloadAccessibilityLabel)
         }
         .padding(.vertical, 12)

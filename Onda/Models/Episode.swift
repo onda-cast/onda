@@ -40,6 +40,12 @@ final class Episode {
     @Relationship(deleteRule: .cascade, inverse: \BookMention.episode)
     var bookMentions: [BookMention] = []
 
+    // Additive relationship (lightweight migration): previously QueueItem.episode had no
+    // inverse here, so it defaulted to .nullify — deleting an episode (unsubscribe, archive)
+    // left an orphaned QueueItem row (episode == nil) behind instead of removing it.
+    @Relationship(deleteRule: .cascade, inverse: \QueueItem.episode)
+    var queueItems: [QueueItem] = []
+
     init(guid: String, title: String, publishDate: Date, duration: TimeInterval,
          audioURL: URL, notes: String, noteLinks: [URL] = [], playbackPosition: TimeInterval = 0,
          played: Bool = false,

@@ -193,7 +193,7 @@ struct TranscriptView: View {
                 Button { playback.jumpFromTranscript(episode: episode, to: cue.start) } label: {
                     Image(systemName: "play.fill").scaledFont(13, weight: .bold)
                         .foregroundStyle(theme.color(.accent))
-                        .frame(width: 40, height: 40)
+                        .frame(width: 44, height: 44)
                         .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                 }
                 .buttonStyle(.plain)
@@ -241,8 +241,12 @@ struct TranscriptView: View {
                 withAnimation { proxy.scrollTo(new, anchor: .center) }
             }
             .onChange(of: cueVMs.count) { _, _ in
-                // Jump to the currently-playing line as soon as cues are available.
-                if let i = activeIndex { proxy.scrollTo(i, anchor: .center) }
+                // Jump to the currently-playing line as soon as cues are available — but
+                // respect the same follow/search/cooldown guards as the position-driven scroll
+                // above, or cues finishing a reload mid-read yanks the view out from under you.
+                guard let i = activeIndex, isFollowing, !searching,
+                      Date.now.timeIntervalSince(lastUserScrollAt) > 4 else { return }
+                proxy.scrollTo(i, anchor: .center)
             }
             .onAppear {
                 if let i = activeIndex { proxy.scrollTo(i, anchor: .center) }
@@ -314,7 +318,7 @@ extension TranscriptView {
         Button(action: action) {
             Image(systemName: system).scaledFont(14, weight: .bold)
                 .foregroundStyle(theme.color(matchIndices.isEmpty ? .textTertiary : .accent))
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
         }
         .buttonStyle(.plain).disabled(matchIndices.isEmpty)
@@ -376,12 +380,7 @@ extension TranscriptView {
         selecting = false; selStart = nil; selEnd = nil
     }
 
-    func timeStr(_ s: TimeInterval) -> String {
-        let t = Int(max(0, s))
-        return t >= 3600
-            ? String(format: "%d:%02d:%02d", t / 3600, (t % 3600) / 60, t % 60)
-            : String(format: "%d:%02d", t / 60, t % 60)
-    }
+    func timeStr(_ s: TimeInterval) -> String { TimeFormatting.timeStr(s) }
 }
 
 // MARK: - Progress & empty states

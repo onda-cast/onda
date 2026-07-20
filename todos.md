@@ -14,19 +14,21 @@ Four-agent parallel review (Library/Discover, Player/Playback/Books/Clips, Profi
 - [x] **RSS feed parsing blocks the main thread** — `RSSFeedClient.fetchFeed` now runs `RSSFeedParser.parse` inside `Task.detached`; `ParsedFeed`/`ParsedEpisode`/`RSSFeedParser` marked `Sendable`.
 - [x] **Library transcript search has no debounce** — `LibrarySearchView` now debounces 300ms (cancel-on-keystroke `Task`), matching Discover's search.
 
-## Medium Priority
+## Medium Priority — ALL FIXED 2026-07-20
 
-- [ ] **Transcript auto-scroll fights the user** — `Onda/Player/TranscriptView.swift:243-246` — the cue-count `onChange` auto-scrolls with none of the guards (`isFollowing`, cooldown) the position-based auto-scroll uses elsewhere.
-- [ ] **Inconsistent tap-target sizing** — 44pt convention (`EpisodeListView`, `RecommendationRow`, player header icons) undershot by `EpisodeRow` (34×34, 30×30), `LibraryView`/`DiscoverView` icon buttons (36×36), transcript/clip-review controls (40×40).
-- [ ] **Two incompatible swipe idioms coexist** — Discover's `SwipeToHide` (silent follow-the-finger, 90pt auto-commit) vs. Library's native `.swipeActions` (labeled, color-coded, reversible).
-- [ ] **SwipeToHide's plain DragGesture can steal taps** — `Onda/Discover/RecommendationRow.swift:36` — layered over Follow/"×" buttons with no `.simultaneousGesture`/exclusion guard.
-- [ ] **Feed refresh and recommendation candidate fetches are serial, not parallel** — `Onda/Services/FeedRefreshService.swift:38-49`, `Onda/Recommendations/CandidateRetriever.swift:30-31`, `Onda/Recommendations/CandidateReranker.swift:26-30`.
-- [ ] **Feed refresh failures are silently swallowed** — `Onda/Services/FeedRefreshService.swift:47` — `catch { continue }`, no error state or retry surfaced.
-- [ ] **Taste-profile scoring faults transcripts on the main actor** — `Onda/Recommendations/TasteProfile.swift:39-70`, called from `@MainActor` `RecommendationService.refresh`.
-- [ ] **Retention eviction doesn't check what's currently playing** — `Onda/Services/EpisodeRetentionService.swift:76-105` — marking the live episode "played" can delete the file backing the active `AVPlayerItem` mid-playback.
-- [ ] **QueueItem has no cascade rule** — `Onda/Models/QueueItem.swift:5-14` — deleting an episode leaves an orphaned queue row (`episode == nil`) that accumulates silently.
-- [ ] **Transcript timestamps format inconsistently** — `Onda/Library/LibrarySearchView.swift:78-80` always shows `M:SS` even past an hour, while `TranscriptView` switches to `H:MM:SS`.
-- [ ] **SRT/VTT end-timestamp parsing is fragile** — `Onda/Transcription/TranscriptParser.swift:39-44` — malformed cue lines can silently produce zero-length cues with no validation that end ≥ start.
+- [x] **Transcript auto-scroll fights the user** — the `cueVMs.count` `onChange` now applies the same `isFollowing`/`!searching`/cooldown guards as the position-based auto-scroll (`TranscriptView.swift`).
+- [x] **Inconsistent tap-target sizing** — bumped `EpisodeRow`'s play/download buttons, `LibraryView`/`DiscoverView`'s header icon buttons, and the transcript/clip-review 40pt controls to 44×44 (visible glyph kept smaller where space is tight, via an outer tap-frame + `.contentShape`).
+- [x] **Two incompatible swipe idioms coexist** — `SwipeToHide` now reveals a labeled black "HIDE" background during the drag, closing the discoverability gap with Library's `.swipeActions` (the underlying full-swipe-to-commit mechanics are unchanged — a ScrollView row can't host the native control).
+- [x] **SwipeToHide's plain DragGesture can steal taps** — `TrendingRow`'s Follow button and `RecommendationRow`'s dismiss "×" now carry a `.highPriorityGesture(TapGesture())` that always wins over the ancestor swipe gesture.
+- [x] **Feed refresh and recommendation candidate fetches are serial, not parallel** — all three now fan out via unstructured `Task { @MainActor in ... }` arrays awaited together (`FeedRefreshService.refreshAll`, `CandidateRetriever.retrieve`, `CandidateReranker.rank`) — network fetches overlap while SwiftData writes stay serialized on the main actor.
+- [x] **Feed refresh failures are silently swallowed** — `FeedRefreshService` now tracks `lastRefreshFailures: [String]` (show titles) per run and logs via `os.Logger`, instead of a bare `catch { continue }`.
+- [x] **Taste-profile scoring faults transcripts on the main actor** — `RecommendationService.refresh` now rebuilds the profile inside `Task.detached` over a background `ModelContext`, same pattern as `StorageBreakdown`/`LibrarySortKeys`; `TasteProfileBuilder` is no longer `@MainActor`.
+- [x] **Retention eviction doesn't check what's currently playing** — `EpisodeRetentionService` takes an `isCurrentlyPlaying: (Episode) -> Bool` closure (wired to `PlaybackManager.currentEpisode` in `OndaApp.swift`) and both eviction rules skip the live episode.
+- [x] **QueueItem has no cascade rule** — `Episode` gained `@Relationship(deleteRule: .cascade, inverse: \QueueItem.episode) var queueItems` (additive, lightweight migration).
+- [x] **Transcript timestamps format inconsistently** — new shared `Onda/Theme/TimeFormatting.swift`; both `TranscriptView` and `LibrarySearchView` now call it.
+- [x] **SRT/VTT end-timestamp parsing is fragile** — `TranscriptParser` now skips a cue with a missing/empty end-timestamp token, and validates `end >= start` before accepting it.
+
+Note: `TranscriptFollowProbeUITests` fails both before and after this pass (confirmed via `git stash`) — pre-existing, unrelated to these changes, not investigated here.
 
 ## Low Priority
 

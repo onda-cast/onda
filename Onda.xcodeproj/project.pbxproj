@@ -120,6 +120,7 @@
 		8749A1ED18DCA2188C4CB47E /* ClipServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FBD6DA4529DE65939254E12 /* ClipServiceTests.swift */; };
 		889D0D426FACDAB562C39601 /* PodcastEpisodeSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5CFAF270CB840561A8A523 /* PodcastEpisodeSearch.swift */; };
 		88DB78A54954DC820E58FFF8 /* ShowTranscriptsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6CF58B66ECECE89E8E768CE /* ShowTranscriptsView.swift */; };
+		89360AB74A307698F79F1BDE /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AD927E5D11F340717C53F09 /* TimeFormatting.swift */; };
 		8A379796FF2449E13CF89A62 /* BookExtracting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901A23C70AF51FE0A6C361CF /* BookExtracting.swift */; };
 		8B7362B1C7D26674D1D54326 /* HiddenShowsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B1D51AF2474DCA35036647 /* HiddenShowsTests.swift */; };
 		8F4AD92E7C308E36054E4466 /* SilenceDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75263D3463872DF06D72219 /* SilenceDetectorTests.swift */; };
@@ -194,6 +195,7 @@
 		CE31E0FC2DFBE0FC6AD0DCE4 /* BookLinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5B29C646063EEBCB53A820 /* BookLinkParser.swift */; };
 		CEA0C709ED719C46D943F3E3 /* LibrarySearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCAFB31E4B154AAA6A16D48C /* LibrarySearchView.swift */; };
 		CEBC2508AAB5FE11728B86C3 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97A7272E5BB819B8F48386CA /* TranscriptView.swift */; };
+		D2CFF83FA4F2C8E8CEA548CF /* TimeFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F01DB0B5E06E6E9DD6D4844D /* TimeFormattingTests.swift */; };
 		D4AE90A02CAECB444BC2DD1E /* SeekAccelerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC15E995F055FF218924E062 /* SeekAccelerator.swift */; };
 		D7791C4397CD162889894DD5 /* SmartQueryParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BB122FF92D1CDA4252B4FE /* SmartQueryParserTests.swift */; };
 		D80A64E832CAB0C4A6B4F46B /* RecommendationPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12592A60083822C46EF30CF9 /* RecommendationPipelineTests.swift */; };
@@ -367,6 +369,7 @@
 		785F5307E3C823FEC78A931B /* DealtCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealtCard.swift; sourceTree = "<group>"; };
 		78727412B5070C872E8C8B4E /* BookMentionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMentionService.swift; sourceTree = "<group>"; };
 		79C2283DA18F5EA37D53EFBB /* SmartQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQuery.swift; sourceTree = "<group>"; };
+		7AD927E5D11F340717C53F09 /* TimeFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatting.swift; sourceTree = "<group>"; };
 		7B9EF093482D7A3CB1420F55 /* transcript.vtt */ = {isa = PBXFileReference; path = transcript.vtt; sourceTree = "<group>"; };
 		7BE71BDDBD112ADDEA676983 /* DiscoverSuggestionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverSuggestionsTests.swift; sourceTree = "<group>"; };
 		7C838F68B4D6C4EAC88B7904 /* BrutalEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrutalEmptyState.swift; sourceTree = "<group>"; };
@@ -480,6 +483,7 @@
 		EA5CFAF270CB840561A8A523 /* PodcastEpisodeSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastEpisodeSearch.swift; sourceTree = "<group>"; };
 		EFA828C6EE830C3B05D66ECD /* article_basic.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = article_basic.html; sourceTree = "<group>"; };
 		EFC9BBD26D69EB2374F941C7 /* BookMention.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMention.swift; sourceTree = "<group>"; };
+		F01DB0B5E06E6E9DD6D4844D /* TimeFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormattingTests.swift; sourceTree = "<group>"; };
 		F054A4C32FC6891BC6555A06 /* DownloadsStorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadsStorageView.swift; sourceTree = "<group>"; };
 		F195A2C7A6F56903489DE7F7 /* SmartQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueue.swift; sourceTree = "<group>"; };
 		F1BB122FF92D1CDA4252B4FE /* SmartQueryParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueryParserTests.swift; sourceTree = "<group>"; };
@@ -890,6 +894,7 @@
 				C56597246CCC6EC9FC34A3C6 /* Palette.swift */,
 				093C510B4884B6D866862854 /* ScaledFont.swift */,
 				3D08E840362422D0CB05A96C /* Theme.swift */,
+				7AD927E5D11F340717C53F09 /* TimeFormatting.swift */,
 			);
 			path = Theme;
 			sourceTree = "<group>";
@@ -953,6 +958,7 @@
 				469CC05685CD4AF03D586364 /* SubscriptionServiceTests.swift */,
 				F26BA9D1CEE05EAA5CDF381C /* ThemeTests.swift */,
 				316194A0EA9B480C07B2199E /* TimecodeParseTests.swift */,
+				F01DB0B5E06E6E9DD6D4844D /* TimeFormattingTests.swift */,
 				41FC7B079CC4E5FEFE898C4E /* TranscriptFindTests.swift */,
 				23FA5F027F92CA348778CADB /* TranscriptParserTests.swift */,
 				88DE1D860B7C28D399461926 /* TranscriptSearchTests.swift */,
@@ -1278,6 +1284,7 @@
 				5239FAEE5BF91E2ABCCB942F /* TasteProfile.swift in Sources */,
 				1434D0AFB8FF8D66D7C721C5 /* TermVector.swift in Sources */,
 				AFCEA49459314178CF2BD336 /* Theme.swift in Sources */,
+				89360AB74A307698F79F1BDE /* TimeFormatting.swift in Sources */,
 				F8BF36096CD22B461C04864C /* Transcript.swift in Sources */,
 				F501972058060E64A615C94C /* TranscriptFind.swift in Sources */,
 				C5B9BB30AD005353CA028293 /* TranscriptParser.swift in Sources */,
@@ -1349,6 +1356,7 @@
 				7790A7D164AE78DE6CBC16C8 /* StorageBreakdownTests.swift in Sources */,
 				9518DC32144DA86BF1115FCF /* SubscriptionServiceTests.swift in Sources */,
 				A7BCE3FD3DFB5A83D604DA82 /* ThemeTests.swift in Sources */,
+				D2CFF83FA4F2C8E8CEA548CF /* TimeFormattingTests.swift in Sources */,
 				CA68EF08E49384FC9E9F95DB /* TimecodeParseTests.swift in Sources */,
 				F8A990CD7D924BFFB9D4B15D /* TranscriptFindTests.swift in Sources */,
 				07D5638371C4F282BED2F0B2 /* TranscriptParserTests.swift in Sources */,

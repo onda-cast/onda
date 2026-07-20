@@ -40,8 +40,14 @@ struct TranscriptParser: Sendable {
             let ends = timing.components(separatedBy: "-->")
             guard ends.count == 2 else { continue }
             let start = Self.parseTimestamp(ends[0])
-            let end = Self.parseTimestamp(ends[1].trimmingCharacters(in: .whitespaces)
-                .components(separatedBy: " ").first ?? ends[1])
+            // A well-formed end timestamp is the first whitespace-separated token after "-->"
+            // (anything past it is WebVTT cue settings like "align:start"). A cue missing its
+            // end timestamp entirely, or with settings glued on with no separating space, must
+            // not silently become a zero-time cue — skip it instead.
+            let endToken = ends[1].trimmingCharacters(in: .whitespaces).components(separatedBy: " ").first ?? ""
+            guard !endToken.isEmpty else { continue }
+            let end = Self.parseTimestamp(endToken)
+            guard end >= start else { continue }   // garbled timing — never render a negative-length cue
             let bodyLines = lines.drop { $0 != timing }.dropFirst()
             var body = bodyLines.joined(separator: " ")
             var speaker: String?

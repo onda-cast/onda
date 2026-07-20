@@ -23,11 +23,13 @@ struct CandidateReranker {
             .sorted { Self.prescore($0, profile: profile) > Self.prescore($1, profile: profile) }
             .prefix(limit)
 
-        // Fetch feeds sequentially (only ~15); a failed fetch falls back to metadata text.
-        var docs: [(dto: PodcastDTO, vector: TermVector)] = []
-        for dto in top {
-            docs.append((dto, await candidateVector(dto)))
+        // Fetch feeds concurrently (only ~15, but sequential awaits made this scale with
+        // candidate count); a failed fetch falls back to metadata text.
+        let tasks = top.map { dto in
+            Task { @MainActor in (dto, await self.candidateVector(dto)) }
         }
+        var docs: [(dto: PodcastDTO, vector: TermVector)] = []
+        for task in tasks { docs.append(await task.value) }
 
         let idf = TFIDF.idf(documents: docs.map(\.vector))
         let scored = docs.map { doc -> Recommendation in

@@ -22,7 +22,9 @@ struct TasteProfile: Equatable {
     }
 }
 
-@MainActor
+// NOT @MainActor: called from a background ModelContext (see RecommendationService.refresh) —
+// it faults every subscribed show's episodes and transcript cues, which used to run on the
+// main actor and could visibly hitch Discover on a library with a lot of transcribed content.
 enum TasteProfileBuilder {
     // Signal weights, strongest first.
     enum Weight {

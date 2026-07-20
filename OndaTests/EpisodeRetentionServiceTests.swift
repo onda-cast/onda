@@ -19,12 +19,13 @@ final class EpisodeRetentionServiceTests: XCTestCase {
         deleted = []
     }
 
-    private func makeService() -> EpisodeRetentionService {
+    private func makeService(currentlyPlayingGuid: String? = nil) -> EpisodeRetentionService {
         EpisodeRetentionService(modelContext: ctx, appSettings: settings,
                                 deleteDownload: { [self] ep in
                                     deleted.append(ep.guid)
                                     ep.downloadedFile = nil
                                 },
+                                isCurrentlyPlaying: { $0.guid == currentlyPlayingGuid },
                                 now: { [clock] in clock })
     }
 
@@ -172,6 +173,30 @@ final class EpisodeRetentionServiceTests: XCTestCase {
         makeEpisode(pod, guid: "c", played: true, publishDaysAgo: 10)
         makeService().evictEligibleEpisodes(for: pod)
         XCTAssertEqual(deleted, ["a"], "one over cap → only the oldest played goes")
+    }
+
+    // MARK: Currently-playing guard
+
+    func test_ageRule_neverEvictsCurrentlyPlayingEpisode() {
+        let pod = makePodcast()
+        settings.defaultAutoDeleteListenedAfterDays = 0
+        let playing = makeEpisode(pod, guid: "playing", played: true, playedDaysAgo: 5)
+        let other = makeEpisode(pod, guid: "other", played: true, playedDaysAgo: 5)
+        makeService(currentlyPlayingGuid: "playing").evictEligibleEpisodes(for: pod)
+        XCTAssertEqual(deleted, ["other"], "the live episode must survive an age-rule sweep")
+        XCTAssertFalse(playing.isArchived)
+        XCTAssertTrue(other.isArchived)
+    }
+
+    func test_capRule_neverEvictsCurrentlyPlayingEpisode() {
+        let pod = makePodcast()
+        settings.defaultMaxDownloadsKept = 1
+        let playing = makeEpisode(pod, guid: "playing", played: true, publishDaysAgo: 20)
+        let other = makeEpisode(pod, guid: "other", played: true, publishDaysAgo: 10)
+        makeService(currentlyPlayingGuid: "playing").evictEligibleEpisodes(for: pod)
+        XCTAssertEqual(deleted, ["other"],
+                       "even as the oldest, the live episode's download must not be freed mid-playback")
+        XCTAssertNotNil(playing.downloadedFile)
     }
 
     func test_capRule_zeroMeansUnlimited() {

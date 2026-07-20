@@ -26,9 +26,13 @@ struct CandidateRetriever {
                   subscribedFeeds: Set<URL>, isDismissed: (PodcastDTO) -> Bool,
                   limit: Int = 60) async -> [PodcastDTO] {
         let queries = Self.queries(profile: profile, followedCategories: followedCategories)
+        // Search concurrently — sequential awaits made retrieval latency scale with query count.
+        let tasks = queries.map { query in
+            Task { @MainActor in try? await client.search(term: query) }
+        }
         var merged: [PodcastDTO] = []
-        for query in queries {
-            if let found = try? await client.search(term: query) { merged.append(contentsOf: found) }
+        for task in tasks {
+            if let found = await task.value { merged.append(contentsOf: found) }
         }
 
         var seen = Set<String>()

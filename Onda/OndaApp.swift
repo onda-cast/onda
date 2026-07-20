@@ -42,9 +42,7 @@ struct OndaApp: App {
             let pm = PlaybackManager(engine: AVPlayerEngine(), modelContext: c.mainContext,
                                      appSettings: settings)
             _playback = State(initialValue: pm)
-            let engine: AudioTranscribing? = {
-                if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }
-            }()
+            let engine = OndaApp.makeTranscribingEngine()
             let index = try? SearchIndex(path: SearchIndex.defaultFileURL().path)
             _searchIndexBox = State(initialValue: SearchIndexBox(index: index))
             let ts = TranscriptService(
@@ -52,9 +50,7 @@ struct OndaApp: App {
                 localURL: { pm.localURL(for: $0) },
                 index: index)
             _transcripts = State(initialValue: ts)
-            let ret = EpisodeRetentionService(
-                modelContext: c.mainContext, appSettings: settings,
-                deleteDownload: { [weak dm] in dm?.delete($0) })
+            let ret = OndaApp.makeRetentionService(context: c.mainContext, settings: settings, dm: dm, pm: pm)
             _retention = State(initialValue: ret)
             pm.retention = ret
             OndaApp.wireRetention(subs: subs, dm: dm, ret: ret, ts: ts, context: c.mainContext)
@@ -141,6 +137,18 @@ struct OndaApp: App {
         rs.retention = ret
         rs.registerBackgroundTask()
         return rs
+    }
+
+    private static func makeTranscribingEngine() -> AudioTranscribing? {
+        if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }
+    }
+
+    private static func makeRetentionService(context: ModelContext, settings: AppSettings,
+                                             dm: DownloadManager, pm: PlaybackManager) -> EpisodeRetentionService {
+        EpisodeRetentionService(
+            modelContext: context, appSettings: settings,
+            deleteDownload: { [weak dm] in dm?.delete($0) },
+            isCurrentlyPlaying: { [weak pm] ep in pm?.currentEpisode?.guid == ep.guid })
     }
 
     private static func makeChapterService(context: ModelContext) -> ChapterGenerationService {

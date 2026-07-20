@@ -29,6 +29,11 @@ struct TrendingRow: View {
                     .brutalBorder(width: 2)
             }
             .buttonStyle(.plain)
+            // Rows using .swipeToHide layer a DragGesture over this whole row; a plain-tap
+            // Button already wins that arbitration in the common case, but this guarantees
+            // it — a stray bit of horizontal finger movement mid-tap must never get eaten by
+            // the ancestor's drag instead of toggling Follow.
+            .highPriorityGesture(TapGesture().onEnded(onToggle))
             .accessibilityLabel(isSubscribed ? "Following \(dto.collectionName), tap to unfollow"
                                              : "Follow \(dto.collectionName)")
         }

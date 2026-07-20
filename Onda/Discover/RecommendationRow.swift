@@ -23,9 +23,12 @@ struct RecommendationRow: View {
                 Button(action: onDismiss) {
                     Image(systemName: "xmark").scaledFont(12, weight: .bold)
                         .foregroundStyle(theme.color(.textTertiary))
-                        .frame(width: 32, height: 44).contentShape(Rectangle())
+                        .frame(width: 44, height: 44).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                // See TrendingRow's Follow button for why: guarantees this tap always wins
+                // over the ancestor .swipeToHide drag gesture below.
+                .highPriorityGesture(TapGesture().onEnded(onDismiss))
                 .accessibilityLabel("Not interested in \(rec.dto.collectionName)")
             }
             if let reason = rec.reasonLine {

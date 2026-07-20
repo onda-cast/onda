@@ -83,21 +83,21 @@ struct LibraryView: View {
                                 Text("CLIPS").scaledFont(12, weight: .bold)
                             }
                             .foregroundStyle(theme.color(.textSecondary))
-                            .padding(.horizontal, 10).frame(height: 36)
+                            .padding(.horizontal, 10).frame(height: 44)
                             .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                         }.buttonStyle(.plain).accessibilityLabel("Clips")
                         Button { showAddByURL = true } label: {
                             Image(systemName: "link.badge.plus")
                                 .scaledFont(16, weight: .semibold)
                                 .foregroundStyle(theme.color(.textSecondary))
-                                .frame(width: 36, height: 36)
+                                .frame(width: 44, height: 44)
                                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                         }.buttonStyle(.plain).accessibilityLabel("Add by Link")
                         Button { showSearch = true } label: {
                             Image(systemName: "magnifyingglass")
                                 .scaledFont(17, weight: .semibold)
                                 .foregroundStyle(theme.color(.textSecondary))
-                                .frame(width: 36, height: 36)
+                                .frame(width: 44, height: 44)
                                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                         }.buttonStyle(.plain).accessibilityLabel("Search Transcripts")
                         layoutMenu
@@ -292,7 +292,7 @@ extension LibraryView {
             Image(systemName: "slider.horizontal.3")
                 .scaledFont(17, weight: .semibold)
                 .foregroundStyle(theme.color(.textSecondary))
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
         }
         .accessibilityLabel("Library view options")

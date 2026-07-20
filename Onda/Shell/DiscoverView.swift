@@ -447,7 +447,7 @@ extension DiscoverView {
             } label: {
                 Image(systemName: "arrow.clockwise").scaledFont(14, weight: .bold)
                     .foregroundStyle(theme.color(.textSecondary))
-                    .frame(width: 34, height: 34)
+                    .frame(width: 44, height: 44)
                     .background(theme.color(.bgElevated)).brutalBorder(width: 2)
             }
             .disabled(recs.isLoading)

@@ -102,4 +102,23 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<BookMention>()).count, 0,
                        "book mentions cascade with their episode")
     }
+
+    // Regression: QueueItem.episode had no inverse relationship on Episode, so it defaulted to
+    // .nullify — deleting an episode left an orphaned QueueItem row (episode == nil) behind
+    // instead of removing it.
+    func test_queueItem_cascadesFromEpisode() throws {
+        let c = try ModelContainer(for: Schema(ondaSchema),
+                                   configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let ctx = ModelContext(c)
+        let ep = Episode(guid: "g", title: "E", publishDate: .now, duration: 10,
+                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        ctx.insert(ep)
+        let item = QueueItem(episode: ep, position: 0)
+        ep.queueItems.append(item)
+        ctx.insert(item); try ctx.save()
+
+        ctx.delete(ep); try ctx.save()
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<QueueItem>()).count, 0,
+                       "queue items cascade with their episode, no orphaned rows")
+    }
 }

@@ -84,7 +84,5 @@ struct LibrarySearchView: View {
         playback.seek(toFraction: hit.startTime / max(1, ep.duration))
     }
 
-    private func timeStr(_ s: TimeInterval) -> String {
-        let t = Int(s); return String(format: "%d:%02d", t / 60, t % 60)
-    }
+    private func timeStr(_ s: TimeInterval) -> String { TimeFormatting.timeStr(s) }
 }

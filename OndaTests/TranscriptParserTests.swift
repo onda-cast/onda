@@ -37,4 +37,52 @@ final class TranscriptParserTests: XCTestCase {
         XCTAssertEqual(TranscriptParser.parseTimestamp("00:01:02,500"), 62.5, accuracy: 0.001)
         XCTAssertEqual(TranscriptParser.parseTimestamp("01:02.500"), 62.5, accuracy: 0.001)
     }
+
+    // Regression: a cue-timing line with no end timestamp, or with cue settings glued directly
+    // onto it with no separating space, used to silently produce a zero-length/garbled cue
+    // instead of being skipped.
+    func test_malformedTiming_missingEndTimestamp_cueSkipped() {
+        let vtt = """
+        WEBVTT
+
+        00:00:01.000 -->
+        Orphaned line with no end time.
+
+        00:00:05.000 --> 00:00:07.000
+        A well-formed cue that must still parse.
+        """
+        let cues = TranscriptParser().parse(Data(vtt.utf8), type: "text/vtt")
+        XCTAssertEqual(cues.count, 1, "the malformed cue is skipped, not zero-timed")
+        XCTAssertEqual(cues[0].text, "A well-formed cue that must still parse.")
+    }
+
+    func test_malformedTiming_settingsGluedWithNoSpace_cueSkipped() {
+        let vtt = """
+        WEBVTT
+
+        00:00:10.000 -->00:00:12.000align:start
+        Glued cue settings, no space before the end timestamp.
+
+        00:00:15.000 --> 00:00:16.000
+        Next cue is unaffected.
+        """
+        let cues = TranscriptParser().parse(Data(vtt.utf8), type: "text/vtt")
+        XCTAssertEqual(cues.count, 1, "the glued/garbled timing line is skipped")
+        XCTAssertEqual(cues[0].text, "Next cue is unaffected.")
+    }
+
+    func test_endBeforeStart_cueSkipped() {
+        let vtt = """
+        WEBVTT
+
+        00:00:20.000 --> 00:00:10.000
+        End before start — clearly garbled.
+
+        00:00:25.000 --> 00:00:26.000
+        A valid cue after it.
+        """
+        let cues = TranscriptParser().parse(Data(vtt.utf8), type: "text/vtt")
+        XCTAssertEqual(cues.count, 1, "end < start is rejected rather than rendered")
+        XCTAssertEqual(cues[0].text, "A valid cue after it.")
+    }
 }

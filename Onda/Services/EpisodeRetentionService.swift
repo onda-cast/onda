@@ -18,13 +18,19 @@ final class EpisodeRetentionService {
     private let appSettings: AppSettings
     private let deleteDownload: (Episode) -> Void   // DownloadManager.delete in the app
     private let now: () -> Date                     // injectable clock for the day-based rule
+    // Wired to PlaybackManager in OndaApp. Without this, marking the currently-playing episode
+    // played (swipe, "mark all played") could evict the file backing the live AVPlayerItem —
+    // guarded by guid, not object identity, matching how the rest of the app compares episodes.
+    private let isCurrentlyPlaying: (Episode) -> Bool
 
     init(modelContext: ModelContext, appSettings: AppSettings,
          deleteDownload: @escaping (Episode) -> Void,
+         isCurrentlyPlaying: @escaping (Episode) -> Bool = { _ in false },
          now: @escaping () -> Date = { .now }) {
         self.modelContext = modelContext
         self.appSettings = appSettings
         self.deleteDownload = deleteDownload
+        self.isCurrentlyPlaying = isCurrentlyPlaying
         self.now = now
     }
 
@@ -79,7 +85,7 @@ final class EpisodeRetentionService {
         let cutoff = now().addingTimeInterval(-Double(days) * 86_400)
         let keep = resolvedKeepTranscripts(for: podcast)
         for ep in podcast.episodes where ep.played && !ep.isArchived && ep.sourceType != "article" {
-            guard let playedAt = ep.playedDate, playedAt <= cutoff else { continue }
+            guard let playedAt = ep.playedDate, playedAt <= cutoff, !isCurrentlyPlaying(ep) else { continue }
             if ep.downloadedFile != nil { deleteDownload(ep) }
             archive(ep, keepTranscript: keep)
         }
@@ -97,7 +103,7 @@ final class EpisodeRetentionService {
         let downloaded = podcast.episodes.filter { $0.downloadedFile != nil && !$0.isArchived }
         let overflow = downloaded.count - cap
         guard overflow > 0 else { return }
-        let evictable = downloaded.filter { $0.played && $0.sourceType != "article" }
+        let evictable = downloaded.filter { $0.played && $0.sourceType != "article" && !isCurrentlyPlaying($0) }
             .sorted { $0.publishDate < $1.publishDate }
         for ep in evictable.prefix(overflow) {
             deleteDownload(ep)

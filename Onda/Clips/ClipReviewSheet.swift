@@ -151,7 +151,7 @@ struct ClipReviewSheet: View {
             Button { setTime(field, to: playback.positionSeconds) } label: {
                 Image(systemName: "arrow.down.to.line")
                     .scaledFont(15, weight: .bold).foregroundStyle(theme.color(.accent))
-                    .frame(width: 40, height: 40)
+                    .frame(width: 44, height: 44)
                     .background(theme.color(.accentWash)).brutalBorder(width: 2)
             }
             .buttonStyle(.plain)
@@ -165,7 +165,7 @@ struct ClipReviewSheet: View {
         Button { adjust(field, by: tap) } label: {
             Image(systemName: symbol)
                 .scaledFont(15, weight: .bold).foregroundStyle(theme.color(.text))
-                .frame(width: 40, height: 40)
+                .frame(width: 44, height: 44)
                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
         }
         .buttonStyle(.plain)

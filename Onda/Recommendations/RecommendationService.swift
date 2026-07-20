@@ -79,13 +79,25 @@ final class RecommendationService {
         lastDismissed = nil
         defer { isLoading = false }
 
+        // Cheap: only feedURL is read here, no episode/transcript faulting.
         let subs = (try? modelContext.fetch(
             FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed }))) ?? []
-        let clips = (try? modelContext.fetch(FetchDescriptor<Clip>())) ?? []
-        let profile = TasteProfileBuilder.build(subscriptions: subs, clips: clips,
-                                                searchTerms: searchLog.terms)
-        isPersonalized = !profile.isEmpty
         let subscribedFeeds = Set(subs.map(\.feedURL))
+
+        // The taste profile is the expensive part — it faults every subscribed show's episodes
+        // AND their transcript cues. Re-fetch and build it in a background ModelContext (same
+        // stale-while-revalidate-free pattern as StorageBreakdown/LibrarySortKeys) instead of
+        // doing that on the main actor, which could visibly hitch Discover.
+        let searchTerms = searchLog.terms
+        let container = modelContext.container
+        let profile = await Task.detached(priority: .userInitiated) {
+            let bg = ModelContext(container)
+            let subs = (try? bg.fetch(
+                FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed }))) ?? []
+            let clips = (try? bg.fetch(FetchDescriptor<Clip>())) ?? []
+            return TasteProfileBuilder.build(subscriptions: subs, clips: clips, searchTerms: searchTerms)
+        }.value
+        isPersonalized = !profile.isEmpty
 
         var pool = await retriever.retrieve(
             profile: profile, followedCategories: followedCategories,
