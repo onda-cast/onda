@@ -475,7 +475,7 @@ extension DiscoverView {
                 .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
                 .frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 50)
         } else {
-            ForEach(recs.recommendations.filter { !hidden.isHidden($0.dto) }) { rec in
+            ForEach(recs.recommendations.filter { !hidden.isHidden($0.dto) && !hiddenCategories.isHidden($0.dto) }) { rec in
                 RecommendationRow(rec: rec, isSubscribed: isSubscribed(rec.dto),
                                   onFollow: { toggleFollow(rec.dto) },
                                   onPreview: { previewTarget = PreviewTarget(dto: rec.dto) },
