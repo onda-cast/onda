@@ -28,7 +28,9 @@ Four-agent parallel review (Library/Discover, Player/Playback/Books/Clips, Profi
 - [x] **Transcript timestamps format inconsistently** — new shared `Onda/Theme/TimeFormatting.swift`; both `TranscriptView` and `LibrarySearchView` now call it.
 - [x] **SRT/VTT end-timestamp parsing is fragile** — `TranscriptParser` now skips a cue with a missing/empty end-timestamp token, and validates `end >= start` before accepting it.
 
-Note: `TranscriptFollowProbeUITests` fails both before and after this pass (confirmed via `git stash`) — pre-existing, unrelated to these changes, not investigated here.
+## Fixed separately
+
+- [x] **`TranscriptFollowProbeUITests` pre-existing failure** — root cause: cue text renders via `SelectableCueText` (a `UITextView`-backed `UIViewRepresentable`, added for native Look Up/Search Web selection), which surfaces to XCUITest through `.value`, not `.label` like a plain SwiftUI `Text`. The probe queried `app.staticTexts(label CONTAINS ...)`, which was never going to match a `UITextView`. Fixed by querying `app.textViews(value CONTAINS ...)` instead. Verified stable across 3 consecutive runs.
 
 ## Low Priority
 

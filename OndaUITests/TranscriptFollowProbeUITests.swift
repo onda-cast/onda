@@ -21,8 +21,11 @@ final class TranscriptFollowProbeUITests: XCTestCase {
         XCTAssertTrue(transcriptButton.waitForExistence(timeout: 5))
         transcriptButton.tap()
 
-        let firstCue = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS 'Hello world'")).firstMatch
+        // Cue text renders via SelectableCueText (a UITextView-backed UIViewRepresentable, for
+        // native Look Up/Search Web selection) — it surfaces through .value, not .label like a
+        // plain SwiftUI Text, so the query must target textViews, not staticTexts.
+        let firstCue = app.textViews.matching(
+            NSPredicate(format: "value CONTAINS 'Hello world'")).firstMatch
         XCTAssertTrue(firstCue.waitForExistence(timeout: 5), "transcript cues not shown")
         try? XCUIScreen.main.screenshot().pngRepresentation.write(
             to: URL(fileURLWithPath: "/tmp/onda-follow-early.png"))
