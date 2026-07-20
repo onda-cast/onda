@@ -193,6 +193,25 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertFalse(svc.isPersonalized, "no profile signal → charts, not personalized")
     }
 
+    func test_service_coldStart_excludesHiddenCategoryFromCharts() async throws {
+        let ctx = try ctx()
+        let hiddenShow = dto("Crime Show", feed: "https://crime.com/f.xml", genre: "True Crime")
+        let goodShow = dto("Top Show", feed: "https://top.com/f.xml", genre: "News")
+        let client = StubSearch(chartIds: [1, 2], chartLookup: [hiddenShow, goodShow])
+        let feeds = StubFeeds(byURL: [
+            URL(string: "https://crime.com/f.xml")!: feed("Crime Show", episodes: [("Ep", "murder")]),
+            URL(string: "https://top.com/f.xml")!: feed("Top Show", episodes: [("Ep", "news of the day")])
+        ])
+        let hiddenCategories = HiddenCategories(defaults: freshDefaults())
+        hiddenCategories.toggle("True Crime")
+        let svc = RecommendationService(modelContext: ctx, client: client, feeds: feeds,
+                                        embedding: nil, searchLog: SearchTermLog(defaults: freshDefaults()),
+                                        dismissed: DismissedShows(defaults: freshDefaults()),
+                                        hiddenCategories: hiddenCategories)
+        await svc.refresh(followedCategories: [])
+        XCTAssertEqual(svc.recommendations.map(\.dto.collectionName), ["Top Show"])
+    }
+
     func test_service_dismiss_removesAndPersists() async throws {
         let ctx = try ctx()
         let defaults = freshDefaults()

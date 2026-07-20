@@ -13,7 +13,7 @@ struct OndaApp: App {
     @State private var downloads: DownloadManager
     @State private var refresh: FeedRefreshService
     @State private var hiddenShows = HiddenShows()
-    @State private var hiddenCategories = HiddenCategories()
+    @State private var hiddenCategories: HiddenCategories
     @State private var transcripts: TranscriptService
     @State private var retention: EpisodeRetentionService
     @State private var chapterGen: ChapterGenerationService
@@ -65,8 +65,11 @@ struct OndaApp: App {
             OndaApp.wirePlayback(pm: pm, dm: dm, cs: cs, settings: settings)
             _refresh = State(initialValue: OndaApp.makeRefreshService(
                 context: c.mainContext, subs: subs, dm: dm, settings: settings, ret: ret))
+            let hiddenCats = HiddenCategories()
+            _hiddenCategories = State(initialValue: hiddenCats)
             _recommendations = State(initialValue: RecommendationService(
-                modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient()))
+                modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient(),
+                hiddenCategories: hiddenCats))
             let articlesService = OndaApp.makeArticleService(context: c.mainContext, ts: ts)
             articlesService.registerBackgroundTask()
             _articles = State(initialValue: articlesService)

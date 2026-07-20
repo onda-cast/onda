@@ -26,11 +26,13 @@ final class RecommendationService {
     private let reranker: CandidateReranker
     private let searchLog: SearchTermLog
     private let dismissedStore: DismissedShows
+    private let hiddenCategoriesStore: HiddenCategories
     private let now: () -> Date
 
     init(modelContext: ModelContext, client: Searching, feeds: FeedFetching,
          embedding: WordEmbedding? = AppleWordEmbedding(),
          searchLog: SearchTermLog? = nil, dismissed: DismissedShows? = nil,
+         hiddenCategories: HiddenCategories? = nil,
          now: @escaping () -> Date = { .now }) {
         self.modelContext = modelContext
         self.client = client
@@ -38,6 +40,7 @@ final class RecommendationService {
         self.reranker = CandidateReranker(feeds: feeds, embedding: embedding)
         self.searchLog = searchLog ?? SearchTermLog()
         self.dismissedStore = dismissed ?? DismissedShows()
+        self.hiddenCategoriesStore = hiddenCategories ?? HiddenCategories()
         self.now = now
     }
 
@@ -86,7 +89,8 @@ final class RecommendationService {
             subscribedFeeds: subscribedFeeds,
             isDismissed: { [dismissedStore] dto in
                 dismissedStore.contains(dto) || dto.feedUrl.map(excluding.contains) ?? false
-            })
+            },
+            isCategoryHidden: { [hiddenCategoriesStore] dto in hiddenCategoriesStore.isHidden(dto) })
 
         // Cold start / thin pool: mix in the top charts so there's always something to show.
         if pool.count < 10 {
@@ -127,7 +131,7 @@ final class RecommendationService {
         return charts.filter { dto in
             guard let feed = dto.feedUrl else { return false }
             return !subscribedFeeds.contains(feed) && !have.contains(feed.absoluteString)
-                && !dismissedStore.contains(dto)
+                && !dismissedStore.contains(dto) && !hiddenCategoriesStore.isHidden(dto)
         }
     }
 }
