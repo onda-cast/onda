@@ -44,10 +44,15 @@ struct LibrarySearchView: View {
                                     .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
                             }
                         }
+                        .listRowBackground(theme.color(.bg))
                     }
                     .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
             }
+            // Fill the sheet — a hugging VStack left the theme background as a floating band
+            // centered in a white sheet (reported unstyled).
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(theme.color(.bg))
             .navigationTitle("Search Transcripts")
             .navigationBarTitleDisplayMode(.inline)

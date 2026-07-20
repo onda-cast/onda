@@ -90,7 +90,7 @@ struct LibraryView: View {
                                 .foregroundStyle(theme.color(.textSecondary))
                                 .frame(width: 36, height: 36)
                                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).accessibilityLabel("Search Transcripts")
                         layoutMenu
                     }
                     .padding(.horizontal, 20).padding(.top, 56)
