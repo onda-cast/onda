@@ -7,20 +7,23 @@ struct ArtworkView: View {
     let seed: String
 
     private var hue: Double { Double(abs(seed.hashValue) % 360) }
+    @State private var loaded: UIImage?
 
     var body: some View {
         ZStack {
             gradient
-            if let url {
-                AsyncImage(url: url) { phase in
-                    if case let .success(image) = phase {
-                        image.resizable().scaledToFill()
-                    }
-                }
+            // Cache hit renders synchronously — AsyncImage restarted from its empty phase on
+            // every tab-switch rebuild, flashing placeholders across the whole grid.
+            if let url, let image = ArtworkCache.shared.image(for: url) ?? loaded {
+                Image(uiImage: image).resizable().scaledToFill()
             }
         }
         .clipped()
         .brutalBorder(width: 2.5)
+        .task(id: url) {
+            guard let url, ArtworkCache.shared.image(for: url) == nil else { return }
+            loaded = await ArtworkCache.shared.load(url)
+        }
     }
 
     private var gradient: some View {
