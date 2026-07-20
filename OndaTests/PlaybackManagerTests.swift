@@ -425,6 +425,60 @@ extension PlaybackManagerTests {
         XCTAssertEqual(pm.currentEpisode?.guid, "current", "restore never clobbers an active episode")
         UserDefaults.standard.removeObject(forKey: "lastPlayedEpisodeGuid")
     }
+    // MARK: Retention sweep on natural playback completion
+
+    // Regression: SubscriptionService.setPlayed always swept retention after marking an episode
+    // played, but PlaybackManager marking it played itself (finishing IN the player — the most
+    // common way an episode finishes) never did, so "delete when finished" silently never fired
+    // for that path.
+    private func makeRetention(ctx: ModelContext, settings: AppSettings,
+                               onDelete: @escaping (Episode) -> Void) -> EpisodeRetentionService {
+        EpisodeRetentionService(modelContext: ctx, appSettings: settings, deleteDownload: onDelete)
+    }
+
+    func test_handleEndOfItem_sweepsRetentionImmediately() throws {
+        let ctx = try makeContext()
+        let settings = makeAppSettings()
+        settings.defaultAutoDeleteListenedAfterDays = 0   // delete immediately once finished
+        let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: settings)
+        let ep = makeEpisode(in: ctx)
+        let file = DownloadedFile(localFileName: "x.mp3", fileSizeBytes: 10, downloadedAt: .now)
+        file.episode = ep; ep.downloadedFile = file
+        ctx.insert(file)
+
+        var deletedGuids: [String] = []
+        pm.retention = makeRetention(ctx: ctx, settings: settings) { deletedGuids.append($0.guid) }
+
+        pm.play(ep)
+        pm.handleEndOfItem()
+
+        XCTAssertTrue(ep.played)
+        XCTAssertEqual(deletedGuids, ["g"],
+                       "finishing an episode in the player must sweep retention immediately")
+    }
+
+    func test_ninetyFivePercentTick_sweepsRetentionImmediately() throws {
+        let ctx = try makeContext()
+        let settings = makeAppSettings()
+        settings.defaultAutoDeleteListenedAfterDays = 0
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: settings)
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        let file = DownloadedFile(localFileName: "x.mp3", fileSizeBytes: 10, downloadedAt: .now)
+        file.episode = ep; ep.downloadedFile = file
+        ctx.insert(file)
+
+        var deletedGuids: [String] = []
+        pm.retention = makeRetention(ctx: ctx, settings: settings) { deletedGuids.append($0.guid) }
+
+        pm.play(ep)
+        engine.emitTime(960)   // past the 95% mark-played threshold
+
+        XCTAssertTrue(ep.played)
+        XCTAssertEqual(deletedGuids, ["g"],
+                       "reaching 95% must sweep retention immediately, same as finishing the item")
+    }
+
     // MARK: Audio-session interruptions
 
     func test_interruption_pausesThenAutoResumesWithHint() throws {

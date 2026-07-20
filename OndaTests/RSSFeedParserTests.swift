@@ -9,6 +9,17 @@ final class RSSFeedParserTests: XCTestCase {
         return try Data(contentsOf: url)
     }
 
+    // Regression: fetchFeed used to run the synchronous XMLParser pass directly on the
+    // caller's actor (@MainActor SubscriptionService), freezing the UI on large feeds. It now
+    // hops to Task.detached — this confirms that refactor still parses correctly end-to-end.
+    func test_client_fetchFeed_parsesViaDetachedTask() async throws {
+        let data = try fixture("feed_basic")
+        let client = RSSFeedClient(transport: { _ in data })
+        let feed = try await client.fetchFeed(URL(string: "https://ex.com/feed.xml")!)
+        XCTAssertEqual(feed.title, "The Signal")
+        XCTAssertEqual(feed.episodes.count, 1)
+    }
+
     func test_parseBasic_extractsChannelAndEpisode() throws {
         let feed = RSSFeedParser().parse(try fixture("feed_basic"))
         let f = try XCTUnwrap(feed)

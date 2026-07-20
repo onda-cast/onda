@@ -21,9 +21,7 @@ struct ShowCard: View {
                         .accessibilityLabel("Private feed")
                 }
             }
-            Text(podcast.episodes.first?.title ?? "No episodes")
-                .scaledFont(12.5).foregroundStyle(theme.color(.textTertiary))
-                .lineLimit(1)
+            LatestEpisodeSubtitle(podcast: podcast)
         }
     }
 }

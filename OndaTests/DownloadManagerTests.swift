@@ -72,6 +72,31 @@ final class DownloadManagerTests: XCTestCase {
         XCTAssertNotNil(refreshed?.downloadedFile)
     }
 
+    // Regression: deleting an episode while its download is still in flight (e.g. a retention
+    // sweep evicting a mid-download episode) previously let a completion that was already
+    // past the point of no return land afterward and silently re-create the file/row delete()
+    // just removed.
+    func test_delete_duringInFlightDownload_tombstonesLateCompletion() async throws {
+        let env = try makeEnv()
+        let dm = DownloadManager(persistence: env.persistence, session: FakeURLSession())
+        dm.download(env.episode)
+        if case .downloading = dm.state(for: env.episode) {} else { XCTFail("expected downloading") }
+
+        dm.delete(env.episode)   // deleted mid-download
+        XCTAssertEqual(dm.state(for: env.episode), .none)
+
+        // The in-flight task's completion callback lands anyway — the race this guards against.
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("late.mp3")
+        try Data([9, 9, 9]).write(to: tmp)
+        await dm.handleFinished(guid: "g1", tempURL: tmp, totalBytes: 3)
+
+        XCTAssertEqual(dm.state(for: env.episode), .none, "late completion must not resurrect the download")
+        try await Task.sleep(for: .milliseconds(50))
+        let refreshed = try env.context.fetch(FetchDescriptor<Episode>()).first
+        XCTAssertNil(refreshed?.downloadedFile, "no DownloadedFile row should be resurrected")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: tmp.path), "temp file discarded, not moved into place")
+    }
+
     func test_failure_retriesOnce_thenFails() throws {
         let env = try makeEnv()
         let dm = DownloadManager(persistence: env.persistence, session: FakeURLSession())

@@ -344,9 +344,7 @@ extension LibraryView {
             VStack(alignment: .leading, spacing: 2) {
                 Text(show.title).brutalHeader(size: 14).foregroundStyle(theme.color(.text))
                     .lineLimit(1)
-                Text(show.episodes.first?.title ?? "No episodes")
-                    .scaledFont(12.5).foregroundStyle(theme.color(.textTertiary))
-                    .lineLimit(1)
+                LatestEpisodeSubtitle(podcast: show)
             }
             // Claim the row's free width so a long title truncates here instead of sliding under
             // the chevron (the overlap seen in compact/text layouts).

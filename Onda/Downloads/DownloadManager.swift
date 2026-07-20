@@ -14,6 +14,12 @@ final class DownloadManager: NSObject {
     private var retries: [String: Int] = [:]
     private var urlByGuid: [String: URL] = [:]
     private var guidByTaskURL: [URL: String] = [:]
+    private var activeTasks: [String: URLSessionDownloadTask] = [:]
+    // Guids deleted while their download was in flight: a task can be past the point
+    // cancel() stops it (already finished writing, callback just hasn't run yet) and still
+    // land in handleFinished — this tombstone makes that landing a no-op instead of silently
+    // resurrecting the file/row delete() just removed.
+    private var pendingDeleteGuids: Set<String> = []
 
     /// Fired (with the episode guid) after a download lands on disk and is recorded.
     /// Wired in OndaApp to kick off auto-transcription when the resolved setting is on.
@@ -46,10 +52,12 @@ final class DownloadManager: NSObject {
         // Idempotent: play-triggered downloads can race the download button and each other.
         if episode.downloadedFile != nil { return }
         if case .downloading = states[guid] { return }
+        pendingDeleteGuids.remove(guid)
         states[guid] = .downloading(progress: 0)
         urlByGuid[guid] = episode.audioURL
         guidByTaskURL[episode.audioURL] = guid
         let task = session.downloadTask(with: makeRequest(for: episode.audioURL))
+        activeTasks[guid] = task
         task.resume()
     }
 
@@ -60,8 +68,16 @@ final class DownloadManager: NSObject {
     }
 
     func delete(_ episode: Episode) {
-        states[episode.guid] = DownloadState.none
         let guid = episode.guid
+        states[guid] = DownloadState.none
+        // Cancel any in-flight download for this episode — without this, a still-downloading
+        // task can finish and land in handleFinished after delete, silently re-creating the
+        // file/row that was just removed (e.g. a retention sweep evicting a mid-download episode).
+        if let task = activeTasks.removeValue(forKey: guid) {
+            task.cancel()
+            pendingDeleteGuids.insert(guid)
+        }
+        if let url = urlByGuid.removeValue(forKey: guid) { guidByTaskURL.removeValue(forKey: url) }
         // The actual file removal happens inside PersistenceActor (off the main actor) —
         // a retention sweep can call this once per evicted episode in a tight loop, and
         // that loop must not block on synchronous disk I/O.
@@ -71,6 +87,11 @@ final class DownloadManager: NSObject {
     // MARK: delegate seams (unit-tested directly)
 
     func handleFinished(guid: String, tempURL: URL, totalBytes: Int64) async {
+        activeTasks[guid] = nil
+        if pendingDeleteGuids.remove(guid) != nil {
+            try? FileManager.default.removeItem(at: tempURL)   // episode was deleted mid-download
+            return
+        }
         let dest = Self.fileURL(named: Self.fileName(for: guid))
         try? FileManager.default.createDirectory(at: dest.deletingLastPathComponent(),
                                                  withIntermediateDirectories: true)
@@ -86,11 +107,14 @@ final class DownloadManager: NSObject {
     }
 
     func handleFailed(guid: String) {
+        activeTasks[guid] = nil
         let attempts = (retries[guid] ?? 0) + 1
         retries[guid] = attempts
         if attempts <= 1, let url = urlByGuid[guid] {
             states[guid] = .downloading(progress: 0)   // auto-retry once
-            session.downloadTask(with: makeRequest(for: url)).resume()
+            let task = session.downloadTask(with: makeRequest(for: url))
+            activeTasks[guid] = task
+            task.resume()
         } else {
             states[guid] = .failed
         }
@@ -100,7 +124,9 @@ final class DownloadManager: NSObject {
         retries[guid] = 0
         if let url = urlByGuid[guid] {
             states[guid] = .downloading(progress: 0)
-            session.downloadTask(with: makeRequest(for: url)).resume()
+            let task = session.downloadTask(with: makeRequest(for: url))
+            activeTasks[guid] = task
+            task.resume()
         }
     }
 

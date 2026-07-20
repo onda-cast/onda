@@ -63,6 +63,7 @@
 		44F48DD1F54C9BAA5DD3D95D /* ChapterGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E57A3975734FA3AB29AA4CF /* ChapterGenerationService.swift */; };
 		46153D4968241035FF9D501B /* AddByURLSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F563CEA4C02736337CE21768 /* AddByURLSheet.swift */; };
 		4770621414319C21F7F00665 /* RecommendationScoringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3E715A82A51303AA8860AF /* RecommendationScoringTests.swift */; };
+		485B8F066FEF3DCFD7AC5970 /* LatestEpisodeSubtitle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98719AAF1CA17396DCBF9689 /* LatestEpisodeSubtitle.swift */; };
 		499CF60CF7FBF93D9641C61B /* PendingArticlesQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE91F6079E1EFEA78501D29 /* PendingArticlesQueue.swift */; };
 		4B70BA7C852DC578461AE64D /* ShowSettingsMigrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E15C9F863251C0386A35B21 /* ShowSettingsMigrator.swift */; };
 		4E84B4456ABA3BD4CA4FAC24 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2958F56426F97414D9AFA575 /* QueueView.swift */; };
@@ -397,6 +398,7 @@
 		95F89E1D02C358AFACCB68FE /* RetentionSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetentionSettingsSection.swift; sourceTree = "<group>"; };
 		96E5B1386BC83946FDD936E1 /* ArticlePendingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticlePendingRow.swift; sourceTree = "<group>"; };
 		97A7272E5BB819B8F48386CA /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
+		98719AAF1CA17396DCBF9689 /* LatestEpisodeSubtitle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatestEpisodeSubtitle.swift; sourceTree = "<group>"; };
 		99215AF044580B797FB85A07 /* ArtworkCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkCache.swift; sourceTree = "<group>"; };
 		99C8223829772A584EF205CD /* PrivateFeedTokenStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateFeedTokenStoreTests.swift; sourceTree = "<group>"; };
 		9E24712575D9A7F84E2503D3 /* PodcastSettingsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcastSettingsListView.swift; sourceTree = "<group>"; };
@@ -726,6 +728,7 @@
 				27ED285FFA7CA19C80995EDD /* EpisodeFilter.swift */,
 				27845D9408FFD9F14078875D /* EpisodeListView.swift */,
 				C792A2C9B971CE0D7699E235 /* EpisodeRow.swift */,
+				98719AAF1CA17396DCBF9689 /* LatestEpisodeSubtitle.swift */,
 				FCAFB31E4B154AAA6A16D48C /* LibrarySearchView.swift */,
 				421075011CD9ACC11AC9E688 /* ShowCard.swift */,
 				C6CF58B66ECECE89E8E768CE /* ShowTranscriptsView.swift */,
@@ -1212,6 +1215,7 @@
 				204EF66371A62A9569817BC5 /* HiddenShows.swift in Sources */,
 				BA5A213ABE3A407DB6C4B4E8 /* ITunesSearchClient.swift in Sources */,
 				79124B9489A4D77E1F6D7025 /* ITunesSearchClientBox.swift in Sources */,
+				485B8F066FEF3DCFD7AC5970 /* LatestEpisodeSubtitle.swift in Sources */,
 				428E071C8478342A27BBF390 /* LibraryLayout.swift in Sources */,
 				CEA0C709ED719C46D943F3E3 /* LibrarySearchView.swift in Sources */,
 				0637D74E7FCCF172E74E0B53 /* LibrarySort.swift in Sources */,

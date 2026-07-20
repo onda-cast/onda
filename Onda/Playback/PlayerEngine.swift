@@ -19,6 +19,8 @@ protocol PlayerEngine: AnyObject {
 final class AVPlayerEngine: PlayerEngine {
     private let player = AVPlayer()
     private var timeObserver: Any?
+    private var endObserver: NSObjectProtocol?
+    private var installTapTask: Task<Void, Never>?
     private var tap: AudioTap?
     var onEndOfItem: (() -> Void)?
     var onTimeUpdate: ((TimeInterval) -> Void)?
@@ -41,11 +43,16 @@ final class AVPlayerEngine: PlayerEngine {
     }
 
     private func installTap(on item: AVPlayerItem) {
-        Task { [weak self, weak item] in
+        // Cancel any still-running install for the PREVIOUS item — without this, a rapid
+        // episode switch can let a stale task resolve after the new one and silently overwrite
+        // `self.tap` with a tap bound to a discarded item, breaking Voice Boost/skip-silence
+        // until the next switch.
+        installTapTask?.cancel()
+        installTapTask = Task { [weak self, weak item] in
             guard let item,
                   let track = try? await item.asset.loadTracks(withMediaCharacteristic: .audible).first
             else { return }
-            guard let self else { return }
+            guard let self, !Task.isCancelled, item === self.player.currentItem else { return }
             let t = AudioTap()
             t.gain = self.tap?.gain ?? 1.0   // carry the current boost across episodes
             t.onRMS = { rms, secs in
@@ -63,8 +70,12 @@ final class AVPlayerEngine: PlayerEngine {
     }
 
     private func addObservers(for item: AVPlayerItem) {
-        NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime,
-                                               object: item, queue: .main) { [weak self] _ in
+        // Replace, don't accumulate — every load() previously registered a fresh end-of-item
+        // observer for the outgoing item that was never removed, a small leak over a long
+        // listening session.
+        if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
+        endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime,
+                                                              object: item, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.onEndOfItem?() }
         }
         if timeObserver == nil {

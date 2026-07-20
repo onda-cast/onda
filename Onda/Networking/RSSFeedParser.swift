@@ -1,7 +1,7 @@
 //  RSSFeedParser.swift
 import Foundation
 
-struct ParsedEpisode {
+struct ParsedEpisode: Sendable {
     let guid: String
     let title: String
     let publishDate: Date
@@ -14,7 +14,7 @@ struct ParsedEpisode {
     var transcriptType: String?
 }
 
-struct ParsedFeed {
+struct ParsedFeed: Sendable {
     let title: String
     let author: String
     let artworkURL: URL?
@@ -26,7 +26,7 @@ protocol FeedFetching: Sendable {
     func fetchFeed(_ url: URL) async throws -> ParsedFeed
 }
 
-struct RSSFeedParser {
+struct RSSFeedParser: Sendable {
     func parse(_ data: Data) -> ParsedFeed? {
         let delegate = FeedDelegate()
         let parser = XMLParser(data: data)
@@ -229,7 +229,13 @@ struct RSSFeedClient: FeedFetching {
 
     func fetchFeed(_ url: URL) async throws -> ParsedFeed {
         let data = try await transport(url)
-        guard let feed = parser.parse(data) else {
+        // `fetchFeed` is called from @MainActor SubscriptionService; a plain `async` function
+        // with no actor isolation of its own runs ON THE CALLER'S actor unless it explicitly
+        // hops off — so the synchronous XMLParser pass was running on the main thread for
+        // every subscribe/refresh, visibly freezing the UI on large feeds.
+        let parser = self.parser
+        let parsed = await Task.detached(priority: .userInitiated) { parser.parse(data) }.value
+        guard let feed = parsed else {
             throw NSError(domain: "Onda.RSS", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "No channel in feed"])
         }

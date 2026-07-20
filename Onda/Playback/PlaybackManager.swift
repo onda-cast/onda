@@ -88,6 +88,10 @@ final class PlaybackManager {
 
     // Wired in OndaApp: streaming an un-downloaded episode also saves it for offline (idempotent).
     var ensureDownloaded: ((Episode) -> Void)?
+    // Wired in OndaApp: SubscriptionService.setPlayed already sweeps retention on manual mark-
+    // played, but finishing an episode IN the player never went through that path, so "delete
+    // when finished" silently never fired for the most common way of finishing an episode.
+    var retention: EpisodeRetentionService?
 
     // MARK: Capture (lock-screen quick clip)
     var onCaptureRequested: (() -> Void)?
@@ -406,6 +410,7 @@ final class PlaybackManager {
         if t - lastPersistedAt >= 5 { persistPosition() }
         if ep.duration > 0, t >= ep.duration * 0.95, !ep.played {
             ep.played = true; ep.playedDate = .now; try? modelContext.save()
+            if let podcast = ep.podcast { retention?.evictEligibleEpisodes(for: podcast) }
         }
         nowPlaying.update(title: ep.title, show: ep.podcast?.title ?? "",
                           position: positionSeconds, duration: durationSeconds,
@@ -429,6 +434,7 @@ final class PlaybackManager {
         }
         if let ep = currentEpisode { ep.played = true; ep.playedDate = .now; ep.playbackPosition = 0 }
         try? modelContext.save()
+        if let podcast = currentEpisode?.podcast { retention?.evictEligibleEpisodes(for: podcast) }
         if sleepMode == .endOfEpisode {
             isPlaying = false
             sleepMode = .off

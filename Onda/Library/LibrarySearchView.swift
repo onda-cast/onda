@@ -12,6 +12,7 @@ struct LibrarySearchView: View {
 
     @State private var query = ""
     @State private var hits: [TranscriptHit] = []
+    @State private var searchTask: Task<Void, Never>?
 
     private var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
@@ -57,14 +58,22 @@ struct LibrarySearchView: View {
             .navigationTitle("Search Transcripts")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: query) { _, q in
+                searchTask?.cancel()
                 guard let index = searchIndexBox.index else {
                     hits = []
                     return
                 }
-                // Natural-language path: "book mentioned by michael in odd lots" —
-                // parses show/speaker filters, lemmatizes terms, then FTS5 retrieval.
-                hits = TranscriptSearch(modelContext: modelContext, index: index)
-                    .smartSearch(q, knownShows: subscribedShows.map(\.title))
+                // Debounced like Discover's search: smartSearch spins up NLTagger POS/NER
+                // tagging plus an FTS5 query — running it on every keystroke (no debounce)
+                // could visibly stutter typing.
+                searchTask = Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    guard !Task.isCancelled else { return }
+                    // Natural-language path: "book mentioned by michael in odd lots" —
+                    // parses show/speaker filters, lemmatizes terms, then FTS5 retrieval.
+                    hits = TranscriptSearch(modelContext: modelContext, index: index)
+                        .smartSearch(q, knownShows: subscribedShows.map(\.title))
+                }
             }
         }
     }

@@ -106,4 +106,31 @@ final class BookMentionServiceTests: XCTestCase {
         await working.findBooks(for: ep)
         XCTAssertEqual(ep.bookMentions.count, 1, "re-run replaces, never accumulates duplicates")
     }
+
+    /// Regression: `findBooks` used to iterate `episode.bookMentions` while deleting its
+    /// members inside that same loop (a live SwiftData relationship array), which can skip
+    /// elements or crash. Multiple distinct mentions replaced by another full set on rerun is
+    /// the scenario that would expose it.
+    func test_multipleMentions_rerunReplacesAllWithoutSkippingOrCrashing() async throws {
+        let ctx = try ctx()
+        let asins = ["AAAAAAAAAA", "BBBBBBBBBB", "CCCCCCCCCC"]
+        let ep = makeEpisode(ctx, noteLinks: asins.map { URL(string: "https://amazon.com/dp/\($0)")! })
+        // Verify concurrently, and distinctly per candidate, by echoing the requested isbn back.
+        let verifier = BookVerifier(transport: { url in
+            let isbn = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems?.first { $0.name == "isbn" }?.value ?? "?"
+            let doc: [String: Any] = ["key": "/works/\(isbn)", "title": "Book \(isbn)", "author_name": []]
+            return try JSONSerialization.data(withJSONObject: ["docs": [doc]])
+        })
+        let svc = BookMentionService(modelContext: ctx, verifier: verifier, llm: nil,
+                                     isPersonName: { _ in false })
+
+        await svc.findBooks(for: ep)
+        XCTAssertEqual(Set(ep.bookMentions.map(\.workKey)), Set(asins.map { "/works/\($0)" }),
+                       "all three concurrently-verified candidates persist")
+
+        await svc.findBooks(for: ep)
+        XCTAssertEqual(ep.bookMentions.count, 3, "rerun replaces every old mention, none skipped")
+        XCTAssertEqual(Set(ep.bookMentions.map(\.workKey)), Set(asins.map { "/works/\($0)" }))
+    }
 }

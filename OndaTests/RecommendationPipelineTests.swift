@@ -180,6 +180,30 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertFalse(svc.isPersonalized, "no profile signal → charts, not personalized")
     }
 
+    // Regression: HiddenShows previously had no effect on RecommendationService at all — a
+    // hidden show could still surface in "For You" (only Discover's render-time filter hid
+    // it there, and only after the retrieval/rerank work had already been spent on it).
+    func test_service_excludesHiddenShows_fromFinalRecommendations() async throws {
+        let ctx = try ctx()
+        let defaults = freshDefaults()
+        let visible = dto("Visible Show", feed: "https://visible.com/f.xml")
+        let hidden = dto("Hidden Show", feed: "https://hidden.com/f.xml")
+        let client = StubSearch(chartIds: [1, 2], chartLookup: [visible, hidden])
+        let feeds = StubFeeds(byURL: [
+            URL(string: "https://visible.com/f.xml")!: feed("Visible Show", episodes: [("Ep", "hi")]),
+            URL(string: "https://hidden.com/f.xml")!: feed("Hidden Show", episodes: [("Ep", "hi")])
+        ])
+        let hiddenStore = HiddenShows(defaults: defaults)
+        hiddenStore.hide(hidden)
+        let svc = RecommendationService(modelContext: ctx, client: client, feeds: feeds, embedding: nil,
+                                        searchLog: SearchTermLog(defaults: defaults),
+                                        dismissed: DismissedShows(defaults: defaults),
+                                        hidden: hiddenStore)
+        await svc.refresh(followedCategories: [])
+        XCTAssertEqual(svc.recommendations.map(\.dto.collectionName), ["Visible Show"],
+                       "a hidden show must never appear in For You, even via the cold-start chart fallback")
+    }
+
     func test_service_dismiss_removesAndPersists() async throws {
         let ctx = try ctx()
         let defaults = freshDefaults()

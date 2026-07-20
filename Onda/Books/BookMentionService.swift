@@ -48,10 +48,7 @@ final class BookMentionService {
         candidates += patterns.candidates(fromCues: cues)
         candidates += await llmCandidates(cues: cues)
 
-        var verified: [(VerifiedBook, BookCandidate)] = []
-        for candidate in candidates {
-            if let book = await verifier.verify(candidate) { verified.append((book, candidate)) }
-        }
+        let verified = await Self.verifyConcurrently(candidates, with: verifier)
 
         guard !verified.isEmpty else {
             if candidates.isEmpty {
@@ -62,8 +59,35 @@ final class BookMentionService {
             return
         }
 
-        // Replace-on-rerun; dedupe by work key, preferring entries that carry a timestamp.
-        for old in episode.bookMentions { modelContext.delete(old) }
+        replaceMentions(for: episode, with: verified)
+    }
+
+    /// Verifies every candidate against OpenLibrary concurrently — sequential awaits made
+    /// "Find Books" take tens of seconds on episodes with many candidates (one round-trip
+    /// at a time).
+    private static func verifyConcurrently(_ candidates: [BookCandidate],
+                                           with verifier: BookVerifier) async -> [(VerifiedBook, BookCandidate)] {
+        await withTaskGroup(of: (VerifiedBook, BookCandidate)?.self) { group in
+            for candidate in candidates {
+                group.addTask {
+                    guard let book = await verifier.verify(candidate) else { return nil }
+                    return (book, candidate)
+                }
+            }
+            var verified: [(VerifiedBook, BookCandidate)] = []
+            for await result in group {
+                if let result { verified.append(result) }
+            }
+            return verified
+        }
+    }
+
+    /// Replace-on-rerun; dedupe by work key, preferring entries that carry a timestamp.
+    /// Snapshot first: deleting a BookMention can mutate episode.bookMentions in place
+    /// (cascade inverse), which would corrupt iteration over the live relationship array.
+    private func replaceMentions(for episode: Episode, with verified: [(VerifiedBook, BookCandidate)]) {
+        let existingMentions = episode.bookMentions
+        for old in existingMentions { modelContext.delete(old) }
         episode.bookMentions.removeAll()
         var byKey: [String: (VerifiedBook, BookCandidate)] = [:]
         for (book, candidate) in verified {

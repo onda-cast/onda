@@ -26,18 +26,24 @@ final class RecommendationService {
     private let reranker: CandidateReranker
     private let searchLog: SearchTermLog
     private let dismissedStore: DismissedShows
+    // Same store DiscoverView/HiddenPodcastsView write to (share the app-wide instance passed
+    // in — see hidden note below) — hidden shows were previously only stripped at render time,
+    // so they still consumed retrieval/rerank budget (network fetch + embedding scoring) and
+    // silently shrank the visible list below its intended size.
+    private let hiddenStore: HiddenShows
     private let now: () -> Date
 
     init(modelContext: ModelContext, client: Searching, feeds: FeedFetching,
          embedding: WordEmbedding? = AppleWordEmbedding(),
          searchLog: SearchTermLog? = nil, dismissed: DismissedShows? = nil,
-         now: @escaping () -> Date = { .now }) {
+         hidden: HiddenShows? = nil, now: @escaping () -> Date = { .now }) {
         self.modelContext = modelContext
         self.client = client
         self.retriever = CandidateRetriever(client: client)
         self.reranker = CandidateReranker(feeds: feeds, embedding: embedding)
         self.searchLog = searchLog ?? SearchTermLog()
         self.dismissedStore = dismissed ?? DismissedShows()
+        self.hiddenStore = hidden ?? HiddenShows()
         self.now = now
     }
 
@@ -84,8 +90,9 @@ final class RecommendationService {
         var pool = await retriever.retrieve(
             profile: profile, followedCategories: followedCategories,
             subscribedFeeds: subscribedFeeds,
-            isDismissed: { [dismissedStore] dto in
-                dismissedStore.contains(dto) || dto.feedUrl.map(excluding.contains) ?? false
+            isDismissed: { [dismissedStore, hiddenStore] dto in
+                dismissedStore.contains(dto) || hiddenStore.isHidden(dto)
+                    || dto.feedUrl.map(excluding.contains) ?? false
             })
 
         // Cold start / thin pool: mix in the top charts so there's always something to show.
@@ -127,7 +134,7 @@ final class RecommendationService {
         return charts.filter { dto in
             guard let feed = dto.feedUrl else { return false }
             return !subscribedFeeds.contains(feed) && !have.contains(feed.absoluteString)
-                && !dismissedStore.contains(dto)
+                && !dismissedStore.contains(dto) && !hiddenStore.isHidden(dto)
         }
     }
 }

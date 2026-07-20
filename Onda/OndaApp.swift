@@ -12,7 +12,7 @@ struct OndaApp: App {
     @State private var playback: PlaybackManager
     @State private var downloads: DownloadManager
     @State private var refresh: FeedRefreshService
-    @State private var hiddenShows = HiddenShows()
+    @State private var hiddenShows: HiddenShows
     @State private var transcripts: TranscriptService
     @State private var retention: EpisodeRetentionService
     @State private var chapterGen: ChapterGenerationService
@@ -32,6 +32,8 @@ struct OndaApp: App {
             PrivateFeedTokenMigration.run(context: c.mainContext, tokenStore: tokenStore)
             let settings = AppSettings()
             _appSettings = State(initialValue: settings)
+            let hidden = HiddenShows()
+            _hiddenShows = State(initialValue: hidden)
             let subs = SubscriptionService(modelContext: c.mainContext, feeds: RSSFeedClient(),
                                            tokenStore: tokenStore)
             let dm = DownloadManager(persistence: PersistenceActor(modelContainer: c))
@@ -54,6 +56,7 @@ struct OndaApp: App {
                 modelContext: c.mainContext, appSettings: settings,
                 deleteDownload: { [weak dm] in dm?.delete($0) })
             _retention = State(initialValue: ret)
+            pm.retention = ret
             OndaApp.wireRetention(subs: subs, dm: dm, ret: ret, ts: ts, context: c.mainContext)
             _chapterGen = State(initialValue: OndaApp.makeChapterService(context: c.mainContext))
             UITestSeed.seed(context: c.mainContext)
@@ -65,7 +68,8 @@ struct OndaApp: App {
             _refresh = State(initialValue: OndaApp.makeRefreshService(
                 context: c.mainContext, subs: subs, dm: dm, settings: settings, ret: ret))
             _recommendations = State(initialValue: RecommendationService(
-                modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient()))
+                modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient(),
+                hidden: hidden))
             let articlesService = OndaApp.makeArticleService(context: c.mainContext, ts: ts)
             articlesService.registerBackgroundTask()
             _articles = State(initialValue: articlesService)
