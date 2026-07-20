@@ -144,6 +144,19 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertEqual(pool.map(\.collectionName), ["Good"])
     }
 
+    func test_retriever_dropsHiddenCategoryShows() async {
+        let hidden = dto("Crime Show", feed: "https://crime.com/f.xml", genre: "True Crime")
+        let good = dto("Good Show", feed: "https://good.com/f.xml", genre: "Technology")
+        let client = StubSearch(byTerm: ["coffee": [hidden, good]])
+        var profile = TasteProfile(); profile.terms.add(text: "coffee", weight: 1)
+        let retriever = CandidateRetriever(client: client)
+        let pool = await retriever.retrieve(
+            profile: profile, followedCategories: [], subscribedFeeds: [],
+            isDismissed: { _ in false },
+            isCategoryHidden: { $0.primaryGenreName == "True Crime" })
+        XCTAssertEqual(pool.map(\.collectionName), ["Good Show"])
+    }
+
     // MARK: Reranker with a fake feed fetcher
 
     func test_reranker_ranksContentMatchAboveNoise() async {
