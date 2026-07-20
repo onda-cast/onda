@@ -17,6 +17,14 @@ final class NowPlayingCenter {
     private var artworkCache: [URL: MPMediaItemArtwork] = [:]
     private var currentArtwork: MPMediaItemArtwork?
     private var artworkURL: URL?
+    // What the last full `update` actually wrote — lets subsequent same-episode ticks (title/
+    // show/duration/artwork all unchanged, only position/rate moving) mutate the existing
+    // Now Playing dictionary in place instead of reallocating and rewriting the whole thing
+    // (including re-attaching artwork) roughly twice a second.
+    private var lastTitle: String?
+    private var lastShow: String?
+    private var lastDuration: TimeInterval?
+    private var lastAttachedArtwork: MPMediaItemArtwork?
 
     func configureRemoteCommands(play: @escaping @MainActor () -> Void,
                                  pause: @escaping @MainActor () -> Void,
@@ -54,6 +62,16 @@ final class NowPlayingCenter {
     }
 
     func update(title: String, show: String, position: TimeInterval, duration: TimeInterval, rate: Float) {
+        let center = MPNowPlayingInfoCenter.default()
+        let unchanged = title == lastTitle && show == lastShow && duration == lastDuration
+            && currentArtwork === lastAttachedArtwork
+        if unchanged, var info = center.nowPlayingInfo {
+            info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = position
+            info[MPNowPlayingInfoPropertyPlaybackRate] = rate
+            center.nowPlayingInfo = info
+            return
+        }
+        lastTitle = title; lastShow = show; lastDuration = duration; lastAttachedArtwork = currentArtwork
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: title,
             MPMediaItemPropertyArtist: show,
@@ -64,7 +82,7 @@ final class NowPlayingCenter {
         if let currentArtwork {
             info[MPMediaItemPropertyArtwork] = currentArtwork
         }
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        center.nowPlayingInfo = info
     }
 
     // Called once per episode change. Fetched asynchronously and cached by URL — `update` runs

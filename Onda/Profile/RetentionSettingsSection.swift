@@ -26,20 +26,29 @@ struct RetentionSettingsSection: View {
                                 get: { appSettings.defaultAutoDownload },
                                 set: { appSettings.defaultAutoDownload = $0 }))
                     divider
-                    // "Freed" (not "removed" / "deleted") because only the audio file goes —
-                    // the episode itself stays in the library and can re-download. That's a
-                    // different, much less destructive action than the rule below, which
-                    // archives the episode out of the library entirely.
-                    toggleRow("Limit downloads kept",
-                              subtitle: "Oldest played downloads are freed first \u{2014} episodes stay and can re-download",
-                              isOn: Binding(
-                                get: { appSettings.defaultMaxDownloadsKept > 0 },
-                                set: { appSettings.defaultMaxDownloadsKept = $0 ? 10 : 0 }))
-                    if appSettings.defaultMaxDownloadsKept > 0 {
-                        stepperRow("Keep per show",
-                                   value: Binding(get: { appSettings.defaultMaxDownloadsKept },
-                                                  set: { appSettings.defaultMaxDownloadsKept = $0 }),
-                                   range: 1...50, label: { "\($0)" })
+                    // Segmented (not a bare Toggle) to match the per-show override screen's
+                    // control family for the same setting — both are "Off/Custom-with-a-
+                    // stepper" shaped, just without a "Default" segment here since there's
+                    // nothing above the global level to inherit from.
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Limit downloads kept").scaledFont(15, weight: .semibold)
+                            .foregroundStyle(theme.color(.text))
+                        // "Freed" (not "removed" / "deleted") because only the audio file goes —
+                        // the episode itself stays in the library and can re-download. That's a
+                        // different, much less destructive action than the rule below, which
+                        // archives the episode out of the library entirely.
+                        Text("Oldest played downloads are freed first \u{2014} episodes stay and can re-download")
+                            .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
+                        SegmentedRow(options: [("Off", 0), ("Custom", 1)],
+                                     selection: appSettings.defaultMaxDownloadsKept > 0 ? 1 : 0) {
+                            appSettings.defaultMaxDownloadsKept = $0 == 0 ? 0 : 10
+                        }
+                        if appSettings.defaultMaxDownloadsKept > 0 {
+                            stepperRow("Keep per show",
+                                       value: Binding(get: { appSettings.defaultMaxDownloadsKept },
+                                                      set: { appSettings.defaultMaxDownloadsKept = $0 }),
+                                       range: 1...50, label: { "\($0)" })
+                        }
                     }
                     divider
                     VStack(alignment: .leading, spacing: 8) {

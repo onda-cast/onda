@@ -37,8 +37,12 @@ enum SmartQueryParser {
         var show: String?
 
         // 1. Show: longest known title appearing case-insensitively wins; remove it.
+        // Word-boundary matched (\b...\b), not a bare substring search — otherwise a short
+        // show title can match inside an unrelated word (e.g. a show titled "It" matching
+        // inside "quit"), incorrectly stripping text out of the search terms.
         for candidate in knownShows.sorted(by: { $0.count > $1.count }) {
-            if let r = text.range(of: candidate, options: [.caseInsensitive]) {
+            let pattern = "\\b\(NSRegularExpression.escapedPattern(for: candidate))\\b"
+            if let r = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
                 show = candidate
                 text.removeSubrange(r)
                 break

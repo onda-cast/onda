@@ -42,6 +42,18 @@ final class SmartQueryParserTests: XCTestCase {
         XCTAssertEqual(q.terms, ["inflation"])
     }
 
+    // Regression: show matching used to be a bare substring search, so a short show name could
+    // match inside an unrelated word.
+    func test_showMatch_neverMatchesInsideAnotherWord() {
+        let q = SmartQueryParser.parse("signaling issues this week", knownShows: ["Signal"])
+        XCTAssertNil(q.show, "'Signal' must not match inside 'signaling'")
+    }
+
+    func test_showMatch_stillMatchesAtWordBoundary() {
+        let q = SmartQueryParser.parse("problems on Signal", knownShows: ["Signal"])
+        XCTAssertEqual(q.show, "Signal")
+    }
+
     func test_noFilters_allWordsBecomeTerms_minusStopwords() throws {
         try skipUnlessNLAssetsAvailable()
         let q = SmartQueryParser.parse("what was the moneyball quote", knownShows: shows)

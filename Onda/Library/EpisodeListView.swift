@@ -37,10 +37,6 @@ struct EpisodeListView: View {
         filter.apply(to: podcast.episodes)
     }
 
-    private var displayedEpisodes: [Episode] {
-        isSearching ? results.map(\.episode) : episodes
-    }
-
     private func snippet(for ep: Episode) -> String? {
         results.first { $0.episode.guid == ep.guid }?.snippet
     }
@@ -48,6 +44,11 @@ struct EpisodeListView: View {
     // List (not ScrollView) so rows get native HIG swipe actions; context menu stays as
     // the redundant secondary access per Apple's guidance.
     var body: some View {
+        // Computed once per render — `episodes` faults/filters podcast.episodes, so evaluating
+        // it twice below (once for the empty-state check, once inside displayedEpisodes) did
+        // that work twice every render.
+        let currentEpisodes = episodes
+        let shown = isSearching ? results.map(\.episode) : currentEpisodes
         List {
             Group {
                 header
@@ -56,7 +57,7 @@ struct EpisodeListView: View {
                     SegmentedRow(options: EpisodeFilter.allCases.map { ($0.label, $0) },
                                  selection: filter) { filter = $0 }
                 }
-                if !isSearching && episodes.isEmpty && filter == .downloaded {
+                if !isSearching && currentEpisodes.isEmpty && filter == .downloaded {
                     Button { filter = .all } label: {
                         Text("No downloads yet — show all episodes")
                             .scaledFont(13, weight: .semibold).foregroundStyle(theme.color(.accent))
@@ -80,7 +81,7 @@ struct EpisodeListView: View {
                 }
             }
 
-            ForEach(displayedEpisodes) { ep in
+            ForEach(shown) { ep in
                 EpisodeRow(episode: ep,
                            downloadState: downloads.state(for: ep),
                            snippet: snippet(for: ep),

@@ -103,6 +103,12 @@ struct TranscriptView: View {
                 if searching { searchBar }
             }
             .toolbar {
+                // Explicit dismiss, matching the sibling ShowTranscriptsView sheet — this view
+                // previously relied on swipe-to-dismiss alone, including while still loading
+                // (no trailing toolbar items exist until cues are in), leaving no visible way
+                // to close during that window. "Close" (not "Done") avoids clashing with the
+                // Select-mode toggle's own "Done" label on the trailing side below.
+                ToolbarItem(placement: .topBarLeading) { Button("Close") { dismiss() } }
                 if transcript != nil, !(transcript?.cues.isEmpty ?? true) {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {

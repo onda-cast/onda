@@ -151,9 +151,29 @@ final class PlaybackManager {
         returnToTranscriptEpisode = episode
         transcriptReturnTask?.cancel()
         transcriptReturnTask = Task { @MainActor [weak self] in
-            // Let the transcript sheet(s) dismiss before presenting the player (podcast-screen path).
-            try? await Task.sleep(for: .milliseconds(400))
+            // Poll for the transcript sheet(s) to actually finish dismissing (podcast-screen
+            // path can stack two: ShowTranscriptsView -> TranscriptView) instead of guessing a
+            // fixed delay — presenting Now Playing while a sheet is still animating out looks
+            // broken. 400ms remains the ceiling so a missed signal can't hang this forever.
+            await Self.waitForPresentedSheetsToClear(maxWait: 0.4)
             self?.showNowPlaying = true
+        }
+    }
+
+    /// True once nothing is presented above the key window's root — i.e. every `.sheet` in the
+    /// jump-from-transcript path has finished its dismiss animation.
+    private static func waitForPresentedSheetsToClear(maxWait: TimeInterval) async {
+        let deadline = Date().addingTimeInterval(maxWait)
+        while Date() < deadline {
+            guard let root = UIApplication.shared.connectedScenes
+                .compactMap({ ($0 as? UIWindowScene) })
+                .flatMap({ $0.windows })
+                .first(where: \.isKeyWindow)?.rootViewController
+            else { return }   // no window yet (e.g. in tests) — nothing to wait for
+            var top = root
+            while let presented = top.presentedViewController { top = presented }
+            if top === root { return }
+            try? await Task.sleep(for: .milliseconds(30))
         }
     }
 

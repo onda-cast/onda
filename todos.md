@@ -32,14 +32,14 @@ Four-agent parallel review (Library/Discover, Player/Playback/Books/Clips, Profi
 
 - [x] **`TranscriptFollowProbeUITests` pre-existing failure** — root cause: cue text renders via `SelectableCueText` (a `UITextView`-backed `UIViewRepresentable`, added for native Look Up/Search Web selection), which surfaces to XCUITest through `.value`, not `.label` like a plain SwiftUI `Text`. The probe queried `app.staticTexts(label CONTAINS ...)`, which was never going to match a `UITextView`. Fixed by querying `app.textViews(value CONTAINS ...)` instead. Verified stable across 3 consecutive runs.
 
-## Low Priority
+## Low Priority — ALL FIXED 2026-07-20
 
-- [ ] EpisodeListView's `episodes` computed property faulted twice per render — `Onda/Library/EpisodeListView.swift:36-38`.
-- [ ] `NowPlayingCenter.update` rebuilds/reassigns the whole Now Playing Info dictionary every ~0.5s tick even when only position changed — `Onda/Playback/NowPlayingCenter.swift:56-67`.
-- [ ] Hardcoded 400ms sleep to sequence transcript-sheet dismiss → player presentation — `Onda/Playback/PlaybackManager.swift:149-153`.
-- [ ] No consistent sheet-dismiss convention (toolbar Done/Cancel vs. bare trailing icon vs. custom chevron) across BooksSheet/TranscriptView/NowPlayingView.
-- [ ] DownloadsStorageView's empty state is a bare `Text`, not the shared `BrutalEmptyState` — `Onda/Profile/DownloadsStorageView.swift:38-40`.
-- [ ] Global vs. per-show "limit downloads" uses a Toggle+stepper in one place and a SegmentedRow+stepper in the other — `Onda/Profile/RetentionSettingsSection.swift:33-42` vs. `Onda/Settings/ShowSettingsSheet.swift:77-89`.
-- [ ] Show-name matching in natural-language search is substring-based, not word-boundary — `Onda/Search/SmartQuery.swift:40-46`.
-- [ ] Search index's 2-character minimum silently returns empty for single-character/CJK queries — `Onda/Search/SearchIndex.swift:93-95`.
-- [ ] ShowTranscriptsView recomputes a full cue scan on every render, not just query change — `Onda/Library/ShowTranscriptsView.swift:23-31`.
+- [x] **EpisodeListView's `episodes` computed property faulted twice per render** — removed the `displayedEpisodes` computed property; `body` now evaluates `episodes` once into a local `let` and reuses it for both the empty-state check and the list (`Onda/Library/EpisodeListView.swift`).
+- [x] **`NowPlayingCenter.update` rebuilds/reassigns the whole Now Playing Info dictionary every ~0.5s tick** — now tracks last-applied title/show/duration/artwork and, when unchanged, mutates only the elapsed-time/rate keys of the existing dictionary in place instead of rebuilding it (`Onda/Playback/NowPlayingCenter.swift`).
+- [x] **Hardcoded 400ms sleep to sequence transcript-sheet dismiss → player presentation** — replaced with a poll (`waitForPresentedSheetsToClear`, 30ms interval, 400ms ceiling) that checks the key window's presented-view-controller chain and proceeds as soon as the sheet(s) actually finish dismissing (`Onda/Playback/PlaybackManager.swift`).
+- [x] **No consistent sheet-dismiss convention** — `TranscriptView` gained an explicit "Close" toolbar button (previously swipe-to-dismiss only, with no visible affordance at all during its loading state); `NowPlayingView`'s custom chevron is a deliberate full-player idiom and was left as-is (`Onda/Player/TranscriptView.swift`).
+- [x] **DownloadsStorageView's empty state is a bare `Text`** — now uses the shared `BrutalEmptyState` component (`Onda/Profile/DownloadsStorageView.swift`).
+- [x] **Global vs. per-show "limit downloads" control mismatch** — global settings converted from Toggle+stepper to a 2-way `SegmentedRow` ("Off"/"Custom") + conditional stepper, matching the per-show screen's component family and the "Delete played episodes" block in the same file (`Onda/Profile/RetentionSettingsSection.swift`).
+- [x] **Show-name matching in natural-language search was substring-based** — now word-boundary matched via `\b...\b` regex, so a short show name (e.g. "Signal") no longer matches inside an unrelated word (e.g. "signaling"); regression tests added (`Onda/Search/SmartQuery.swift`, `OndaTests/SmartQueryParserTests.swift`).
+- [x] **Search index's 2-character minimum silently rejected single-character CJK queries** — added a CJK-range bypass (Unified Ideographs, Hiragana/Katakana, Hangul) so a single CJK character reaches FTS5 instead of being rejected before the query is even run; regression test added. Note: fully unspaced CJK sentences still need a CJK-aware FTS5 tokenizer to segment per-character — a separate, larger change, out of scope here (`Onda/Search/SearchIndex.swift`, `OndaTests/SearchIndexTests.swift`).
+- [x] **ShowTranscriptsView recomputed a full cue scan on every render** — `transcribed`/`results` converted from computed properties to `@State`, recomputed explicitly via `.task`/`.onChange(of: query)` instead of on every render (`Onda/Library/ShowTranscriptsView.swift`).

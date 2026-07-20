@@ -36,8 +36,9 @@ struct DownloadsStorageView: View {
                 if let bd = breakdown {
                     typeBar(bd)
                     if bd.podcasts.isEmpty {
-                        Text("Nothing stored yet").foregroundStyle(theme.color(.textTertiary))
-                            .frame(maxWidth: .infinity).padding(.top, 40)
+                        BrutalEmptyState("Nothing stored yet",
+                                         detail: "Downloaded audio and transcripts will show up here.")
+                            .padding(.top, 40)
                     } else {
                         Text("By Podcast").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
                         ForEach(bd.podcasts) { row in podcastCard(row) }

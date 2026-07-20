@@ -92,7 +92,10 @@ final class SearchIndex {
 
     func search(_ query: String, limit: Int = 50) throws -> [SearchResult] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard q.count >= 2 else { return [] }
+        // The 2-char floor filters noisy single-Latin-letter queries, but a single CJK
+        // character IS a full word (unlike a single Latin letter) — without this, transcript
+        // search silently returns nothing for a one-character Chinese/Japanese/Korean query.
+        guard q.count >= 2 || Self.containsCJK(q) else { return [] }
         let sql = """
             SELECT kind, episode_guid, start_time, snippet(search_index, 3, '', '', '…', 12)
             FROM search_index WHERE search_index MATCH ? ORDER BY bm25(search_index) LIMIT ?;
@@ -128,6 +131,17 @@ final class SearchIndex {
 
     private func matchExpression(for query: String) -> String {
         "\"\(query.replacingOccurrences(of: "\"", with: "\"\""))\"*"
+    }
+
+    /// CJK Unified Ideographs, Hiragana/Katakana, and Hangul Syllables — scripts where a
+    /// single character already carries word-level meaning.
+    private static func containsCJK(_ s: String) -> Bool {
+        s.unicodeScalars.contains {
+            (0x4E00...0x9FFF).contains($0.value)      // CJK Unified Ideographs
+                || (0x3400...0x4DBF).contains($0.value)   // CJK Extension A
+                || (0x3040...0x30FF).contains($0.value)   // Hiragana + Katakana
+                || (0xAC00...0xD7A3).contains($0.value)   // Hangul Syllables
+        }
     }
 
     private func exec(_ sql: String) throws {

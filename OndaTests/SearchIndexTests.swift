@@ -69,4 +69,19 @@ final class SearchIndexTests: XCTestCase {
         try idx.upsert(SearchDoc(kind: "cue", episodeGuid: "g1", startTime: 0, body: "hello world"))
         XCTAssertEqual(try idx.search("h"), [])
     }
+
+    // Regression: a single CJK character is a full word (unlike a single Latin letter), but
+    // the 2-char floor used to reject the query outright before it ever reached FTS5, so a
+    // one-character Chinese/Japanese/Korean query always returned empty — even when the
+    // character appears as a standalone, space-delimited token FTS5 can actually match (as in
+    // mixed-language transcripts). Note: fully unspaced CJK text needs a CJK-aware FTS5
+    // tokenizer to segment per-character — a separate, larger change; this only removes the
+    // artificial length floor that blocked the query before FTS5 even saw it.
+    func test_search_singleCJKCharacter_notRejectedByLengthFloor() throws {
+        let idx = try makeIndex()
+        try idx.upsert(SearchDoc(kind: "cue", episodeGuid: "g1", startTime: 0,
+                                 body: "the word for sun is 日 in Japanese"))
+        XCTAssertFalse(try idx.search("日").isEmpty,
+                       "a single CJK character must reach FTS5, not be rejected by the length guard")
+    }
 }

@@ -11,24 +11,13 @@ struct ShowTranscriptsView: View {
 
     @State private var query = ""
     @State private var reading: Episode?
-
-    private var transcribed: [Episode] {
-        podcast.episodes
-            .filter { !($0.transcript?.cues.isEmpty ?? true) }
-            .sorted { $0.publishDate > $1.publishDate }
-    }
+    // Recomputed explicitly (task + onChange(of: query)) instead of as a plain computed
+    // property — `results` used to re-scan every transcribed episode's cues on every render,
+    // not just when the query actually changed.
+    @State private var transcribed: [Episode] = []
+    @State private var results: [(episode: Episode, snippet: String?)] = []
 
     private var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
-
-    private var results: [(episode: Episode, snippet: String?)] {
-        guard isSearching else { return transcribed.map { ($0, nil) } }
-        let needle = query.lowercased()
-        return transcribed.compactMap { ep in
-            let cues = ep.transcript?.cues ?? []
-            guard let hit = cues.first(where: { $0.text.lowercased().contains(needle) }) else { return nil }
-            return (ep, hit.text)
-        }
-    }
 
     var body: some View {
         NavigationStack {
@@ -55,6 +44,28 @@ struct ShowTranscriptsView: View {
             .sheet(item: $reading) { TranscriptView(episode: $0) }
             // A transcript jump opens the player; close this browser too so it can present.
             .onChange(of: playback.transcriptJumpNonce) { _, _ in dismiss() }
+            .task { recomputeTranscribed() }
+            .onChange(of: query) { _, _ in recomputeResults() }
+        }
+    }
+
+    private func recomputeTranscribed() {
+        transcribed = podcast.episodes
+            .filter { !($0.transcript?.cues.isEmpty ?? true) }
+            .sorted { $0.publishDate > $1.publishDate }
+        recomputeResults()
+    }
+
+    private func recomputeResults() {
+        guard isSearching else {
+            results = transcribed.map { ($0, nil) }
+            return
+        }
+        let needle = query.lowercased()
+        results = transcribed.compactMap { ep in
+            let cues = ep.transcript?.cues ?? []
+            guard let hit = cues.first(where: { $0.text.lowercased().contains(needle) }) else { return nil }
+            return (ep, hit.text)
         }
     }
 
