@@ -57,19 +57,15 @@ struct OndaApp: App {
             _retention = State(initialValue: ret)
             OndaApp.wireRetention(subs: subs, dm: dm, ret: ret, ts: ts, context: c.mainContext)
             _chapterGen = State(initialValue: OndaApp.makeChapterService(context: c.mainContext))
-            UITestSeed.seed(context: c.mainContext)
-            UITestScaleSeed.seed(context: c.mainContext)
-            OndaApp.seedSearchIndexIfEmpty(index, context: c.mainContext)
+            OndaApp.seedInitialAppData(context: c.mainContext, index: index)
             let cs = ClipService(modelContext: c.mainContext, index: index)
             _clips = State(initialValue: cs)
             OndaApp.wirePlayback(pm: pm, dm: dm, cs: cs, settings: settings)
             _refresh = State(initialValue: OndaApp.makeRefreshService(
                 context: c.mainContext, subs: subs, dm: dm, settings: settings, ret: ret))
-            let hiddenCats = HiddenCategories()
+            let (hiddenCats, recs) = OndaApp.makeHiddenCategoriesAndRecommendations(context: c.mainContext)
             _hiddenCategories = State(initialValue: hiddenCats)
-            _recommendations = State(initialValue: RecommendationService(
-                modelContext: c.mainContext, client: ITunesSearchClient(), feeds: RSSFeedClient(),
-                hiddenCategories: hiddenCats))
+            _recommendations = State(initialValue: recs)
             let articlesService = OndaApp.makeArticleService(context: c.mainContext, ts: ts)
             articlesService.registerBackgroundTask()
             _articles = State(initialValue: articlesService)
@@ -104,6 +100,15 @@ struct OndaApp: App {
             OndaApp.autoTranscribeIfEnabled(guid: guid, context: context,
                                             retention: ret, transcripts: ts)
         }
+    }
+
+    private static func makeHiddenCategoriesAndRecommendations(
+        context: ModelContext
+    ) -> (HiddenCategories, RecommendationService) {
+        let hiddenCats = HiddenCategories()
+        let service = RecommendationService(modelContext: context, client: ITunesSearchClient(),
+                                            feeds: RSSFeedClient(), hiddenCategories: hiddenCats)
+        return (hiddenCats, service)
     }
 
     private static func makeArticleService(context: ModelContext, ts: TranscriptService) -> ArticleConversionService {
@@ -166,6 +171,12 @@ struct OndaApp: App {
               ep.transcript == nil, ep.transcriptURL == nil,
               transcripts.hasEngine, TranscriptService.speechAuthorizationGranted else { return }
         Task { _ = await transcripts.transcript(for: ep) }
+    }
+
+    private static func seedInitialAppData(context: ModelContext, index: SearchIndex?) {
+        UITestSeed.seed(context: context)
+        UITestScaleSeed.seed(context: context)
+        seedSearchIndexIfEmpty(index, context: context)
     }
 
     /// Populates FTS5 from existing SwiftData rows on first launch after adding search —
