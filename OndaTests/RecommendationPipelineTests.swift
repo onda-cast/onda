@@ -144,6 +144,19 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertEqual(pool.map(\.collectionName), ["Good"])
     }
 
+    func test_retriever_dropsHiddenCategoryShows() async {
+        let hidden = dto("Crime Show", feed: "https://crime.com/f.xml", genre: "True Crime")
+        let good = dto("Good Show", feed: "https://good.com/f.xml", genre: "Technology")
+        let client = StubSearch(byTerm: ["coffee": [hidden, good]])
+        var profile = TasteProfile(); profile.terms.add(text: "coffee", weight: 1)
+        let retriever = CandidateRetriever(client: client)
+        let pool = await retriever.retrieve(
+            profile: profile, followedCategories: [], subscribedFeeds: [],
+            isDismissed: { _ in false },
+            isCategoryHidden: { $0.primaryGenreName == "True Crime" })
+        XCTAssertEqual(pool.map(\.collectionName), ["Good Show"])
+    }
+
     // MARK: Reranker with a fake feed fetcher
 
     func test_reranker_ranksContentMatchAboveNoise() async {
@@ -202,6 +215,25 @@ final class RecommendationPipelineTests: XCTestCase {
         await svc.refresh(followedCategories: [])
         XCTAssertEqual(svc.recommendations.map(\.dto.collectionName), ["Visible Show"],
                        "a hidden show must never appear in For You, even via the cold-start chart fallback")
+    }
+
+    func test_service_coldStart_excludesHiddenCategoryFromCharts() async throws {
+        let ctx = try ctx()
+        let hiddenShow = dto("Crime Show", feed: "https://crime.com/f.xml", genre: "True Crime")
+        let goodShow = dto("Top Show", feed: "https://top.com/f.xml", genre: "News")
+        let client = StubSearch(chartIds: [1, 2], chartLookup: [hiddenShow, goodShow])
+        let feeds = StubFeeds(byURL: [
+            URL(string: "https://crime.com/f.xml")!: feed("Crime Show", episodes: [("Ep", "murder")]),
+            URL(string: "https://top.com/f.xml")!: feed("Top Show", episodes: [("Ep", "news of the day")])
+        ])
+        let hiddenCategories = HiddenCategories(defaults: freshDefaults())
+        hiddenCategories.toggle("True Crime")
+        let svc = RecommendationService(modelContext: ctx, client: client, feeds: feeds,
+                                        embedding: nil, searchLog: SearchTermLog(defaults: freshDefaults()),
+                                        dismissed: DismissedShows(defaults: freshDefaults()),
+                                        hiddenCategories: hiddenCategories)
+        await svc.refresh(followedCategories: [])
+        XCTAssertEqual(svc.recommendations.map(\.dto.collectionName), ["Top Show"])
     }
 
     func test_service_dismiss_removesAndPersists() async throws {

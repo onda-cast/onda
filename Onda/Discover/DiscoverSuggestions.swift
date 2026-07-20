@@ -14,13 +14,17 @@ struct ShakeSuggestions: Equatable {
 /// Draws up to two distinct categories from `followedCategories` (or `fallbackCategories`
 /// when the user follows nothing), searches each, removes already-followed shows, de-dupes
 /// and shuffles, then caps at `limit`. Randomness is injected via `rng` so the pipeline is
-/// deterministic under test; a search that throws is skipped rather than fatal.
+/// deterministic under test; a search that throws is skipped rather than fatal. `hiddenCategories`
+/// drops any returned show whose genre is hidden, even if it arrived via a non-hidden query term.
 ///
-/// Callers must pass already-distinct category arrays.
+/// Callers must pass already-distinct category arrays. `hiddenCategories` is a plain `Set<String>`
+/// rather than a closure — this function runs off the main actor, so it can't safely capture an
+/// `@Observable @MainActor` store.
 func shakeSuggestions(
     followedCategories: [String],
     fallbackCategories: [String],
     subscribedFeeds: Set<URL>,
+    hiddenCategories: Set<String> = [],
     limit: Int = 20,
     using client: any Searching,
     rng: inout some RandomNumberGenerator
@@ -44,6 +48,7 @@ func shakeSuggestions(
     var deduped: [PodcastDTO] = []
     for dto in merged {
         if let feed = dto.feedUrl, subscribedFeeds.contains(feed) { continue }
+        if let genre = dto.primaryGenreName, hiddenCategories.contains(genre) { continue }
         let key = dto.feedUrl?.absoluteString
             ?? dto.collectionId.map(String.init)
             ?? dto.collectionName

@@ -31,12 +31,15 @@ final class RecommendationService {
     // so they still consumed retrieval/rerank budget (network fetch + embedding scoring) and
     // silently shrank the visible list below its intended size.
     private let hiddenStore: HiddenShows
+    private let hiddenCategoriesStore: HiddenCategories
     private let now: () -> Date
 
     init(modelContext: ModelContext, client: Searching, feeds: FeedFetching,
          embedding: WordEmbedding? = AppleWordEmbedding(),
          searchLog: SearchTermLog? = nil, dismissed: DismissedShows? = nil,
-         hidden: HiddenShows? = nil, now: @escaping () -> Date = { .now }) {
+         hidden: HiddenShows? = nil,
+         hiddenCategories: HiddenCategories? = nil,
+         now: @escaping () -> Date = { .now }) {
         self.modelContext = modelContext
         self.client = client
         self.retriever = CandidateRetriever(client: client)
@@ -44,6 +47,7 @@ final class RecommendationService {
         self.searchLog = searchLog ?? SearchTermLog()
         self.dismissedStore = dismissed ?? DismissedShows()
         self.hiddenStore = hidden ?? HiddenShows()
+        self.hiddenCategoriesStore = hiddenCategories ?? HiddenCategories()
         self.now = now
     }
 
@@ -105,7 +109,8 @@ final class RecommendationService {
             isDismissed: { [dismissedStore, hiddenStore] dto in
                 dismissedStore.contains(dto) || hiddenStore.isHidden(dto)
                     || dto.feedUrl.map(excluding.contains) ?? false
-            })
+            },
+            isCategoryHidden: { [hiddenCategoriesStore] dto in hiddenCategoriesStore.isHidden(dto) })
 
         // Cold start / thin pool: mix in the top charts so there's always something to show.
         if pool.count < 10 {
@@ -147,6 +152,7 @@ final class RecommendationService {
             guard let feed = dto.feedUrl else { return false }
             return !subscribedFeeds.contains(feed) && !have.contains(feed.absoluteString)
                 && !dismissedStore.contains(dto) && !hiddenStore.isHidden(dto)
+                && !hiddenCategoriesStore.isHidden(dto)
         }
     }
 }

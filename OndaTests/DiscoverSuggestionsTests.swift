@@ -27,10 +27,10 @@ private struct StubSearch: Searching {
     func topChartIds(limit: Int) async throws -> [Int] { [] }
 }
 
-private func dto(_ name: String, feed: String?, id: Int? = nil) -> PodcastDTO {
+private func dto(_ name: String, feed: String?, id: Int? = nil, genre: String? = nil) -> PodcastDTO {
     PodcastDTO(collectionId: id, collectionName: name, artistName: "Artist",
                feedUrl: feed.flatMap { URL(string: $0) }, artworkUrl600: nil,
-               primaryGenreName: nil)
+               primaryGenreName: genre)
 }
 
 @MainActor
@@ -115,5 +115,30 @@ final class DiscoverSuggestionsTests: XCTestCase {
             subscribedFeeds: [], using: client, rng: &rng)
 
         XCTAssertEqual(Set(result.picks.map(\.collectionName)), ["Funny Show"])
+    }
+
+    func test_filtersHiddenCategoryShows() async {
+        let client = StubSearch(byTerm: [
+            "Technology": [dto("Tech Show", feed: "https://ex.com/tech.xml", genre: "Technology"),
+                            dto("Crime Show", feed: "https://ex.com/crime.xml", genre: "True Crime")]
+        ])
+        var rng = SeededRNG(seed: 1)
+        let result = await shakeSuggestions(
+            followedCategories: ["Technology"], fallbackCategories: ["Comedy"],
+            subscribedFeeds: [], hiddenCategories: ["True Crime"], using: client, rng: &rng)
+
+        XCTAssertEqual(Set(result.picks.map(\.collectionName)), ["Tech Show"])
+    }
+
+    func test_defaultHiddenCategories_filtersNothing() async {
+        let client = StubSearch(byTerm: [
+            "Technology": [dto("Crime Show", feed: "https://ex.com/crime.xml", genre: "True Crime")]
+        ])
+        var rng = SeededRNG(seed: 1)
+        let result = await shakeSuggestions(
+            followedCategories: ["Technology"], fallbackCategories: ["Comedy"],
+            subscribedFeeds: [], using: client, rng: &rng)
+
+        XCTAssertEqual(Set(result.picks.map(\.collectionName)), ["Crime Show"])
     }
 }
