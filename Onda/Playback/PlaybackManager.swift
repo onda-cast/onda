@@ -441,6 +441,9 @@ final class PlaybackManager {
             return
         }
         if !appSettings.autoplayNext {
+            // Autoplay off is a distinct, deliberate "stop after this one" — the mini-player
+            // (and any queue) stays put so a manual tap can resume it; only the truly-nothing-
+            // left path in playNextInQueue (below) closes the player.
             isPlaying = false
             return
         }
@@ -555,7 +558,10 @@ extension PlaybackManager {
             play(next)
             return
         }
+        // Nothing queued and nothing else unplayed in this show — fully close rather than
+        // stranding the mini-player on a finished, paused episode.
         isPlaying = false
+        dismissPlayer()
     }
 
     /// Replaces the queue with `episodes` and starts playing the first one — the materialization

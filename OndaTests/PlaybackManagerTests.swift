@@ -123,6 +123,41 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertTrue(pm.isPlaying)
     }
 
+    func test_endOfItem_noQueue_noOtherUnplayedInShow_closesMiniPlayer() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, guid: "g")
+        pm.play(ep)
+        engine.emitEnd()
+        XCTAssertTrue(ep.played, "episode marked played")
+        XCTAssertFalse(pm.isPlaying)
+        XCTAssertNil(pm.currentEpisode, "nothing left to play -> mini-player closes")
+        XCTAssertEqual(ep.playbackPosition, 0,
+                       "closing must not clobber the just-set reset position with a stale tick value")
+    }
+
+    func test_endOfItem_noQueue_butAnotherUnplayedInShow_advancesAndStaysOpen() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let pod = Podcast(feedURL: URL(string: "https://ex.com/show.xml")!, title: "S", author: "A",
+                          artworkURL: nil, category: "Tech", itunesId: 1)
+        let s = ShowSettings.makeDefault(); s.podcast = pod; pod.settings = s
+        let ep1 = Episode(guid: "e1", title: "E1", publishDate: .now, duration: 100,
+                          audioURL: URL(string: "https://ex.com/e1.mp3")!, notes: "")
+        let ep2 = Episode(guid: "e2", title: "E2", publishDate: .now.addingTimeInterval(-100), duration: 100,
+                          audioURL: URL(string: "https://ex.com/e2.mp3")!, notes: "")
+        ep1.podcast = pod; ep2.podcast = pod; pod.episodes = [ep1, ep2]
+        ctx.insert(pod); ctx.insert(s); ctx.insert(ep1); ctx.insert(ep2)
+
+        pm.play(ep1)
+        engine.emitEnd()
+        XCTAssertTrue(ep1.played)
+        XCTAssertEqual(pm.currentEpisode?.guid, "e2", "same-show fallback still auto-advances")
+        XCTAssertTrue(pm.isPlaying, "mini-player stays open, continuing the show")
+    }
+
     func test_playFromQueue_removesOnlyTappedItem() throws {
         let ctx = try makeContext()
         let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())
