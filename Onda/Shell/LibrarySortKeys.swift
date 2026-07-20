@@ -12,6 +12,10 @@ struct LibrarySortKeys: Equatable, Sendable, Codable {
     var newestEpisode: [String: Double] = [:]
     var lastPlayed: [String: Double] = [:]
     var playedCount: [String: Int] = [:]
+    // The Library grid's "new episodes" badge count — piggybacks on this same background pass
+    // (which already walks every show's episodes for the fields above) instead of a second
+    // full episode scan just for this.
+    var unplayedCount: [String: Int] = [:]
 
     /// Scans every show's episodes — call on a background context (or in tests).
     static func compute(podcasts: [Podcast]) -> LibrarySortKeys {
@@ -21,14 +25,16 @@ struct LibrarySortKeys: Equatable, Sendable, Codable {
             var newest = -Double.greatestFiniteMagnitude
             var played = -Double.greatestFiniteMagnitude
             var count = 0
+            var unplayed = 0
             for ep in pod.episodes {
                 newest = max(newest, ep.publishDate.timeIntervalSince1970)
                 if let d = ep.playedDate { played = max(played, d.timeIntervalSince1970) }
-                if ep.played { count += 1 }
+                if ep.played { count += 1 } else if !ep.isArchived { unplayed += 1 }
             }
             keys.newestEpisode[id] = newest
             keys.lastPlayed[id] = played
             keys.playedCount[id] = count
+            keys.unplayedCount[id] = unplayed
         }
         return keys
     }

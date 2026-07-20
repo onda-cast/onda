@@ -77,4 +77,27 @@ final class LibrarySortTests: XCTestCase {
         let b = show("Alpha", episodes: [(0, nil)])   // same newest-episode date
         XCTAssertEqual(LibrarySort.newestEpisode.sorted([a, b], keys: LibrarySortKeys.compute(podcasts: [a, b])).map(\.title), ["Alpha", "Zed"])
     }
+
+    // MARK: unplayedCount (Library grid's "new episodes" badge)
+
+    func test_unplayedCount_countsOnlyUnplayedNonArchived() {
+        let show = show("S", episodes: [(pub: 0, played: nil), (pub: 1, played: nil), (pub: 2, played: 5)])
+        let keys = LibrarySortKeys.compute(podcasts: [show])
+        XCTAssertEqual(keys.unplayedCount[show.feedURL.absoluteString], 2,
+                       "2 unplayed + 1 played -> badge count is 2")
+    }
+
+    func test_unplayedCount_excludesArchivedEpisodes() {
+        let show = show("S", episodes: [(pub: 0, played: nil), (pub: 1, played: nil)])
+        show.episodes[0].isArchived = true
+        let keys = LibrarySortKeys.compute(podcasts: [show])
+        XCTAssertEqual(keys.unplayedCount[show.feedURL.absoluteString], 1,
+                       "archived episodes never inflate the badge, even if technically unplayed")
+    }
+
+    func test_unplayedCount_zeroWhenAllPlayed() {
+        let show = show("S", episodes: [(pub: 0, played: 1), (pub: 1, played: 2)])
+        let keys = LibrarySortKeys.compute(podcasts: [show])
+        XCTAssertEqual(keys.unplayedCount[show.feedURL.absoluteString], 0, "no badge once everything's caught up")
+    }
 }

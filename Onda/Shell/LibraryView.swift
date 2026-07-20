@@ -319,7 +319,10 @@ extension LibraryView {
         case .grid:
             LazyVGrid(columns: cols, spacing: 18) {
                 ForEach(sortedShows) { show in
-                    NavigationLink(value: show) { ShowCard(podcast: show) }
+                    NavigationLink(value: show) {
+                        ShowCard(podcast: show,
+                                unplayedCount: sortKeys.unplayedCount[show.feedURL.absoluteString] ?? 0)
+                    }
                         .buttonStyle(.plain)
                         .contextMenu { contextMenu(for: show) }
                 }
