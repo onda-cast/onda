@@ -256,9 +256,19 @@ struct DiscoverView: View {
         } else {
             items = trending; filterHiddenCategories = true
         }
-        return items.filter { dto in
-            !hidden.isHidden(dto) && (!filterHiddenCategories || !hiddenCategories.isHidden(dto))
+        return items.filter {
+            Self.isVisible($0, showHidden: hidden.isHidden, categoryHidden: hiddenCategories.isHidden,
+                           filterCategories: filterHiddenCategories)
         }
+    }
+
+    /// Whether a suggestion should be shown, given both hide stores and whether this item's
+    /// source is subject to category filtering (Trending/Shake are; typed search and an explicit
+    /// category-chip pick are not — hiding a category never touches an explicit ask). Exposed as
+    /// `internal` (not `private`) so it's directly unit-testable without a SwiftUI environment.
+    static func isVisible(_ dto: PodcastDTO, showHidden: (PodcastDTO) -> Bool,
+                          categoryHidden: (PodcastDTO) -> Bool, filterCategories: Bool) -> Bool {
+        !showHidden(dto) && (!filterCategories || !categoryHidden(dto))
     }
 
     @ViewBuilder private var listHeader: some View {
