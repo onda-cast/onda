@@ -79,25 +79,57 @@ final class LibrarySortTests: XCTestCase {
     }
 
     // MARK: unplayedCount (Library grid's "new episodes" badge)
+    // Badge count = unplayed AND downloaded AND non-archived — the shared `show()` helper
+    // doesn't model downloads, so these build episodes manually.
 
-    func test_unplayedCount_countsOnlyUnplayedNonArchived() {
-        let show = show("S", episodes: [(pub: 0, played: nil), (pub: 1, played: nil), (pub: 2, played: 5)])
-        let keys = LibrarySortKeys.compute(podcasts: [show])
-        XCTAssertEqual(keys.unplayedCount[show.feedURL.absoluteString], 2,
-                       "2 unplayed + 1 played -> badge count is 2")
+    @discardableResult
+    private func episode(_ pod: Podcast, guid: String, played: Bool = false,
+                         downloaded: Bool = false, archived: Bool = false) -> Episode {
+        let ep = Episode(guid: guid, title: guid, publishDate: base,
+                         duration: 100, audioURL: URL(string: "https://ex.com/\(guid).mp3")!, notes: "")
+        ep.played = played
+        ep.isArchived = archived
+        ep.podcast = pod; pod.episodes.append(ep); ctx.insert(ep)
+        if downloaded {
+            let f = DownloadedFile(localFileName: "\(guid).mp3", fileSizeBytes: 1, downloadedAt: base)
+            f.episode = ep; ep.downloadedFile = f; ctx.insert(f)
+        }
+        return ep
+    }
+
+    func test_unplayedCount_countsOnlyUnplayedDownloadedNonArchived() {
+        let pod = show("S")
+        episode(pod, guid: "a", downloaded: true)                       // unplayed + downloaded -> counts
+        episode(pod, guid: "b", played: true, downloaded: true)         // played -> doesn't count
+        episode(pod, guid: "c", downloaded: false)                      // not downloaded -> doesn't count
+        let keys = LibrarySortKeys.compute(podcasts: [pod])
+        XCTAssertEqual(keys.unplayedCount[pod.feedURL.absoluteString], 1,
+                       "only the unplayed AND downloaded episode counts")
     }
 
     func test_unplayedCount_excludesArchivedEpisodes() {
-        let show = show("S", episodes: [(pub: 0, played: nil), (pub: 1, played: nil)])
-        show.episodes[0].isArchived = true
-        let keys = LibrarySortKeys.compute(podcasts: [show])
-        XCTAssertEqual(keys.unplayedCount[show.feedURL.absoluteString], 1,
-                       "archived episodes never inflate the badge, even if technically unplayed")
+        let pod = show("S")
+        episode(pod, guid: "a", downloaded: true, archived: true)
+        episode(pod, guid: "b", downloaded: true)
+        let keys = LibrarySortKeys.compute(podcasts: [pod])
+        XCTAssertEqual(keys.unplayedCount[pod.feedURL.absoluteString], 1,
+                       "archived episodes never inflate the badge, even if unplayed and downloaded")
+    }
+
+    func test_unplayedCount_zeroWhenNothingDownloaded() {
+        let pod = show("S")
+        episode(pod, guid: "a")
+        episode(pod, guid: "b")
+        let keys = LibrarySortKeys.compute(podcasts: [pod])
+        XCTAssertEqual(keys.unplayedCount[pod.feedURL.absoluteString], 0,
+                       "unplayed but not downloaded -> no badge (nothing ready to listen offline)")
     }
 
     func test_unplayedCount_zeroWhenAllPlayed() {
-        let show = show("S", episodes: [(pub: 0, played: 1), (pub: 1, played: 2)])
-        let keys = LibrarySortKeys.compute(podcasts: [show])
-        XCTAssertEqual(keys.unplayedCount[show.feedURL.absoluteString], 0, "no badge once everything's caught up")
+        let pod = show("S")
+        episode(pod, guid: "a", played: true, downloaded: true)
+        episode(pod, guid: "b", played: true, downloaded: true)
+        let keys = LibrarySortKeys.compute(podcasts: [pod])
+        XCTAssertEqual(keys.unplayedCount[pod.feedURL.absoluteString], 0, "no badge once everything's caught up")
     }
 }

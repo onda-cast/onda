@@ -4,8 +4,9 @@ import SwiftUI
 struct ShowCard: View {
     @Environment(AppTheme.self) private var theme
     let podcast: Podcast
-    // From the cached LibrarySortKeys pass — never computed inline here (that's the exact
-    // per-render episode-relationship fault LatestEpisodeSubtitle was built to avoid).
+    // Unplayed AND downloaded episode count, from the cached LibrarySortKeys pass — never
+    // computed inline here (that's the exact per-render episode-relationship fault
+    // LatestEpisodeSubtitle was built to avoid).
     var unplayedCount: Int = 0
 
     var body: some View {
@@ -39,7 +40,7 @@ struct ShowCard: View {
                 .background(theme.color(.accentStrong))
                 .brutalBorder(width: 2)
                 .offset(x: 8, y: -8)
-                .accessibilityLabel("\(unplayedCount) new unplayed episode\(unplayedCount == 1 ? "" : "s")")
+                .accessibilityLabel("\(unplayedCount) new downloaded episode\(unplayedCount == 1 ? "" : "s")")
         }
     }
 }
