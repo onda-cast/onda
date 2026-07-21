@@ -65,6 +65,40 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertTrue(pm.isPlaying)
     }
 
+    // Regression: pressing play on a transcript line must start playback at that line whether or
+    // not the episode is already the current one.
+    func test_jumpFromTranscript_differentEpisode_loadsAtLineAndPlays() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let playing = makeEpisode(in: ctx, guid: "a", duration: 1000)
+        let other = makeEpisode(in: ctx, guid: "b", duration: 1000)
+        pm.play(playing)
+        pm.jumpFromTranscript(episode: other, to: 300)
+        XCTAssertEqual(pm.currentEpisode?.guid, "b", "switches to the tapped episode")
+        XCTAssertTrue(pm.isPlaying)
+        XCTAssertTrue(engine.playing, "engine is actually playing")
+        // Loaded directly at the line (1s of lead-in), not via a post-load seek race.
+        XCTAssertEqual(engine.startAt, 299, accuracy: 0.5)
+    }
+
+    func test_jumpFromTranscript_sameEpisodePaused_resumesAtLine() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let app = makeAppSettings()
+        app.smartResumeEnabled = true
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: app)
+        let ep = makeEpisode(in: ctx, guid: "a", duration: 1000)
+        pm.play(ep)
+        pm.togglePlayPause()                       // pause
+        XCTAssertFalse(pm.isPlaying)
+        pm.jumpFromTranscript(episode: ep, to: 500)
+        XCTAssertTrue(pm.isPlaying, "tapping a line resumes a paused episode")
+        XCTAssertTrue(engine.playing)
+        // Landed exactly at the line (minus 1s lead-in), NOT rewound by Smart Resume.
+        XCTAssertEqual(pm.positionSeconds, 499, accuracy: 0.5)
+    }
+
     func test_play_streamingEpisode_triggersBackgroundDownload() throws {
         let ctx = try makeContext()
         let pm = PlaybackManager(engine: FakeEngine(), modelContext: ctx, appSettings: makeAppSettings())

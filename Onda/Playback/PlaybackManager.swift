@@ -145,8 +145,23 @@ final class PlaybackManager {
     /// transcript sheet(s), open Now Playing, and offer a persistent "back to transcript" button.
     func jumpFromTranscript(episode: Episode, to start: TimeInterval) {
         let target = max(0, start - 1)
-        if currentEpisode?.guid != episode.guid { play(episode) }
-        seek(toFraction: target / max(1, episode.duration))
+        if currentEpisode?.guid != episode.guid {
+            // Different (or no) episode loaded: load it directly at the target and start playing.
+            // The old play()-then-seek raced the async AVPlayerItem load — the seek could land
+            // before the item was ready, so playback often didn't begin at the tapped line.
+            play(episode, startAt: target)
+        } else {
+            // Same episode already loaded: seek there, and resume if it was paused — tapping a
+            // line must always start playing, not just move the playhead on a paused player.
+            // Resume directly (not via togglePlayPause) so Smart Resume doesn't rewind away from
+            // the exact line the user tapped; clear pausedAt so a later manual resume won't either.
+            seek(toFraction: target / max(1, episode.duration))
+            if !isPlaying {
+                pausedAt = nil
+                engine.play()
+                isPlaying = true
+            }
+        }
         transcriptJumpNonce += 1
         returnToTranscriptEpisode = episode
         transcriptReturnTask?.cancel()
@@ -278,7 +293,9 @@ final class PlaybackManager {
     /// applying the show's speed/boost/skip-silence settings and updating the lock screen.
     /// - Parameter autoDownload: when `true` (default) a streamed (not-yet-downloaded) episode is
     ///   also saved for offline in the background via the wired `ensureDownloaded`.
-    func play(_ episode: Episode, autoDownload: Bool = true) {
+    /// - Parameter startAt: explicit feed-seconds start (a transcript-line jump loads directly
+    ///   here); when nil, resumes from the saved position (clamped past any intro trim).
+    func play(_ episode: Episode, autoDownload: Bool = true, startAt: TimeInterval? = nil) {
         clipEndBound = nil
         clipPreviewRange = nil
         pausedAt = nil                    // a new episode isn't a resume — no Smart Resume rewind
@@ -289,7 +306,7 @@ final class PlaybackManager {
         durationSeconds = episode.duration
         nowPlaying.prepareArtwork(url: episode.podcast?.artworkURL)
         let intro = TimeInterval(settings?.introTrimSec ?? 0)
-        let start = max(episode.playbackPosition, intro)
+        let start = startAt ?? max(episode.playbackPosition, intro)
         let local = localURL(for: episode)
         let url = local ?? episode.audioURL
         engine.load(url: url, startAt: start)
