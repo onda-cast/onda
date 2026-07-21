@@ -25,6 +25,10 @@ struct DiscoverView: View {
     @State private var shake: ShakeState?
     @State private var shakeCount = 0
     @State private var dealID = 0   // bumps when shake results land; replays the deal-in animation
+    // Locked from the moment a shake/shuffle is triggered until the fetch AND the deal-in
+    // animation both finish — a second trigger mid-animation (double-tap, or shake right after
+    // tapping) would restart the deal-in on cards still animating in, a visible glitch.
+    @State private var isShuffling = false
     @State private var mode: DiscoverMode = .browse
     @State private var toast: String?
     @State private var unfollowTarget: PodcastDTO?
@@ -123,8 +127,10 @@ struct DiscoverView: View {
                         .foregroundStyle(theme.color(.textSecondary))
                         .padding(.horizontal, 10).frame(height: 36)
                         .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                        .opacity(isShuffling ? 0.5 : 1)   // visibly locked while a shuffle is in flight
                     }
                     .buttonStyle(.plain)
+                    .disabled(isShuffling)
                     .accessibilityLabel("Shuffle new podcasts")
                     .accessibilityHint("Also works by shaking your phone")
                 }
@@ -498,8 +504,12 @@ extension DiscoverView {
 
 // MARK: - Data loading & shake
 extension DiscoverView {
-    // Shared entry point for the shake gesture and the visible Shuffle button.
+    // Shared entry point for the shake gesture and the visible Shuffle button. Locked out (button
+    // disabled, physical shake ignored) while a previous shuffle is still fetching or dealing in —
+    // a re-trigger mid-animation would restart the deal-in on cards still in flight.
     func triggerShake() {
+        guard !isShuffling else { return }
+        isShuffling = true
         mode = .browse   // shake results live in Browse
         shakeCount += 1
         Task { await runShake() }
@@ -515,9 +525,10 @@ extension DiscoverView {
             using: clientBox.client,
             rng: &rng)
         // Nothing new to show → say so; the wave/haptic already fired, so silence here
-        // reads as a broken button.
+        // reads as a broken button. No deal-in animation follows, so unlock immediately.
         guard !result.picks.isEmpty else {
             showToast("Nothing new right now \u{2014} try again later")
+            isShuffling = false
             return
         }
         let title = Self.shakeTitles.randomElement() ?? "Shaken for you"
@@ -526,6 +537,14 @@ extension DiscoverView {
                                usedFallback: result.usedFallback, title: title)
             dealID += 1   // re-deals the cards and fires the landing haptic
         }
+        // DealtCard staggers each card's own deal-in animation (up to 12 deep, 0.05s apart,
+        // 0.38s spring each — see DealtCard.swift) independently of this withAnimation block, so
+        // there's no single completion callback to hook. Unlock once the LAST card's animation
+        // has had time to settle, with a small buffer for spring overshoot past its nominal duration.
+        let lastCardDelay = Double(min(result.picks.count - 1, 12)) * 0.05
+        let totalAnimationDuration = lastCardDelay + 0.38 + 0.15
+        try? await Task.sleep(for: .seconds(totalAnimationDuration))
+        isShuffling = false
     }
 
     // Content-focused browsing: scrolling down into Discover tucks the mini-player away;
