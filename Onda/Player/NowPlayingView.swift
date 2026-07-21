@@ -14,6 +14,9 @@ struct NowPlayingView: View {
     @State private var showTranscript = false
     @State private var showJumpToTime = false
     @State private var jumpText = ""
+    // Live drag position for the scrubber, kept as plain view @State instead of round-tripping
+    // through playback.seek(toFraction:) on every pixel of drag — see scrubber's doc comment.
+    @State private var scrubValue: Double?
     // In-progress clip capture: set when the user taps the scissors, cleared on End/cancel.
     @State private var clipStart: TimeInterval?
     @State private var pendingClip: PendingClip?
@@ -306,9 +309,21 @@ extension NowPlayingView {
 extension NowPlayingView {
     var scrubber: some View {
         VStack(spacing: 2) {
+            // Live drag updates only local @State (scrubValue), not the @Observable
+            // PlaybackManager — seeking on every pixel of drag used to write positionSeconds on
+            // every tick, and @Observable invalidates ALL of its readers on every write (even an
+            // unchanged one elsewhere), cascading a full-tree re-render (this view, the mini
+            // player, transcript active-cue tracking) many times a second during a single drag.
+            // Commit exactly one real seek when the drag ends.
             Slider(value: Binding(
-                get: { playback.progressFraction },
-                set: { playback.seek(toFraction: $0) }), in: 0...1)
+                get: { scrubValue ?? playback.progressFraction },
+                set: { scrubValue = $0 }),
+                   in: 0...1,
+                   onEditingChanged: { editing in
+                       guard !editing, let v = scrubValue else { return }
+                       playback.seek(toFraction: v)
+                       scrubValue = nil
+                   })
             .tint(theme.color(.accent))
             // A still hold opens type-a-timecode; an actual drag moves >10pt, which cancels the
             // long press, so normal scrubbing is unaffected.
@@ -317,7 +332,9 @@ extension NowPlayingView {
                 showJumpToTime = true
             })
             .accessibilityLabel("Playback position")
-            .accessibilityValue("\(timeStr(playback.positionSeconds)) of \(timeStr(playback.durationSeconds))")
+            .accessibilityValue(
+                "\(timeStr(scrubValue.map { $0 * playback.durationSeconds } ?? playback.positionSeconds)) "
+                + "of \(timeStr(playback.durationSeconds))")
             .accessibilityHint("Long press to type a time")
             .alert("Jump to Time", isPresented: $showJumpToTime) {
                 TextField("1:23:45", text: $jumpText)
@@ -335,7 +352,9 @@ extension NowPlayingView {
                 downloadTrack(frac)
             }
             HStack {
-                Text(timeStr(playback.positionSeconds))
+                // Reflect the live drag position so this label doesn't look frozen mid-scrub
+                // (positionSeconds itself is no longer updated on every drag tick — see above).
+                Text(timeStr(scrubValue.map { $0 * playback.durationSeconds } ?? playback.positionSeconds))
                 Spacer()
                 if let frac = downloadFraction {
                     Text("Saving \(Int(frac * 100))%").foregroundStyle(theme.color(.accent))

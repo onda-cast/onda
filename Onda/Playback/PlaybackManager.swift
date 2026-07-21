@@ -352,8 +352,36 @@ final class PlaybackManager {
             """)
     }
 
+    // Chapters don't change during playback, but handleTimeUpdate runs ~every 0.5s — rebuilding
+    // (and internally sorting) an AdWindow from a freshly-mapped, potentially SwiftData-faulting
+    // ep.chapters array on every tick was pure per-tick waste. Cache by guid, invalidate on episode
+    // change.
+    private var cachedAdWindow: (guid: String, window: AdWindow)?
+
     private func adWindow(for ep: Episode) -> AdWindow {
-        AdWindow(chapters: ep.chapters.map { ($0.startTime, $0.isAd) }, duration: ep.duration)
+        if let cached = cachedAdWindow, cached.guid == ep.guid { return cached.window }
+        let window = AdWindow(chapters: ep.chapters.map { ($0.startTime, $0.isAd) }, duration: ep.duration)
+        cachedAdWindow = (ep.guid, window)
+        return window
+    }
+
+    /// Ad detection from real Podcasting 2.0 markers; auto mode seeks past the ad.
+    /// @Observable's setter doesn't skip a write when the new value equals the old one — an
+    /// unconditional assignment here invalidated every adActive observer (NowPlayingView's whole
+    /// body, including its chapter-list re-sort) on EVERY tick, not just when the ad state
+    /// actually changed. Guard the write so it only fires on an actual transition.
+    private func detectAds(in ep: Episode, at t: TimeInterval) {
+        guard !ep.chapters.isEmpty else {
+            if adActive { adActive = false }
+            return
+        }
+        let w = adWindow(for: ep)
+        let isAd = w.isAd(at: t)
+        if isAd != adActive { adActive = isAd }
+        if isAd, resolved.adSkipMode == "auto", let end = w.adEnd(at: t), end > t {
+            engine.seek(to: end); positionSeconds = end
+            if adActive { adActive = false }
+        }
     }
 
     /// Toggles between play and pause for the current episode (no-op when nothing is loaded).
@@ -431,16 +459,7 @@ final class PlaybackManager {
             return
         }
 
-        // Ad detection from real Podcasting 2.0 markers; auto mode seeks past the ad.
-        if !ep.chapters.isEmpty {
-            let w = adWindow(for: ep)
-            adActive = w.isAd(at: t)
-            if adActive, resolved.adSkipMode == "auto", let end = w.adEnd(at: t), end > t {
-                engine.seek(to: end); positionSeconds = end; adActive = false
-            }
-        } else {
-            adActive = false
-        }
+        detectAds(in: ep, at: t)
 
         // Outro trim: during natural playback, treat (duration - outro) as the effective end.
         // Not gated on outro > 0 — this is also the fallback for reaching the true end when outro

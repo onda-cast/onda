@@ -7,7 +7,6 @@ struct LibrarySearchView: View {
     @Environment(PlaybackManager.self) private var playback
     @Environment(\.modelContext) private var modelContext
     @Environment(SearchIndexBox.self) private var searchIndexBox
-    @Query private var episodes: [Episode]
     @Query(filter: #Predicate<Podcast> { $0.isSubscribed }) private var subscribedShows: [Podcast]
 
     @State private var query = ""
@@ -79,7 +78,13 @@ struct LibrarySearchView: View {
     }
 
     private func open(_ hit: TranscriptHit) {
-        guard let ep = episodes.first(where: { $0.guid == hit.episodeGuid }) else { return }
+        // Was an unscoped `@Query private var episodes: [Episode]` used only for this one lookup
+        // — that fetched and live-observed the ENTIRE Episode table for the whole time this sheet
+        // is open (any episode's played-state change, any download completing, anywhere in the
+        // app, re-triggered this view). A single by-guid fetch on tap is all this needs.
+        let guid = hit.episodeGuid
+        let descriptor = FetchDescriptor<Episode>(predicate: #Predicate { $0.guid == guid })
+        guard let ep = try? modelContext.fetch(descriptor).first else { return }
         playback.play(ep)
         playback.seek(toFraction: hit.startTime / max(1, ep.duration))
     }

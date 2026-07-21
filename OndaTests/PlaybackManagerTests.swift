@@ -347,6 +347,31 @@ final class PlaybackManagerTests: XCTestCase {
         engine.emitTime(900); XCTAssertFalse(pm.adActive)
     }
 
+    // Regression: ad detection now caches its AdWindow by episode guid (rebuilding it from
+    // ep.chapters on every tick was pure per-tick waste — chapters don't change during playback).
+    // Switching to a different episode with its own ad chapter must not reuse the stale window.
+    func test_adActive_cachedWindow_invalidatesOnEpisodeSwitch() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep1 = makeEpisode(in: ctx, guid: "a", duration: 1000)
+        let c1 = Chapter(title: "Sponsor", startTime: 100, isAd: true)
+        c1.episode = ep1; ep1.chapters.append(c1); ctx.insert(c1)
+        let ep2 = makeEpisode(in: ctx, guid: "b", duration: 1000)
+        let c2 = Chapter(title: "Sponsor", startTime: 500, isAd: true)
+        c2.episode = ep2; ep2.chapters.append(c2); ctx.insert(c2)
+
+        pm.play(ep1)
+        engine.emitTime(150)
+        XCTAssertTrue(pm.adActive, "inside ep1's ad window")
+
+        pm.play(ep2)
+        engine.emitTime(150)
+        XCTAssertFalse(pm.adActive, "ep2's ad window starts later — must not reuse ep1's cached window")
+        engine.emitTime(550)
+        XCTAssertTrue(pm.adActive, "ep2's own ad window is detected correctly")
+    }
+
     func test_applyAudioSettings_pushesSpeedChangeToEngine_midPlayback() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()

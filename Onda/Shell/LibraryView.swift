@@ -487,7 +487,6 @@ extension LibraryView {
                             .padding(.top, 14).padding(.bottom, 2)
                         ForEach(group.episodes, id: \.guid) { ep in
                             EpisodeRow(episode: ep,
-                                       downloadState: downloads.state(for: ep),
                                        onPlay: { playback.play(ep) },
                                        onDownload: { downloadAction(ep) },
                                        onOpen: { detailEpisode = ep })

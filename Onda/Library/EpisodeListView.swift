@@ -83,7 +83,6 @@ struct EpisodeListView: View {
 
             ForEach(shown) { ep in
                 EpisodeRow(episode: ep,
-                           downloadState: downloads.state(for: ep),
                            snippet: snippet(for: ep),
                            onPlay: { play(ep) },
                            onDownload: {

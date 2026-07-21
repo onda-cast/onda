@@ -25,7 +25,7 @@ line_length:
 # plus configured skips / Smart Resume); splitting it would force exposing private state
 # module-wide. Its 1:1 test file mirrors that breadth. Bump over the 400 default.
 file_length:
-  warning: 900
+  warning: 950
 
 type_body_length:
-  warning: 340
+  warning: 390

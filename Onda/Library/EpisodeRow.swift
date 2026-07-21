@@ -3,12 +3,19 @@ import SwiftUI
 
 struct EpisodeRow: View {
     @Environment(AppTheme.self) private var theme
+    // Read here (not passed in by the parent) so an @Observable write to DownloadManager.states
+    // — which fires on every download-progress tick, for ANY episode — only invalidates this row's
+    // body, not the parent list's. The parent computing `downloads.state(for: ep)` to pass down
+    // used to make ITS body an observer of the whole `states` dictionary, forcing a full
+    // filter+sort of the show's episodes on every progress tick of any download, anywhere.
+    @Environment(DownloadManager.self) private var downloads
     let episode: Episode
-    var downloadState: DownloadState = .none
     var snippet: String?
     var onPlay: () -> Void = {}
     var onDownload: () -> Void = {}
     var onOpen: () -> Void = {}
+
+    private var downloadState: DownloadState { downloads.state(for: episode) }
 
     private var dateText: String {
         episode.publishDate.formatted(.relative(presentation: .named))

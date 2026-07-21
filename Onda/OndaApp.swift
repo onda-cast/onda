@@ -56,7 +56,7 @@ struct OndaApp: App {
             pm.retention = ret
             OndaApp.wireRetention(subs: subs, dm: dm, ret: ret, ts: ts, context: c.mainContext)
             _chapterGen = State(initialValue: OndaApp.makeChapterService(context: c.mainContext))
-            OndaApp.seedInitialAppData(context: c.mainContext, index: index)
+            OndaApp.seedInitialAppData(context: c.mainContext, index: index)   // fast/no-op paths only
             let cs = ClipService(modelContext: c.mainContext, index: index)
             _clips = State(initialValue: cs)
             OndaApp.wirePlayback(pm: pm, dm: dm, cs: cs, settings: settings)
@@ -189,12 +189,17 @@ struct OndaApp: App {
     private static func seedInitialAppData(context: ModelContext, index: SearchIndex?) {
         UITestSeed.seed(context: context)
         UITestScaleSeed.seed(context: context)
-        seedSearchIndexIfEmpty(index, context: context)
+        // Deferred (not called synchronously here): a user upgrading with an existing large
+        // transcribed library would otherwise have App.init() walk every TranscriptCue/Clip row
+        // and upsert them into FTS5 one-by-one before the first frame can render — genuinely
+        // seconds of blocked cold launch. Scheduling via Task lets init() return and the first
+        // frame paint; this (still MainActor, still synchronous SQLite work) then runs on the
+        // very next run-loop turn. isEmpty() is cheap so this is a fast no-op on every other launch.
+        Task { @MainActor in seedSearchIndexIfEmpty(index, context: context) }
     }
 
     /// Populates FTS5 from existing SwiftData rows on first launch after adding search —
-    /// a no-op once the index has any documents (kept out of init to keep it under the
-    /// function-body-length lint budget).
+    /// a no-op once the index has any documents.
     private static func seedSearchIndexIfEmpty(_ index: SearchIndex?, context: ModelContext) {
         guard let index, (try? index.isEmpty()) == true else { return }
         let cues = (try? context.fetch(FetchDescriptor<TranscriptCue>())) ?? []
