@@ -5,7 +5,7 @@ import XCTest
 
 final class BooksButtonProbeUITests: XCTestCase {
     @MainActor
-    func test_booksButton_opensBooksSheet() throws {
+    func test_booksButton_opensBooksSheet() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()
@@ -28,7 +28,7 @@ final class BooksButtonProbeUITests: XCTestCase {
                       "Books Mentioned sheet opens")
         // The CTA's element label is its accessibilityLabel, not the visible "Find Books" text.
         XCTAssertTrue(app.buttons["Find books mentioned in this episode"].firstMatch
-                        .waitForExistence(timeout: 5),
-                      "Find Books CTA visible in the empty state")
+            .waitForExistence(timeout: 5),
+            "Find Books CTA visible in the empty state")
     }
 }

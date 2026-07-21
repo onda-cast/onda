@@ -12,8 +12,14 @@ struct BooksSheet: View {
 
     @State private var readingTranscriptSearch: String?
 
-    private var isPrivate: Bool { episode.podcast?.isPrivateFeed == true }
-    private var running: Bool { books.inFlightGuid == episode.guid }
+    private var isPrivate: Bool {
+        episode.podcast?.isPrivateFeed == true
+    }
+
+    private var running: Bool {
+        books.inFlightGuid == episode.guid
+    }
+
     private var mentions: [BookMention] {
         episode.bookMentions.sorted { ($0.timestamp ?? .infinity) < ($1.timestamp ?? .infinity) }
     }
@@ -33,10 +39,10 @@ struct BooksSheet: View {
                         }.frame(maxWidth: .infinity).padding(.top, 40)
                     } else if mentions.isEmpty {
                         BrutalEmptyState(books.lastFailure == nil
-                                         ? "Find the books mentioned in this episode"
-                                         : "No books found",
-                                         detail: books.lastFailure
-                                         ?? "Scans this episode's show notes and transcript; only books verified against a real catalog are shown.")
+                            ? "Find the books mentioned in this episode"
+                            : "No books found",
+                            detail: books.lastFailure
+                                ?? "Scans this episode's show notes and transcript; only books verified against a real catalog are shown.")
                         findButton
                     } else {
                         ForEach(mentions) { bookRow($0) }
@@ -104,10 +110,10 @@ struct BooksSheet: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(book.timestamp != nil
-                            ? "\(book.title): jump to where it was mentioned"
-                            : "\(book.title): search the transcript for it")
+            ? "\(book.title): jump to where it was mentioned"
+            : "\(book.title): search the transcript for it")
         .contextMenu {
-            Button { UIPasteboard.general.string = [book.title, book.author].compactMap { $0 }.joined(separator: " — ") } label: {
+            Button { UIPasteboard.general.string = [book.title, book.author].compactMap(\.self).joined(separator: " — ") } label: {
                 Label("Copy Title & Author", systemImage: "doc.on.doc")
             }
             if let url = URL(string: "https://openlibrary.org\(book.workKey)") {
@@ -123,5 +129,7 @@ struct BooksSheet: View {
 
 // .sheet(item:) needs Identifiable — a search string is its own identity here.
 extension String: @retroactive Identifiable {
-    public var id: String { self }
+    public var id: String {
+        self
+    }
 }

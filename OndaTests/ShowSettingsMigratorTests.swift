@@ -33,7 +33,7 @@ final class ShowSettingsMigratorTests: XCTestCase {
     func test_normalizeAll_runsOnceAndSetsFlag() throws {
         let ctx = try makeContext()
         let suite = "MigratorTests-\(UUID().uuidString)"
-        let d = UserDefaults(suiteName: suite)!
+        let d = try XCTUnwrap(UserDefaults(suiteName: suite))
         d.removePersistentDomain(forName: suite)
         let s = ShowSettings(); s.speed = 1.0
         ctx.insert(s); try ctx.save()

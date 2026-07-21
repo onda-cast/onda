@@ -13,11 +13,11 @@ final class ModelTests: XCTestCase {
 
     func test_podcast_isPrivateFeed_defaultsFalseAndPersists() throws {
         let ctx = try inMemoryContext()
-        let pub = Podcast(feedURL: URL(string: "https://ex.com/pub.xml")!, title: "Pub",
-                          author: "A", artworkURL: nil, category: "Tech", itunesId: 1)
-        let priv = Podcast(feedURL: URL(string: "https://ex.com/priv.xml?token=s3cret")!, title: "Priv",
-                           author: "A", artworkURL: nil, category: "Tech", itunesId: nil,
-                           isPrivateFeed: true)
+        let pub = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/pub.xml")), title: "Pub",
+                              author: "A", artworkURL: nil, category: "Tech", itunesId: 1)
+        let priv = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/priv.xml?token=s3cret")), title: "Priv",
+                               author: "A", artworkURL: nil, category: "Tech", itunesId: nil,
+                               isPrivateFeed: true)
         ctx.insert(pub); ctx.insert(priv); try ctx.save()
         XCTAssertFalse(pub.isPrivateFeed, "default is public")
         XCTAssertTrue(priv.isPrivateFeed)
@@ -25,12 +25,12 @@ final class ModelTests: XCTestCase {
 
     func test_insertPodcastWithEpisode_persistsRelationship() throws {
         let ctx = try inMemoryContext()
-        let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!,
-                          title: "The Signal", author: "Ex", artworkURL: nil,
-                          category: "Technology", itunesId: 42)
-        let ep = Episode(guid: "g1", title: "Ep 1", publishDate: .now,
-                         duration: 100, audioURL: URL(string: "https://ex.com/1.mp3")!,
-                         notes: "notes")
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/f.xml")),
+                              title: "The Signal", author: "Ex", artworkURL: nil,
+                              category: "Technology", itunesId: 42)
+        let ep = try Episode(guid: "g1", title: "Ep 1", publishDate: .now,
+                             duration: 100, audioURL: XCTUnwrap(URL(string: "https://ex.com/1.mp3")),
+                             notes: "notes")
         ep.podcast = pod
         ctx.insert(pod); ctx.insert(ep)
         try ctx.save()
@@ -43,10 +43,10 @@ final class ModelTests: XCTestCase {
 
     func test_transcript_persistsCuesLinkedToEpisode() throws {
         let ctx = try inMemoryContext()
-        let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!, title: "S", author: "A",
-                          artworkURL: nil, category: "Tech", itunesId: 1)
-        let ep = Episode(guid: "g", title: "E", publishDate: .now, duration: 100,
-                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/f.xml")), title: "S", author: "A",
+                              artworkURL: nil, category: "Tech", itunesId: 1)
+        let ep = try Episode(guid: "g", title: "E", publishDate: .now, duration: 100,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/e.mp3")), notes: "")
         ep.podcast = pod
         let tr = Transcript(source: "published", language: "en")
         tr.episode = ep; ep.transcript = tr
@@ -74,8 +74,8 @@ final class ModelTests: XCTestCase {
 
     func test_chapter_defaultsToFeedSource() throws {
         let ctx = try inMemoryContext()
-        let ep = Episode(guid: "g", title: "E", publishDate: .now, duration: 100,
-                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let ep = try Episode(guid: "g", title: "E", publishDate: .now, duration: 100,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/e.mp3")), notes: "")
         let feedChapter = Chapter(title: "Intro", startTime: 0, isAd: false)
         let generatedChapter = Chapter(title: "AI: Setup", startTime: 120, isAd: false, source: "generated")
         feedChapter.episode = ep; ep.chapters.append(feedChapter)
@@ -90,8 +90,8 @@ final class ModelTests: XCTestCase {
         let c = try ModelContainer(for: Schema(ondaSchema),
                                    configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(c)
-        let ep = Episode(guid: "g", title: "E", publishDate: .now, duration: 10,
-                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let ep = try Episode(guid: "g", title: "E", publishDate: .now, duration: 10,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/e.mp3")), notes: "")
         ctx.insert(ep)
         let book = BookMention(workKey: "OL123W", title: "Atomic Habits", author: "James Clear",
                                coverURL: nil, sourceTier: "link", timestamp: nil)
@@ -110,8 +110,8 @@ final class ModelTests: XCTestCase {
         let c = try ModelContainer(for: Schema(ondaSchema),
                                    configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(c)
-        let ep = Episode(guid: "g", title: "E", publishDate: .now, duration: 10,
-                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let ep = try Episode(guid: "g", title: "E", publishDate: .now, duration: 10,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/e.mp3")), notes: "")
         ctx.insert(ep)
         let item = QueueItem(episode: ep, position: 0)
         ep.queueItems.append(item)

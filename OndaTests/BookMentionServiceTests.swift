@@ -5,7 +5,9 @@ import SwiftData
 
 private struct StubLLM: BookExtracting {
     var result: [LLMBookCandidate] = []
-    func bookCandidates(transcriptChunks: [String]) async throws -> [LLMBookCandidate] { result }
+    func bookCandidates(transcriptChunks _: [String]) async throws -> [LLMBookCandidate] {
+        result
+    }
 }
 
 @MainActor
@@ -48,12 +50,13 @@ final class BookMentionServiceTests: XCTestCase {
 
     func test_linkCandidate_verifies_andPersists() async throws {
         let ctx = try ctx()
-        let ep = makeEpisode(ctx, noteLinks: [URL(string: "https://amazon.com/dp/0735211299")!])
+        let ep = try makeEpisode(ctx, noteLinks: [XCTUnwrap(URL(string: "https://amazon.com/dp/0735211299"))])
         let svc = BookMentionService(
             modelContext: ctx,
             verifier: verifierReturning(VerifiedBook(workKey: "/works/OL1W", title: "Atomic Habits",
                                                      author: "James Clear", coverURL: nil)),
-            llm: nil, isPersonName: { _ in false })
+            llm: nil, isPersonName: { _ in false }
+        )
         await svc.findBooks(for: ep)
         XCTAssertEqual(ep.bookMentions.count, 1)
         XCTAssertEqual(ep.bookMentions.first?.title, "Atomic Habits")
@@ -69,7 +72,8 @@ final class BookMentionServiceTests: XCTestCase {
                                                      author: nil, coverURL: nil)),
             llm: StubLLM(result: [LLMBookCandidate(title: "Atomic Habits", author: nil,
                                                    nearbyQuote: "tiny changes remarkable results")]),
-            isPersonName: { _ in false })
+            isPersonName: { _ in false }
+        )
         await svc.findBooks(for: ep)
         XCTAssertEqual(ep.bookMentions.first?.timestamp, 640)
         XCTAssertEqual(ep.bookMentions.first?.sourceTier, "transcript")
@@ -77,13 +81,14 @@ final class BookMentionServiceTests: XCTestCase {
 
     func test_privateFeed_isExcludedEntirely() async throws {
         let ctx = try ctx()
-        let ep = makeEpisode(ctx, isPrivate: true,
-                             noteLinks: [URL(string: "https://amazon.com/dp/0735211299")!])
+        let ep = try makeEpisode(ctx, isPrivate: true,
+                                 noteLinks: [XCTUnwrap(URL(string: "https://amazon.com/dp/0735211299"))])
         let svc = BookMentionService(
             modelContext: ctx,
             verifier: verifierReturning(VerifiedBook(workKey: "/works/OL1W", title: "X",
                                                      author: nil, coverURL: nil)),
-            llm: nil, isPersonName: { _ in false })
+            llm: nil, isPersonName: { _ in false }
+        )
         await svc.findBooks(for: ep)
         XCTAssertTrue(ep.bookMentions.isEmpty, "private feeds never reach the network")
         XCTAssertNotNil(svc.lastFailure)
@@ -91,7 +96,7 @@ final class BookMentionServiceTests: XCTestCase {
 
     func test_unverifiedCandidates_neverPersist_andRerunReplaces() async throws {
         let ctx = try ctx()
-        let ep = makeEpisode(ctx, noteLinks: [URL(string: "https://amazon.com/dp/0735211299")!])
+        let ep = try makeEpisode(ctx, noteLinks: [XCTUnwrap(URL(string: "https://amazon.com/dp/0735211299"))])
         let failing = BookMentionService(modelContext: ctx, verifier: verifierReturning(nil),
                                          llm: nil, isPersonName: { _ in false })
         await failing.findBooks(for: ep)
@@ -101,7 +106,8 @@ final class BookMentionServiceTests: XCTestCase {
             modelContext: ctx,
             verifier: verifierReturning(VerifiedBook(workKey: "/works/OL1W", title: "Atomic Habits",
                                                      author: nil, coverURL: nil)),
-            llm: nil, isPersonName: { _ in false })
+            llm: nil, isPersonName: { _ in false }
+        )
         await working.findBooks(for: ep)
         await working.findBooks(for: ep)
         XCTAssertEqual(ep.bookMentions.count, 1, "re-run replaces, never accumulates duplicates")

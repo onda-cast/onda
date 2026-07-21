@@ -142,7 +142,7 @@ final class DownloadManager: NSObject {
     func updateProgress(guid: String, progress: Double) {
         // Throttle: delegate fires every few KB; re-rendering observers hundreds of times
         // per second makes the whole app feel sluggish during downloads.
-        if case .downloading(let prev) = states[guid] ?? .none, abs(progress - prev) < 0.01 { return }
+        if case let .downloading(prev) = states[guid] ?? .none, abs(progress - prev) < 0.01 { return }
         states[guid] = .downloading(progress: progress)
     }
 
@@ -159,7 +159,7 @@ final class DownloadManager: NSObject {
 }
 
 extension DownloadManager: URLSessionDownloadDelegate {
-    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+    nonisolated func urlSession(_: URLSession, downloadTask: URLSessionDownloadTask,
                                 didFinishDownloadingTo location: URL) {
         guard let src = downloadTask.originalRequest?.url else { return }
         let total = downloadTask.countOfBytesReceived
@@ -174,8 +174,8 @@ extension DownloadManager: URLSessionDownloadDelegate {
         }
     }
 
-    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                                didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
+    nonisolated func urlSession(_: URLSession, downloadTask: URLSessionDownloadTask,
+                                didWriteData _: Int64, totalBytesWritten: Int64,
                                 totalBytesExpectedToWrite: Int64) {
         guard let src = downloadTask.originalRequest?.url, totalBytesExpectedToWrite > 0 else { return }
         let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
@@ -185,7 +185,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
         }
     }
 
-    nonisolated func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    nonisolated func urlSession(_: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard error != nil, let src = task.originalRequest?.url else { return }
         Task { @MainActor [weak self] in
             guard let self, let guid = self.guidByTaskURL[src] else { return }

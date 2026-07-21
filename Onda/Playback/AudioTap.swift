@@ -12,10 +12,11 @@ final class AudioTap {
     final class Storage: @unchecked Sendable {
         var gain: Float = 1.0
         var onRMS: (@Sendable (Float, Double) -> Void)?
-        var sampleRate: Double = 44_100
+        var sampleRate: Double = 44100
         var isFloat: Bool = true
         var lastRMSLog: Double = 0     // throttled diagnostics
     }
+
     let storage = Storage()
     private(set) var audioMix: AVAudioMix?
 
@@ -23,6 +24,7 @@ final class AudioTap {
         get { storage.gain }
         set { storage.gain = newValue }
     }
+
     var onRMS: (@Sendable (Float, Double) -> Void)? {
         get { storage.onRMS }
         set { storage.onRMS = newValue }
@@ -33,7 +35,8 @@ final class AudioTap {
             version: kMTAudioProcessingTapCallbacksVersion_0,
             clientInfo: UnsafeMutableRawPointer(Unmanaged.passRetained(storage).toOpaque()),
             init: tapInit, finalize: tapFinalize, prepare: tapPrepare,
-            unprepare: nil, process: tapProcess)
+            unprepare: nil, process: tapProcess
+        )
 
         var tap: MTAudioProcessingTap?
         MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks,
@@ -47,7 +50,7 @@ final class AudioTap {
     }
 }
 
-private func tapInit(_ tap: MTAudioProcessingTap, _ clientInfo: UnsafeMutableRawPointer?,
+private func tapInit(_: MTAudioProcessingTap, _ clientInfo: UnsafeMutableRawPointer?,
                      _ tapStorageOut: UnsafeMutablePointer<UnsafeMutableRawPointer?>) {
     tapStorageOut.pointee = clientInfo
 }
@@ -57,7 +60,7 @@ private func tapFinalize(_ tap: MTAudioProcessingTap) {
     Unmanaged<AudioTap.Storage>.fromOpaque(raw).release()
 }
 
-private func tapPrepare(_ tap: MTAudioProcessingTap, _ maxFrames: CMItemCount,
+private func tapPrepare(_ tap: MTAudioProcessingTap, _: CMItemCount,
                         _ format: UnsafePointer<AudioStreamBasicDescription>) {
     let raw = MTAudioProcessingTapGetStorage(tap)
     let storage = Unmanaged<AudioTap.Storage>.fromOpaque(raw).takeUnretainedValue()
@@ -65,16 +68,16 @@ private func tapPrepare(_ tap: MTAudioProcessingTap, _ maxFrames: CMItemCount,
     storage.sampleRate = f.mSampleRate
     storage.isFloat = (f.mFormatFlags & kAudioFormatFlagIsFloat) != 0
     tapLog.notice("""
-        tap prepared: sampleRate=\(f.mSampleRate) float=\(storage.isFloat) \
-        bits=\(f.mBitsPerChannel) channels=\(f.mChannelsPerFrame) flags=\(f.mFormatFlags)
-        """)
+    tap prepared: sampleRate=\(f.mSampleRate) float=\(storage.isFloat) \
+    bits=\(f.mBitsPerChannel) channels=\(f.mChannelsPerFrame) flags=\(f.mFormatFlags)
+    """)
 }
 
 // Signature is fixed by MTAudioProcessingTapCallbacks' `process` field (Core Media C API) —
 // cannot be reduced without breaking the tap callback contract.
 // swiftlint:disable:next function_parameter_count
 private func tapProcess(_ tap: MTAudioProcessingTap, _ numberFrames: CMItemCount,
-                        _ flags: MTAudioProcessingTapFlags,
+                        _: MTAudioProcessingTapFlags,
                         _ bufferListInOut: UnsafeMutablePointer<AudioBufferList>,
                         _ numberFramesOut: UnsafeMutablePointer<CMItemCount>,
                         _ flagsOut: UnsafeMutablePointer<MTAudioProcessingTapFlags>) {

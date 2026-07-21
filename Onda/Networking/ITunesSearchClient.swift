@@ -32,7 +32,7 @@ struct ITunesSearchClient: Searching {
                         .init(name: "entity", value: "podcast"),
                         .init(name: "limit", value: "50"),
                         .init(name: "term", value: term)]
-        return try decodeSearch(try await transport(c.url!))
+        return try await decodeSearch(transport(c.url!))
     }
 
     func lookup(ids: [Int]) async throws -> [PodcastDTO] {
@@ -40,7 +40,7 @@ struct ITunesSearchClient: Searching {
         var c = URLComponents(string: "https://itunes.apple.com/lookup")!
         c.queryItems = [.init(name: "id", value: ids.map(String.init).joined(separator: ",")),
                         .init(name: "entity", value: "podcast")]
-        return try decodeSearch(try await transport(c.url!))
+        return try await decodeSearch(transport(c.url!))
     }
 
     func topChartIds(limit: Int) async throws -> [Int] {
@@ -56,4 +56,5 @@ private struct TopChartsResponse: Codable {
     struct Feed: Codable { let results: [ChartEntry] }
     let feed: Feed
 }
+
 private struct ChartEntry: Codable { let id: String }

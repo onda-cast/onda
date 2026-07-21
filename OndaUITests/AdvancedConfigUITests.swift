@@ -6,7 +6,7 @@ import XCTest
 
 final class AdvancedConfigUITests: XCTestCase {
     @MainActor
-    func test_profile_showsPlaybackDefaults_andDownloadPolicy() throws {
+    func test_profile_showsPlaybackDefaults_andDownloadPolicy() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()
@@ -16,7 +16,7 @@ final class AdvancedConfigUITests: XCTestCase {
                       "Playback section missing from Profile")
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Autoplay Next"].exists
-                      || app.staticTexts["Autoplay Next"].waitForExistence(timeout: 3))
+            || app.staticTexts["Autoplay Next"].waitForExistence(timeout: 3))
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Wi-Fi only downloads"].waitForExistence(timeout: 3),
                       "Wi-Fi-only toggle missing")
@@ -25,7 +25,7 @@ final class AdvancedConfigUITests: XCTestCase {
     }
 
     @MainActor
-    func test_showSettingsSheet_showsOverridePickers() throws {
+    func test_showSettingsSheet_showsOverridePickers() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()
@@ -42,7 +42,7 @@ final class AdvancedConfigUITests: XCTestCase {
     }
 
     @MainActor
-    func test_player_skipButtons_reflectConfiguredIntervals() throws {
+    func test_player_skipButtons_reflectConfiguredIntervals() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()

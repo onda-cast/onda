@@ -1,0 +1,11 @@
+project: Onda.xcodeproj
+schemes:
+  - Onda
+  - OndaShareExtension
+
+# SwiftUI view bodies, App entry points, and SwiftData @Model properties referenced only via
+# #Predicate/KeyPath macros are common false positives for static usage analysis.
+retain_public: false
+report_exclude:
+  - "**/Preview Content/**"
+  - "**/*.generated.swift"

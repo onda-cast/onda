@@ -3,7 +3,7 @@ import XCTest
 
 final class EpisodeSearchUITests: XCTestCase {
     @MainActor
-    func test_search_filtersEpisodesByMetadata() throws {
+    func test_search_filtersEpisodesByMetadata() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()
@@ -20,7 +20,8 @@ final class EpisodeSearchUITests: XCTestCase {
         field.tap()
         field.typeText("germany")
         let emptyState = app.staticTexts.containing(
-            NSPredicate(format: "label CONTAINS %@", "No episodes match")).firstMatch
+            NSPredicate(format: "label CONTAINS %@", "No episodes match")
+        ).firstMatch
         XCTAssertTrue(emptyState.waitForExistence(timeout: 5),
                       "non-matching query should show the empty state")
         XCTAssertFalse(app.buttons["play-episode"].firstMatch.exists,
@@ -36,5 +37,7 @@ final class EpisodeSearchUITests: XCTestCase {
 }
 
 private extension String {
-    func repeated(_ count: Int) -> String { String(repeating: self, count: count) }
+    func repeated(_ count: Int) -> String {
+        String(repeating: self, count: count)
+    }
 }

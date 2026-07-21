@@ -29,7 +29,7 @@ struct PodcastSettingsListView: View {
                                 Text(hasOverrides(show) ? "Customized" : "Using defaults")
                                     .scaledFont(12)
                                     .foregroundStyle(hasOverrides(show) ? theme.color(.accent)
-                                                                        : theme.color(.textTertiary))
+                                        : theme.color(.textTertiary))
                             }
                             Spacer(minLength: 8)
                             Image(systemName: "chevron.right")

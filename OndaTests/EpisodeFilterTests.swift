@@ -10,9 +10,9 @@ final class EpisodeFilterTests: XCTestCase {
                                    configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(c)
         var eps: [Episode] = []
-        for i in 0..<25 {
+        for i in 0 ..< 25 {
             let ep = Episode(guid: "g\(i)", title: "Ep \(i)",
-                             publishDate: Date(timeIntervalSince1970: Double(i) * 86_400),
+                             publishDate: Date(timeIntervalSince1970: Double(i) * 86400),
                              duration: 100, audioURL: URL(string: "https://ex.com/\(i).mp3")!, notes: "")
             if i % 5 == 0 {   // every 5th is downloaded
                 let f = DownloadedFile(localFileName: "f\(i).mp3", fileSizeBytes: 1, downloadedAt: .now)

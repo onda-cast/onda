@@ -38,7 +38,8 @@ final class AddByURLProbeUITests: XCTestCase {
         // 3. XML that isn't a valid feed → broken-feed error, NOT the article card.
         enter("\(base)/bad.xml", into: field, app: app)
         let brokenText = app.staticTexts.containing(
-            NSPredicate(format: "label CONTAINS %@", "looks like a podcast feed")).firstMatch
+            NSPredicate(format: "label CONTAINS %@", "looks like a podcast feed")
+        ).firstMatch
         XCTAssertTrue(brokenText.waitForExistence(timeout: 10),
                       "unparseable XML reported as a broken feed")
         XCTAssertFalse(app.buttons["add-as-article"].firstMatch.exists,

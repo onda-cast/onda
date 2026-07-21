@@ -12,39 +12,39 @@ final class ArticleExtractorTests: XCTestCase {
     func test_extractsArticleFromFixture_strippingChrome() async throws {
         let html = try fixture("article_basic")
         let extractor = ArticleExtractor(fetch: { _ in html })
-        let article = try await extractor.extract(from: URL(string: "https://example.com/terns")!)
+        let article = try await extractor.extract(from: XCTUnwrap(URL(string: "https://example.com/terns")))
         XCTAssertEqual(article.title, "The Long Migration")
         XCTAssertTrue(article.textContent.contains("Arctic terns"))
         XCTAssertTrue(article.textContent.contains("krill blooms"))
         XCTAssertFalse(article.textContent.contains("SUBSCRIBE NOW"), "nav/aside chrome must be stripped")
     }
 
-    func test_pageWithNoArticle_throwsNoReadableContent() async {
+    func test_pageWithNoArticle_throwsNoReadableContent() async throws {
         let html = Data("<html><body><nav><a href='/'>Home</a></nav></body></html>".utf8)
         let extractor = ArticleExtractor(fetch: { _ in html })
         do {
-            _ = try await extractor.extract(from: URL(string: "https://example.com/empty")!)
+            _ = try await extractor.extract(from: XCTUnwrap(URL(string: "https://example.com/empty")))
             XCTFail("expected noReadableContent")
         } catch let e as ArticleExtractionError {
             XCTAssertEqual(e, .noReadableContent)
         } catch { XCTFail("unexpected error \(error)") }
     }
 
-    func test_nonHTTPScheme_throwsInvalidURL() async {
+    func test_nonHTTPScheme_throwsInvalidURL() async throws {
         let extractor = ArticleExtractor(fetch: { _ in Data() })
         do {
-            _ = try await extractor.extract(from: URL(string: "ftp://example.com/x")!)
+            _ = try await extractor.extract(from: XCTUnwrap(URL(string: "ftp://example.com/x")))
             XCTFail("expected invalidURL")
         } catch let e as ArticleExtractionError {
             XCTAssertEqual(e, .invalidURL)
         } catch { XCTFail("unexpected error \(error)") }
     }
 
-    func test_fetchError_throwsFetchFailed() async {
+    func test_fetchError_throwsFetchFailed() async throws {
         struct Boom: Error {}
         let extractor = ArticleExtractor(fetch: { _ in throw Boom() })
         do {
-            _ = try await extractor.extract(from: URL(string: "https://example.com/x")!)
+            _ = try await extractor.extract(from: XCTUnwrap(URL(string: "https://example.com/x")))
             XCTFail("expected fetchFailed")
         } catch let e as ArticleExtractionError {
             XCTAssertEqual(e, .fetchFailed)
@@ -57,8 +57,8 @@ final class ArticleExtractorTests: XCTestCase {
     func test_concurrentExtractCallsOnSameInstance_bothSucceed() async throws {
         let html = try fixture("article_basic")
         let extractor = ArticleExtractor(fetch: { _ in html })
-        async let first = extractor.extract(from: URL(string: "https://example.com/terns-1")!)
-        async let second = extractor.extract(from: URL(string: "https://example.com/terns-2")!)
+        async let first = try extractor.extract(from: XCTUnwrap(URL(string: "https://example.com/terns-1")))
+        async let second = try extractor.extract(from: XCTUnwrap(URL(string: "https://example.com/terns-2")))
         let (articleOne, articleTwo) = try await (first, second)
         for article in [articleOne, articleTwo] {
             XCTAssertEqual(article.title, "The Long Migration")

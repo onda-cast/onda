@@ -6,9 +6,9 @@ enum EpisodeFilter: String, CaseIterable, Sendable {
 
     var label: String {
         switch self {
-        case .downloaded: return "Downloaded"
-        case .all: return "All"
-        case .newest10: return "Newest 10"
+        case .downloaded: "Downloaded"
+        case .all: "All"
+        case .newest10: "Newest 10"
         }
     }
 

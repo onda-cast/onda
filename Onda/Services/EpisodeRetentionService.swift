@@ -82,7 +82,7 @@ final class EpisodeRetentionService {
     private func evictListenedPastAge(for podcast: Podcast) {
         let days = resolvedAutoDeleteAfterDays(for: podcast)
         guard days >= 0 else { return }
-        let cutoff = now().addingTimeInterval(-Double(days) * 86_400)
+        let cutoff = now().addingTimeInterval(-Double(days) * 86400)
         let keep = resolvedKeepTranscripts(for: podcast)
         for ep in podcast.episodes where ep.played && !ep.isArchived && ep.sourceType != "article" {
             guard let playedAt = ep.playedDate, playedAt <= cutoff, !isCurrentlyPlaying(ep) else { continue }

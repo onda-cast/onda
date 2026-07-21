@@ -137,8 +137,8 @@ final class PodcastEpisodeSearchTests: XCTestCase {
     func test_results_sortedByPublishDateDescending() throws {
         let ctx = try makeContext()
         let pod = makePodcast(ctx)
-        let old = Date(timeIntervalSince1970: 1_000)
-        let new = Date(timeIntervalSince1970: 2_000)
+        let old = Date(timeIntervalSince1970: 1000)
+        let new = Date(timeIntervalSince1970: 2000)
         addEpisode(ctx, to: pod, guid: "old", title: "Germany then", publishDate: old)
         addEpisode(ctx, to: pod, guid: "new", title: "Germany now", publishDate: new)
         try ctx.save()

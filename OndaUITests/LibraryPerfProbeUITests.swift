@@ -5,7 +5,7 @@ import XCTest
 
 final class LibraryPerfProbeUITests: XCTestCase {
     @MainActor
-    func test_libraryTabSwitch_time() throws {
+    func test_libraryTabSwitch_time() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_SCALE"] = "1"
         // Worst-case sort: the keyed comparators scan episode arrays per comparison.
@@ -19,7 +19,7 @@ final class LibraryPerfProbeUITests: XCTestCase {
 
         // Real timing comes from the app's PERFAPP blocked-main logs (RootView.tabButton);
         // the harness Date-based numbers were dominated by XCUITest query overhead.
-        for _ in 1...3 {
+        for _ in 1 ... 3 {
             discoverTab.tap()
             RunLoop.current.run(until: Date().addingTimeInterval(1.0))
             libraryTab.tap()

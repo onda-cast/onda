@@ -50,6 +50,21 @@ swiftlint lint          # report violations
 swiftlint --fix         # autocorrect what can be autocorrected, then re-run lint to check the rest
 ```
 
+Format (uses [SwiftFormat](https://github.com/nicklockwood/SwiftFormat); config in `.swiftformat`,
+tuned to respect house style — compact single-line `if`/`for` bodies, hand-aligned trailing
+comments, mixed `//`/`///` — rather than fight it):
+
+```sh
+swiftformat --lint .    # report files that would be reformatted, changes nothing
+swiftformat .           # apply formatting
+```
+
+Dead code (uses [Periphery](https://github.com/peripheryapp/periphery); config in `.periphery.yml`):
+
+```sh
+periphery scan
+```
+
 ## Architecture
 
 Plain SwiftUI "MV" pattern: `@Observable` model/service classes, no separate ViewModel layer.

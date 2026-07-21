@@ -10,7 +10,7 @@ private struct FakeRenderer: ArticleSpeechRendering {
                              ParsedCue(startTime: 1.5, endTime: 3.0, text: "Two.", speaker: nil)]
     var fails = false
 
-    func render(sentences: [String], voiceIdentifier: String?, outputURL: URL,
+    func render(sentences _: [String], voiceIdentifier _: String?, outputURL: URL,
                 progress: @escaping @Sendable (Double) -> Void) async throws -> RenderedArticleAudio {
         if fails { throw ArticleRenderError.synthesisFailed }
         try FileManager.default.createDirectory(at: outputURL.deletingLastPathComponent(),
@@ -46,7 +46,9 @@ private actor Gate {
         await withCheckedContinuation { entryContinuation = $0 }
     }
 
-    func release() { isReleased = true }
+    func release() {
+        isReleased = true
+    }
 }
 
 /// A renderer that blocks inside render() until the test releases its Gate, polling for
@@ -56,7 +58,7 @@ private struct GatedRenderer: ArticleSpeechRendering {
     var duration: TimeInterval = 3.0
     var cues: [ParsedCue] = [ParsedCue(startTime: 0, endTime: 1.5, text: "One.", speaker: nil)]
 
-    func render(sentences: [String], voiceIdentifier: String?, outputURL: URL,
+    func render(sentences _: [String], voiceIdentifier _: String?, outputURL: URL,
                 progress: @escaping @Sendable (Double) -> Void) async throws -> RenderedArticleAudio {
         await gate.enter()
         while await !gate.isReleased {
@@ -114,7 +116,8 @@ final class ArticleConversionServiceTests: XCTestCase {
         return ArticleConversionService(
             modelContext: ctx, extract: extract, renderer: renderer,
             persistTranscript: { ep, cues in ts.persist(cues: cues, for: ep, source: "tts") },
-            queue: queue)
+            queue: queue
+        )
     }
 
     private func tempQueue() -> PendingArticlesQueue {
@@ -130,7 +133,7 @@ final class ArticleConversionServiceTests: XCTestCase {
     func test_successfulConversion_createsEpisodeWithAllRows() async throws {
         let ctx = try makeContext()
         let svc = makeService(ctx: ctx, extract: { _ in self.article })
-        let url = URL(string: "https://example.com/terns")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/terns"))
 
         await svc.convert(url)
 
@@ -156,14 +159,15 @@ final class ArticleConversionServiceTests: XCTestCase {
         XCTAssertTrue(svc.pending.isEmpty)
 
         try? FileManager.default.removeItem(
-            at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+            at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid))
+        )
     }
 
     func test_extractionFailure_setsFailureAndCreatesNothing() async throws {
         let ctx = try makeContext()
         let svc = makeService(ctx: ctx,
                               extract: { _ in throw ArticleExtractionError.noReadableContent })
-        let url = URL(string: "https://example.com/paywalled")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/paywalled"))
 
         await svc.convert(url)
 
@@ -179,12 +183,12 @@ final class ArticleConversionServiceTests: XCTestCase {
         let ctx = try makeContext()
         let svc = makeService(ctx: ctx, extract: { _ in self.article },
                               renderer: FakeRenderer(fails: true))
-        await svc.convert(URL(string: "https://example.com/x")!)
+        try await svc.convert(XCTUnwrap(URL(string: "https://example.com/x")))
         XCTAssertNotNil(svc.pending.first?.failure)
         XCTAssertTrue(try ctx.fetch(FetchDescriptor<Episode>()).isEmpty)
     }
 
-    func test_articlesPodcast_reusedAndResubscribed() async throws {
+    func test_articlesPodcast_reusedAndResubscribed() throws {
         let ctx = try makeContext()
         let svc = makeService(ctx: ctx, extract: { _ in self.article })
         let pod = svc.articlesPodcast()
@@ -204,7 +208,7 @@ final class ArticleConversionServiceTests: XCTestCase {
         let ctx = try makeContext()
         let svc = makeService(ctx: ctx,
                               extract: { _ in throw ArticleExtractionError.fetchFailed })
-        let url = URL(string: "https://example.com/x")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/x"))
         await svc.convert(url)
         XCTAssertEqual(svc.pending.count, 1)
         svc.dismiss(url: url)
@@ -216,7 +220,7 @@ final class ArticleConversionServiceTests: XCTestCase {
         let gate = Gate()
         let svc = makeService(ctx: ctx, extract: { _ in self.article },
                               renderer: GatedRenderer(gate: gate))
-        let url = URL(string: "https://example.com/race")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/race"))
 
         svc.add(url: url)
         await gate.waitForEntry()   // task A is genuinely in flight, blocked inside render()
@@ -247,7 +251,8 @@ final class ArticleConversionServiceTests: XCTestCase {
 
         if let ep = eps.first {
             try? FileManager.default.removeItem(
-                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid))
+            )
         }
     }
 
@@ -256,7 +261,7 @@ final class ArticleConversionServiceTests: XCTestCase {
         let gate = Gate()
         let svc = makeService(ctx: ctx, extract: { _ in self.article },
                               renderer: GatedRenderer(gate: gate))
-        let url = URL(string: "https://example.com/retry-in-flight")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/retry-in-flight"))
 
         svc.add(url: url)
         await gate.waitForEntry()   // conversion is genuinely in flight, blocked inside render()
@@ -282,7 +287,8 @@ final class ArticleConversionServiceTests: XCTestCase {
 
         if let ep = eps.first {
             try? FileManager.default.removeItem(
-                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid))
+            )
         }
     }
 
@@ -291,7 +297,7 @@ final class ArticleConversionServiceTests: XCTestCase {
         let gate = Gate()
         let svc = makeService(ctx: ctx, extract: { _ in self.article },
                               renderer: GatedRenderer(gate: gate))
-        let url = URL(string: "https://example.com/cancel")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/cancel"))
 
         svc.add(url: url)
         await gate.waitForEntry()   // conversion is genuinely in flight, blocked inside render()
@@ -311,7 +317,7 @@ final class ArticleConversionServiceTests: XCTestCase {
         let ctx = try makeContext()
         let queue = tempQueue()
         let svc = makeService(ctx: ctx, extract: { _ in self.article }, queue: queue)
-        let url = URL(string: "https://example.com/persist-ok")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/persist-ok"))
         queue.append(url)
 
         await svc.convert(url)
@@ -319,7 +325,8 @@ final class ArticleConversionServiceTests: XCTestCase {
         XCTAssertTrue(queue.entries().isEmpty, "success must clear the durable entry")
         let ep = try ctx.fetch(FetchDescriptor<Episode>()).first
         try? FileManager.default.removeItem(
-            at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep?.guid ?? "")))
+            at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep?.guid ?? ""))
+        )
     }
 
     func test_failedConversion_recordsAttemptAndKeepsEntry() async throws {
@@ -328,10 +335,10 @@ final class ArticleConversionServiceTests: XCTestCase {
         let svc = makeService(ctx: ctx,
                               extract: { _ in throw ArticleExtractionError.fetchFailed },
                               queue: queue)
-        let url = URL(string: "https://example.com/persist-fail")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/persist-fail"))
         svc.add(url: url)   // add() must append to the queue itself
         // Wait for the fire-and-forget task to finish (bounded poll).
-        for _ in 0..<100 where svc.pending.first?.failure == nil {
+        for _ in 0 ..< 100 where svc.pending.first?.failure == nil {
             try await Task.sleep(for: .milliseconds(20))
         }
         XCTAssertEqual(queue.entries(), [.init(url: url, attempts: 1)])
@@ -343,9 +350,9 @@ final class ArticleConversionServiceTests: XCTestCase {
         let svc = makeService(ctx: ctx,
                               extract: { _ in throw ArticleExtractionError.fetchFailed },
                               queue: queue)
-        let url = URL(string: "https://example.com/persist-dismiss")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/persist-dismiss"))
         svc.add(url: url)
-        for _ in 0..<100 where svc.pending.first?.failure == nil {
+        for _ in 0 ..< 100 where svc.pending.first?.failure == nil {
             try await Task.sleep(for: .milliseconds(20))
         }
         svc.dismiss(url: url)
@@ -355,11 +362,11 @@ final class ArticleConversionServiceTests: XCTestCase {
     func test_resumePersisted_convertsSubCapAndFlagsCappedEntries() async throws {
         let ctx = try makeContext()
         let queue = tempQueue()
-        let fresh = URL(string: "https://example.com/fresh")!
-        let capped = URL(string: "https://example.com/capped")!
+        let fresh = try XCTUnwrap(URL(string: "https://example.com/fresh"))
+        let capped = try XCTUnwrap(URL(string: "https://example.com/capped"))
         queue.append(fresh)
         queue.append(capped)
-        for _ in 0..<ArticleConversionService.maxAutoAttempts { queue.recordAttempt(capped) }
+        for _ in 0 ..< ArticleConversionService.maxAutoAttempts { queue.recordAttempt(capped) }
 
         let svc = makeService(ctx: ctx, extract: { _ in self.article }, queue: queue)
         svc.resumePersisted()
@@ -368,7 +375,7 @@ final class ArticleConversionServiceTests: XCTestCase {
         XCTAssertEqual(svc.pending.first(where: { $0.id == capped })?.failure,
                        "Conversion failed 3 times — retry to try again.")
         // fresh: converts to an episode; wait bounded for the async add() task
-        for _ in 0..<200 {
+        for _ in 0 ..< 200 {
             if (try? ctx.fetch(FetchDescriptor<Episode>()))?.isEmpty == false { break }
             try await Task.sleep(for: .milliseconds(20))
         }
@@ -376,19 +383,20 @@ final class ArticleConversionServiceTests: XCTestCase {
         XCTAssertEqual(eps.count, 1, "only the sub-cap entry converts")
         XCTAssertEqual(queue.entries().map(\.url), [capped], "fresh removed on success; capped kept")
         try? FileManager.default.removeItem(
-            at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: eps[0].guid)))
+            at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: eps[0].guid))
+        )
     }
 
     func test_processQueueForBackground_convertsSubCapEntriesSequentially() async throws {
         let ctx = try makeContext()
         let queue = tempQueue()
-        let a = URL(string: "https://example.com/bg-a")!
-        let b = URL(string: "https://example.com/bg-b")!
-        let capped = URL(string: "https://example.com/bg-capped")!
+        let a = try XCTUnwrap(URL(string: "https://example.com/bg-a"))
+        let b = try XCTUnwrap(URL(string: "https://example.com/bg-b"))
+        let capped = try XCTUnwrap(URL(string: "https://example.com/bg-capped"))
         queue.append(a)
         queue.append(b)
         queue.append(capped)
-        for _ in 0..<ArticleConversionService.maxAutoAttempts { queue.recordAttempt(capped) }
+        for _ in 0 ..< ArticleConversionService.maxAutoAttempts { queue.recordAttempt(capped) }
 
         let svc = makeService(ctx: ctx, extract: { _ in self.article }, queue: queue)
         await svc.processQueueForBackground()
@@ -398,7 +406,8 @@ final class ArticleConversionServiceTests: XCTestCase {
         XCTAssertEqual(queue.entries().map(\.url), [capped])
         for ep in eps {
             try? FileManager.default.removeItem(
-                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid))
+            )
         }
     }
 
@@ -410,8 +419,8 @@ final class ArticleConversionServiceTests: XCTestCase {
     func test_processQueueForBackground_staleSnapshotDoesNotReconvertConcurrentlyCompletedEntry() async throws {
         let ctx = try makeContext()
         let queue = tempQueue()
-        let aURL = URL(string: "https://example.com/bg-stale-a")!
-        let bURL = URL(string: "https://example.com/bg-stale-b")!
+        let aURL = try XCTUnwrap(URL(string: "https://example.com/bg-stale-a"))
+        let bURL = try XCTUnwrap(URL(string: "https://example.com/bg-stale-b"))
         queue.append(aURL)
         queue.append(bURL)
 
@@ -451,20 +460,21 @@ final class ArticleConversionServiceTests: XCTestCase {
         let bEpisodes = eps.filter { $0.articleSource?.sourceURL == bURL }
         XCTAssertEqual(bEpisodes.count, 1,
                        "a stale queue snapshot must not re-convert a URL a concurrent foreground " +
-                       "pass already finished")
+                           "pass already finished")
         XCTAssertEqual(eps.count, 2, "A and B should each have exactly one episode")
         XCTAssertTrue(queue.entries().isEmpty)
 
         for ep in eps {
             try? FileManager.default.removeItem(
-                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid))
+            )
         }
     }
 
     func test_processQueueForBackground_skipsInFlightURL() async throws {
         let ctx = try makeContext()
         let queue = tempQueue()
-        let url = URL(string: "https://example.com/bg-inflight")!
+        let url = try XCTUnwrap(URL(string: "https://example.com/bg-inflight"))
         queue.append(url)
         let gate = Gate()   // reuse the existing gated fake from the race tests
         let svc = makeService(ctx: ctx, extract: { _ in self.article },
@@ -483,7 +493,8 @@ final class ArticleConversionServiceTests: XCTestCase {
         XCTAssertEqual(eps.count, 1)
         if let ep = eps.first {
             try? FileManager.default.removeItem(
-                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid)))
+                at: DownloadManager.fileURL(named: ArticleConversionService.audioFileName(for: ep.guid))
+            )
         }
     }
 }

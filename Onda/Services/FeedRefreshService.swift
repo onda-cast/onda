@@ -73,6 +73,7 @@ final class FeedRefreshService {
     }
 
     // MARK: Background task
+
     func registerBackgroundTask() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.taskId, using: nil) { task in
             let op = Task { @MainActor [weak self] in

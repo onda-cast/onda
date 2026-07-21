@@ -33,10 +33,12 @@ struct WaveBandShape: Shape {
         // ~16pt sampling is indistinguishable for wavelengths ≥100 and cuts per-frame path
         // cost ~4× — this path is rebuilt every frame while the phase animates.
         let steps = max(2, Int(rect.height / 16))
-        func y(_ i: Int) -> CGFloat { rect.minY + rect.height * CGFloat(i) / CGFloat(steps) }
+        func y(_ i: Int) -> CGFloat {
+            rect.minY + rect.height * CGFloat(i) / CGFloat(steps)
+        }
         p.move(to: CGPoint(x: trail(at: rect.minY), y: rect.minY))
         p.addLine(to: CGPoint(x: lead(at: rect.minY), y: rect.minY))
-        for i in 1...steps {
+        for i in 1 ... steps {
             p.addLine(to: CGPoint(x: lead(at: y(i)), y: y(i)))
         }
         for i in stride(from: steps, through: 0, by: -1) {

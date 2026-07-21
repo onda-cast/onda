@@ -52,10 +52,14 @@ final class RecommendationService {
     }
 
     /// True when the cached list is older than the TTL (or nothing has been computed yet).
-    var isStale: Bool { lastComputed.map { now().timeIntervalSince($0) > Self.ttl } ?? true }
+    var isStale: Bool {
+        lastComputed.map { now().timeIntervalSince($0) > Self.ttl } ?? true
+    }
 
     /// Records a Discover search term into the taste-profile signal log (a bounded ring buffer).
-    func recordSearch(_ term: String) { searchLog.record(term) }
+    func recordSearch(_ term: String) {
+        searchLog.record(term)
+    }
 
     /// Recomputes recommendations only if the cache is stale and no refresh is already running —
     /// the cheap "on Discover appear" entry point.
@@ -85,7 +89,8 @@ final class RecommendationService {
 
         // Cheap: only feedURL is read here, no episode/transcript faulting.
         let subs = (try? modelContext.fetch(
-            FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed }))) ?? []
+            FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed })
+        )) ?? []
         let subscribedFeeds = Set(subs.map(\.feedURL))
 
         // The taste profile is the expensive part — it faults every subscribed show's episodes
@@ -97,7 +102,8 @@ final class RecommendationService {
         let profile = await Task.detached(priority: .userInitiated) {
             let bg = ModelContext(container)
             let subs = (try? bg.fetch(
-                FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed }))) ?? []
+                FetchDescriptor<Podcast>(predicate: #Predicate { $0.isSubscribed })
+            )) ?? []
             let clips = (try? bg.fetch(FetchDescriptor<Clip>())) ?? []
             return TasteProfileBuilder.build(subscriptions: subs, clips: clips, searchTerms: searchTerms)
         }.value
@@ -110,11 +116,12 @@ final class RecommendationService {
                 dismissedStore.contains(dto) || hiddenStore.isHidden(dto)
                     || dto.feedUrl.map(excluding.contains) ?? false
             },
-            isCategoryHidden: { [hiddenCategoriesStore] dto in hiddenCategoriesStore.isHidden(dto) })
+            isCategoryHidden: { [hiddenCategoriesStore] dto in hiddenCategoriesStore.isHidden(dto) }
+        )
 
         // Cold start / thin pool: mix in the top charts so there's always something to show.
         if pool.count < 10 {
-            pool.append(contentsOf: await charts(excluding: subscribedFeeds.union(excluding),
+            await pool.append(contentsOf: charts(excluding: subscribedFeeds.union(excluding),
                                                  existing: pool))
         }
 

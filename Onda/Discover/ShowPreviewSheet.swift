@@ -40,7 +40,7 @@ struct ShowPreviewSheet: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isSubscribed ? "Following \(dto.collectionName), tap to unfollow"
-                                                 : "Follow \(dto.collectionName)")
+                    : "Follow \(dto.collectionName)")
 
                 Text("Latest Episodes").brutalHeader(size: 13)
                     .foregroundStyle(theme.color(.textTertiary))

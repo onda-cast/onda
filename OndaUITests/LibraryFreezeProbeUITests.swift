@@ -4,7 +4,7 @@ import XCTest
 
 final class LibraryFreezeProbeUITests: XCTestCase {
     @MainActor
-    func test_libraryStaysInteractive() throws {
+    func test_libraryStaysInteractive() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()
@@ -29,8 +29,8 @@ final class LibraryFreezeProbeUITests: XCTestCase {
         // Tab bar still responds.
         app.buttons["Discover"].tap()
         XCTAssertTrue(app.staticTexts["DISCOVER"].firstMatch.waitForExistence(timeout: 5)
-                      || app.buttons["Shuffle new podcasts"].firstMatch.waitForExistence(timeout: 5),
-                      "Discover reachable")
+            || app.buttons["Shuffle new podcasts"].firstMatch.waitForExistence(timeout: 5),
+            "Discover reachable")
         app.buttons["Library"].tap()
         XCTAssertTrue(show.waitForExistence(timeout: 5), "back on Library, interactive")
         save(XCUIScreen.main.screenshot(), name: "lib-3-final")

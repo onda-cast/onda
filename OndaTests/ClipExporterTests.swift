@@ -42,7 +42,7 @@ final class ClipExporterTests: XCTestCase {
     }
 
     func test_export_producesM4aOfClipRange() async throws {
-        let src = Bundle(for: Self.self).url(forResource: "spoken", withExtension: "aiff")!
+        let src = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "spoken", withExtension: "aiff"))
         let clip = try makeClip(start: 1, end: 3)
         let exporter = ClipExporter(sourceURL: { _ in src })
         let out = try await exporter.export(clip: clip)

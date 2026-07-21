@@ -111,9 +111,11 @@ private final class AudioFileSink: @unchecked Sendable {
     private let outputURL: URL
     private var file: AVAudioFile?
     private var frames: AVAudioFramePosition = 0
-    private var sampleRate: Double = 22_050
+    private var sampleRate: Double = 22050
 
-    init(outputURL: URL) { self.outputURL = outputURL }
+    init(outputURL: URL) {
+        self.outputURL = outputURL
+    }
 
     var secondsWritten: TimeInterval {
         lock.withLock { Double(frames) / sampleRate }
@@ -128,21 +130,25 @@ private final class AudioFileSink: @unchecked Sendable {
                     AVSampleRateKey: buffer.format.sampleRate,
                     AVNumberOfChannelsKey: buffer.format.channelCount
                 ], commonFormat: buffer.format.commonFormat,
-                   interleaved: buffer.format.isInterleaved)
+                interleaved: buffer.format.isInterleaved)
             }
             try file?.write(from: buffer)
             frames += AVAudioFramePosition(buffer.frameLength)
         }
     }
 
-    func close() { lock.withLock { file = nil } }   // releasing AVAudioFile finalizes the container
+    func close() {
+        lock.withLock { file = nil }
+    }   // releasing AVAudioFile finalizes the container
 }
 
 private final class OnceFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var tripped = false
 
-    var isTripped: Bool { lock.withLock { tripped } }
+    var isTripped: Bool {
+        lock.withLock { tripped }
+    }
 
     func trip() -> Bool {
         lock.withLock {

@@ -95,7 +95,7 @@ final class ClipService {
 
     private func reindex(_ clip: Clip) {
         guard let index, let guid = clip.episode?.guid else { return }
-        let body = [clip.text, clip.note].compactMap { $0 }.joined(separator: " ")
+        let body = [clip.text, clip.note].compactMap(\.self).joined(separator: " ")
         try? index.upsert(SearchDoc(kind: "clip", episodeGuid: guid, startTime: clip.startTime, body: body))
     }
 

@@ -5,7 +5,9 @@ import SwiftData
 
 @MainActor
 enum UITestSeed {
-    static var isActive: Bool { ProcessInfo.processInfo.environment["UITEST_SEED_CLIP"] == "1" }
+    static var isActive: Bool {
+        ProcessInfo.processInfo.environment["UITEST_SEED_CLIP"] == "1"
+    }
 
     static func seed(context: ModelContext) {
         guard isActive else { return }
@@ -16,12 +18,14 @@ enum UITestSeed {
         UserDefaults.standard.removeObject(forKey: PlaybackManager.lastEpisodeKey)
         // Wipe-and-reseed: stale seeds from earlier app versions must not leak into tests.
         let existing = (try? context.fetch(FetchDescriptor<Podcast>(
-            predicate: #Predicate { $0.title == "UITest Show" }))) ?? []
+            predicate: #Predicate { $0.title == "UITest Show" }
+        ))) ?? []
         for stale in existing { context.delete(stale) }   // cascades episodes/transcript/clips
         // A perf-probe run (UITestScaleSeed) may have left its big library behind on a shared
         // simulator — it buries the seeded show off-screen and breaks firstMatch taps.
         let scale = (try? context.fetch(FetchDescriptor<Podcast>(
-            predicate: #Predicate { $0.author == "ScaleSeed" }))) ?? []
+            predicate: #Predicate { $0.author == "ScaleSeed" }
+        ))) ?? []
         for stale in scale { context.delete(stale) }
         try? context.save()
 

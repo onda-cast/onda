@@ -42,12 +42,12 @@ final class EpisodeRetentionServiceTests: XCTestCase {
                              played: Bool = false, playedDaysAgo: Double = 0,
                              publishDaysAgo: Double = 0, withTranscript: Bool = false,
                              sourceType: String = "feed") -> Episode {
-        let ep = Episode(guid: guid, title: guid, publishDate: clock.addingTimeInterval(-publishDaysAgo * 86_400),
+        let ep = Episode(guid: guid, title: guid, publishDate: clock.addingTimeInterval(-publishDaysAgo * 86400),
                          duration: 100, audioURL: URL(string: "https://ex.com/\(guid).mp3")!, notes: "")
         ep.sourceType = sourceType
         ep.podcast = pod; pod.episodes.append(ep)
         ep.played = played
-        if played { ep.playedDate = clock.addingTimeInterval(-playedDaysAgo * 86_400) }
+        if played { ep.playedDate = clock.addingTimeInterval(-playedDaysAgo * 86400) }
         if downloaded {
             let f = DownloadedFile(localFileName: "\(guid).mp3", fileSizeBytes: 1, downloadedAt: clock)
             f.episode = ep; ep.downloadedFile = f; ctx.insert(f)
@@ -202,14 +202,14 @@ final class EpisodeRetentionServiceTests: XCTestCase {
     func test_capRule_zeroMeansUnlimited() {
         let pod = makePodcast()
         settings.defaultMaxDownloadsKept = 0
-        for i in 0..<5 { makeEpisode(pod, guid: "e\(i)", played: true, publishDaysAgo: Double(i)) }
+        for i in 0 ..< 5 { makeEpisode(pod, guid: "e\(i)", played: true, publishDaysAgo: Double(i)) }
         makeService().evictEligibleEpisodes(for: pod)
         XCTAssertTrue(deleted.isEmpty)
     }
 
     // MARK: SubscriptionService integration
 
-    func test_setPlayed_stampsPlayedDate_andTriggersSweep() throws {
+    func test_setPlayed_stampsPlayedDate_andTriggersSweep() {
         let subs = SubscriptionService(modelContext: ctx, feeds: RSSFeedClient())
         settings.defaultAutoDeleteListenedAfterDays = 0
         let svc = EpisodeRetentionService(modelContext: ctx, appSettings: settings,

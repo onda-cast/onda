@@ -7,9 +7,17 @@ private struct StubSearch: Searching {
     var byTerm: [String: [PodcastDTO]] = [:]
     var chartIds: [Int] = []
     var chartLookup: [PodcastDTO] = []
-    func search(term: String) async throws -> [PodcastDTO] { byTerm[term] ?? [] }
-    func lookup(ids: [Int]) async throws -> [PodcastDTO] { chartLookup }
-    func topChartIds(limit: Int) async throws -> [Int] { chartIds }
+    func search(term: String) async throws -> [PodcastDTO] {
+        byTerm[term] ?? []
+    }
+
+    func lookup(ids _: [Int]) async throws -> [PodcastDTO] {
+        chartLookup
+    }
+
+    func topChartIds(limit _: Int) async throws -> [Int] {
+        chartIds
+    }
 }
 
 private struct StubFeeds: FeedFetching {
@@ -21,7 +29,7 @@ private struct StubFeeds: FeedFetching {
 }
 
 private func dto(_ name: String, feed: String, genre: String? = nil, artist: String = "Artist") -> PodcastDTO {
-    PodcastDTO(collectionId: abs(name.hashValue % 100000), collectionName: name, artistName: artist,
+    PodcastDTO(collectionId: abs(name.hashValue % 100_000), collectionName: name, artistName: artist,
                feedUrl: URL(string: feed), artworkUrl600: nil, primaryGenreName: genre)
 }
 
@@ -46,11 +54,11 @@ final class RecommendationPipelineTests: XCTestCase {
 
     func test_profile_clipTextOutweighsGenreTally() throws {
         let ctx = try ctx()
-        let pod = Podcast(feedURL: URL(string: "https://a.com/f.xml")!, title: "Java Diaries",
-                          author: "Dev", artworkURL: nil, category: "Technology", itunesId: 1)
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://a.com/f.xml")), title: "Java Diaries",
+                              author: "Dev", artworkURL: nil, category: "Technology", itunesId: 1)
         ctx.insert(pod)
-        let ep = Episode(guid: "e", title: "E", publishDate: .now, duration: 10,
-                         audioURL: URL(string: "https://a.com/e.mp3")!, notes: "")
+        let ep = try Episode(guid: "e", title: "E", publishDate: .now, duration: 10,
+                             audioURL: XCTUnwrap(URL(string: "https://a.com/e.mp3")), notes: "")
         ep.podcast = pod; pod.episodes.append(ep); ctx.insert(ep)
         let clip = Clip(startTime: 0, endTime: 5, text: "espresso espresso espresso portafilter",
                         note: nil, createdAt: .now, needsReview: false)
@@ -65,13 +73,13 @@ final class RecommendationPipelineTests: XCTestCase {
 
     func test_profile_excludesPrivateFeeds() throws {
         let ctx = try ctx()
-        let priv = Podcast(feedURL: URL(string: "https://ex.com/p.xml?token=s3cret")!,
-                           title: "Secret Members Show", author: "Patron Person",
-                           artworkURL: nil, category: "TrueCrime", itunesId: nil,
-                           isPrivateFeed: true)
+        let priv = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/p.xml?token=s3cret")),
+                               title: "Secret Members Show", author: "Patron Person",
+                               artworkURL: nil, category: "TrueCrime", itunesId: nil,
+                               isPrivateFeed: true)
         ctx.insert(priv)
-        let ep = Episode(guid: "e", title: "Members Only Episode", publishDate: .now, duration: 10,
-                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let ep = try Episode(guid: "e", title: "Members Only Episode", publishDate: .now, duration: 10,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/e.mp3")), notes: "")
         ep.played = true
         ep.podcast = priv; priv.episodes.append(ep); ctx.insert(ep)
 
@@ -80,18 +88,18 @@ final class RecommendationPipelineTests: XCTestCase {
                       "private shows must contribute nothing — their terms feed iTunes search queries")
     }
 
-    func test_profile_emptyWhenNoSignals() throws {
+    func test_profile_emptyWhenNoSignals() {
         let profile = TasteProfileBuilder.build(subscriptions: [], clips: [], searchTerms: [])
         XCTAssertTrue(profile.isEmpty)
     }
 
     func test_profile_displayVocabulary_excludesTranscriptAndClipTokens() throws {
         let ctx = try ctx()
-        let pod = Podcast(feedURL: URL(string: "https://a.com/f.xml")!, title: "Show",
-                          author: "Dev", artworkURL: nil, category: "Technology", itunesId: 1)
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://a.com/f.xml")), title: "Show",
+                              author: "Dev", artworkURL: nil, category: "Technology", itunesId: 1)
         ctx.insert(pod)
-        let ep = Episode(guid: "e", title: "E", publishDate: .now, duration: 10,
-                         audioURL: URL(string: "https://a.com/e.mp3")!, notes: "")
+        let ep = try Episode(guid: "e", title: "E", publishDate: .now, duration: 10,
+                             audioURL: XCTUnwrap(URL(string: "https://a.com/e.mp3")), notes: "")
         ep.podcast = pod; pod.episodes.append(ep); ctx.insert(ep)
         let tr = Transcript(source: "published", language: "en"); tr.episode = ep; ep.transcript = tr
         let cue = TranscriptCue(startTime: 0, endTime: 5, text: "a shocking murder", speaker: nil)
@@ -130,17 +138,18 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertTrue(q.contains("James Hoffmann"))
     }
 
-    func test_retriever_dropsSubscribedAndDismissed() async {
+    func test_retriever_dropsSubscribedAndDismissed() async throws {
         let subscribed = dto("Sub", feed: "https://sub.com/f.xml")
         let dismissed = dto("Bad", feed: "https://bad.com/f.xml")
         let good = dto("Good", feed: "https://good.com/f.xml")
         let client = StubSearch(byTerm: ["coffee": [subscribed, dismissed, good]])
         var profile = TasteProfile(); profile.terms.add(text: "coffee", weight: 1)
         let retriever = CandidateRetriever(client: client)
-        let pool = await retriever.retrieve(
+        let pool = try await retriever.retrieve(
             profile: profile, followedCategories: [],
-            subscribedFeeds: [URL(string: "https://sub.com/f.xml")!],
-            isDismissed: { $0.feedUrl?.absoluteString == "https://bad.com/f.xml" })
+            subscribedFeeds: [XCTUnwrap(URL(string: "https://sub.com/f.xml"))],
+            isDismissed: { $0.feedUrl?.absoluteString == "https://bad.com/f.xml" }
+        )
         XCTAssertEqual(pool.map(\.collectionName), ["Good"])
     }
 
@@ -153,21 +162,22 @@ final class RecommendationPipelineTests: XCTestCase {
         let pool = await retriever.retrieve(
             profile: profile, followedCategories: [], subscribedFeeds: [],
             isDismissed: { _ in false },
-            isCategoryHidden: { $0.primaryGenreName == "True Crime" })
+            isCategoryHidden: { $0.primaryGenreName == "True Crime" }
+        )
         XCTAssertEqual(pool.map(\.collectionName), ["Good Show"])
     }
 
     // MARK: Reranker with a fake feed fetcher
 
-    func test_reranker_ranksContentMatchAboveNoise() async {
+    func test_reranker_ranksContentMatchAboveNoise() async throws {
         var profile = TasteProfile()
         profile.terms.add(text: "espresso coffee grinder beans", weight: 1)
         let match = dto("Coffee Hour", feed: "https://match.com/f.xml", genre: "Food")
         let noise = dto("Sports Desk", feed: "https://noise.com/f.xml", genre: "Sports")
-        let feeds = StubFeeds(byURL: [
-            URL(string: "https://match.com/f.xml")!:
+        let feeds = try StubFeeds(byURL: [
+            XCTUnwrap(URL(string: "https://match.com/f.xml")):
                 feed("Coffee Hour", episodes: [("Espresso basics", "all about coffee beans and grinder technique")]),
-            URL(string: "https://noise.com/f.xml")!:
+            XCTUnwrap(URL(string: "https://noise.com/f.xml")):
                 feed("Sports Desk", episodes: [("Playoff recap", "touchdowns and trades")])
         ])
         let reranker = CandidateReranker(feeds: feeds, embedding: nil)
@@ -182,8 +192,8 @@ final class RecommendationPipelineTests: XCTestCase {
         let ctx = try ctx()
         let chart = dto("Top Show", feed: "https://top.com/f.xml", genre: "News")
         let client = StubSearch(chartIds: [42], chartLookup: [chart])
-        let feeds = StubFeeds(byURL: [URL(string: "https://top.com/f.xml")!:
-                                        feed("Top Show", episodes: [("Ep", "news of the day")])])
+        let feeds = try StubFeeds(byURL: [XCTUnwrap(URL(string: "https://top.com/f.xml")):
+                feed("Top Show", episodes: [("Ep", "news of the day")])])
         let svc = RecommendationService(modelContext: ctx, client: client, feeds: feeds,
                                         embedding: nil, searchLog: SearchTermLog(defaults: freshDefaults()),
                                         dismissed: DismissedShows(defaults: freshDefaults()))
@@ -202,9 +212,9 @@ final class RecommendationPipelineTests: XCTestCase {
         let visible = dto("Visible Show", feed: "https://visible.com/f.xml")
         let hidden = dto("Hidden Show", feed: "https://hidden.com/f.xml")
         let client = StubSearch(chartIds: [1, 2], chartLookup: [visible, hidden])
-        let feeds = StubFeeds(byURL: [
-            URL(string: "https://visible.com/f.xml")!: feed("Visible Show", episodes: [("Ep", "hi")]),
-            URL(string: "https://hidden.com/f.xml")!: feed("Hidden Show", episodes: [("Ep", "hi")])
+        let feeds = try StubFeeds(byURL: [
+            XCTUnwrap(URL(string: "https://visible.com/f.xml")): feed("Visible Show", episodes: [("Ep", "hi")]),
+            XCTUnwrap(URL(string: "https://hidden.com/f.xml")): feed("Hidden Show", episodes: [("Ep", "hi")])
         ])
         let hiddenStore = HiddenShows(defaults: defaults)
         hiddenStore.hide(hidden)
@@ -222,9 +232,9 @@ final class RecommendationPipelineTests: XCTestCase {
         let hiddenShow = dto("Crime Show", feed: "https://crime.com/f.xml", genre: "True Crime")
         let goodShow = dto("Top Show", feed: "https://top.com/f.xml", genre: "News")
         let client = StubSearch(chartIds: [1, 2], chartLookup: [hiddenShow, goodShow])
-        let feeds = StubFeeds(byURL: [
-            URL(string: "https://crime.com/f.xml")!: feed("Crime Show", episodes: [("Ep", "murder")]),
-            URL(string: "https://top.com/f.xml")!: feed("Top Show", episodes: [("Ep", "news of the day")])
+        let feeds = try StubFeeds(byURL: [
+            XCTUnwrap(URL(string: "https://crime.com/f.xml")): feed("Crime Show", episodes: [("Ep", "murder")]),
+            XCTUnwrap(URL(string: "https://top.com/f.xml")): feed("Top Show", episodes: [("Ep", "news of the day")])
         ])
         let hiddenCategories = HiddenCategories(defaults: freshDefaults())
         hiddenCategories.toggle("True Crime")
@@ -241,8 +251,8 @@ final class RecommendationPipelineTests: XCTestCase {
         let defaults = freshDefaults()
         let chart = dto("Top Show", feed: "https://top.com/f.xml")
         let client = StubSearch(chartIds: [1], chartLookup: [chart])
-        let feeds = StubFeeds(byURL: [URL(string: "https://top.com/f.xml")!:
-                                        feed("Top Show", episodes: [("Ep", "hi")])])
+        let feeds = try StubFeeds(byURL: [XCTUnwrap(URL(string: "https://top.com/f.xml")):
+                feed("Top Show", episodes: [("Ep", "hi")])])
         let svc = RecommendationService(modelContext: ctx, client: client, feeds: feeds, embedding: nil,
                                         searchLog: SearchTermLog(defaults: defaults),
                                         dismissed: DismissedShows(defaults: defaults))
@@ -258,9 +268,9 @@ final class RecommendationPipelineTests: XCTestCase {
         let first = dto("First Show", feed: "https://first.com/f.xml")
         let second = dto("Second Show", feed: "https://second.com/f.xml")
         let client = StubSearch(chartIds: [1, 2], chartLookup: [first, second])
-        let feeds = StubFeeds(byURL: [
-            URL(string: "https://first.com/f.xml")!: feed("First Show", episodes: [("A", "hi")]),
-            URL(string: "https://second.com/f.xml")!: feed("Second Show", episodes: [("B", "hi")])
+        let feeds = try StubFeeds(byURL: [
+            XCTUnwrap(URL(string: "https://first.com/f.xml")): feed("First Show", episodes: [("A", "hi")]),
+            XCTUnwrap(URL(string: "https://second.com/f.xml")): feed("Second Show", episodes: [("B", "hi")])
         ])
         let svc = RecommendationService(modelContext: ctx, client: client, feeds: feeds, embedding: nil,
                                         searchLog: SearchTermLog(defaults: freshDefaults()),
@@ -282,8 +292,8 @@ final class RecommendationPipelineTests: XCTestCase {
         let defaults = freshDefaults()
         let chart = dto("Top Show", feed: "https://top.com/f.xml")
         let client = StubSearch(chartIds: [1], chartLookup: [chart])
-        let feeds = StubFeeds(byURL: [URL(string: "https://top.com/f.xml")!:
-                                        feed("Top Show", episodes: [("Ep", "hi")])])
+        let feeds = try StubFeeds(byURL: [XCTUnwrap(URL(string: "https://top.com/f.xml")):
+                feed("Top Show", episodes: [("Ep", "hi")])])
         let svc = RecommendationService(modelContext: ctx, client: client, feeds: feeds, embedding: nil,
                                         searchLog: SearchTermLog(defaults: defaults),
                                         dismissed: DismissedShows(defaults: defaults))
@@ -302,5 +312,7 @@ final class RecommendationPipelineTests: XCTestCase {
         XCTAssertNil(svc.lastDismissed)
     }
 
-    private func freshDefaults() -> UserDefaults { UserDefaults(suiteName: "rec-\(UUID().uuidString)")! }
+    private func freshDefaults() -> UserDefaults {
+        UserDefaults(suiteName: "rec-\(UUID().uuidString)")!
+    }
 }

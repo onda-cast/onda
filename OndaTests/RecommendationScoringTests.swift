@@ -29,12 +29,12 @@ final class RecommendationScoringTests: XCTestCase {
         XCTAssertLessThan(c, 1)
     }
 
-    func test_idf_downweightsCommonTerms() {
+    func test_idf_downweightsCommonTerms() throws {
         let docs = [TermVector(text: "coffee espresso"), TermVector(text: "coffee tea"),
                     TermVector(text: "coffee milk")]
         let idf = TFIDF.idf(documents: docs)
         // "coffee" is in every doc, "espresso" in one → espresso must weigh more.
-        XCTAssertLessThan(idf["coffee"]!, idf["espresso"]!)
+        XCTAssertLessThan(try XCTUnwrap(idf["coffee"]), try XCTUnwrap(idf["espresso"]))
     }
 
     func test_topTermsAndOverlap() {

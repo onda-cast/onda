@@ -4,7 +4,7 @@ import XCTest
 
 final class LibrarySearchSheetProbeUITests: XCTestCase {
     @MainActor
-    func test_searchSheet_opensWithFieldAndStates() throws {
+    func test_searchSheet_opensWithFieldAndStates() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()

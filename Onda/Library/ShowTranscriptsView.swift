@@ -17,7 +17,9 @@ struct ShowTranscriptsView: View {
     @State private var transcribed: [Episode] = []
     @State private var results: [(episode: Episode, snippet: String?)] = []
 
-    private var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var isSearching: Bool {
+        !query.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     var body: some View {
         NavigationStack {

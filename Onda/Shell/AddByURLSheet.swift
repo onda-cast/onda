@@ -40,7 +40,7 @@ struct AddByURLSheet: View {
                 a show; a web article is read aloud as an episode in your Articles show. Links \
                 stay on this device.
                 """)
-                    .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
+                .scaledFont(13).foregroundStyle(theme.color(.textTertiary))
 
                 urlField
                 pasteButton
@@ -53,7 +53,7 @@ struct AddByURLSheet: View {
                     }.frame(maxWidth: .infinity).padding(.top, 8)
                 } else {
                     switch detection {
-                    case .feed(let feed): feedCard(feed)
+                    case let .feed(feed): feedCard(feed)
                     case .article: articleCard
                     case nil: checkButton
                     }

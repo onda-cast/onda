@@ -18,8 +18,8 @@ struct DownloadsStorageView: View {
         case audio(String), transcripts(String)
         var id: String {
             switch self {
-            case .audio(let i): return "a-\(i)"
-            case .transcripts(let i): return "t-\(i)"
+            case let .audio(i): "a-\(i)"
+            case let .transcripts(i): "t-\(i)"
             }
         }
     }
@@ -76,8 +76,8 @@ struct DownloadsStorageView: View {
                             titleVisibility: .visible, presenting: pendingDelete) { pd in
             Button("Delete", role: .destructive) {
                 switch pd {
-                case .audio(let id): deleteAudio(id)
-                case .transcripts(let id): deleteTranscripts(id)
+                case let .audio(id): deleteAudio(id)
+                case let .transcripts(id): deleteTranscripts(id)
                 }
             }
             Button("Cancel", role: .cancel) {}
@@ -91,9 +91,9 @@ struct DownloadsStorageView: View {
 
     private var pendingDeleteTitle: String {
         switch pendingDelete {
-        case .audio: return "Delete this show's downloads?"
-        case .transcripts: return "Delete this show's transcripts?"
-        case nil: return ""
+        case .audio: "Delete this show's downloads?"
+        case .transcripts: "Delete this show's transcripts?"
+        case nil: ""
         }
     }
 
@@ -198,7 +198,9 @@ struct DownloadsStorageView: View {
 
     // MARK: Mutations
 
-    private func podcast(_ id: String) -> Podcast? { podcasts.first { $0.feedURL.absoluteString == id } }
+    private func podcast(_ id: String) -> Podcast? {
+        podcasts.first { $0.feedURL.absoluteString == id }
+    }
 
     private func deleteAudio(_ id: String) {
         guard let pod = podcast(id) else { return }

@@ -4,7 +4,7 @@ import XCTest
 
 final class AppearanceProbeUITests: XCTestCase {
     @MainActor
-    func test_captureDiscoverBothModes() throws {
+    func test_captureDiscoverBothModes() {
         let app = XCUIApplication()
         app.launch()
 

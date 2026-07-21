@@ -12,9 +12,9 @@ final class ArtworkCacheTests: XCTestCase {
         }
     }
 
-    func test_missThenHit_afterLoad() async {
+    func test_missThenHit_afterLoad() async throws {
         let cache = ArtworkCache(transport: { [data = pngData] _ in data })
-        let url = URL(string: "https://ex.com/art.png")!
+        let url = try XCTUnwrap(URL(string: "https://ex.com/art.png"))
         XCTAssertNil(cache.image(for: url), "cold cache misses")
 
         let loaded = await cache.load(url)
@@ -22,27 +22,27 @@ final class ArtworkCacheTests: XCTestCase {
         XCTAssertNotNil(cache.image(for: url), "synchronous hit after load")
     }
 
-    func test_loadWithoutStore_decodesButDoesNotCache() async {
+    func test_loadWithoutStore_decodesButDoesNotCache() async throws {
         // Discover artwork: shown while the row is alive, never kept — only subscribed
         // shows' art earns a cache slot.
         let cache = ArtworkCache(transport: { [data = pngData] _ in data })
-        let url = URL(string: "https://ex.com/discover.png")!
+        let url = try XCTUnwrap(URL(string: "https://ex.com/discover.png"))
         let loaded = await cache.load(url, store: false)
         XCTAssertNotNil(loaded, "image still decodes for display")
         XCTAssertNil(cache.image(for: url), "but is not retained in the cache")
     }
 
-    func test_failedFetch_staysEmpty_noCrash() async {
+    func test_failedFetch_staysEmpty_noCrash() async throws {
         let cache = ArtworkCache(transport: { _ in throw URLError(.notConnectedToInternet) })
-        let url = URL(string: "https://ex.com/art.png")!
+        let url = try XCTUnwrap(URL(string: "https://ex.com/art.png"))
         let loaded = await cache.load(url)
         XCTAssertNil(loaded)
         XCTAssertNil(cache.image(for: url))
     }
 
-    func test_undecodableData_notCached() async {
+    func test_undecodableData_notCached() async throws {
         let cache = ArtworkCache(transport: { _ in Data("not an image".utf8) })
-        let url = URL(string: "https://ex.com/art.png")!
+        let url = try XCTUnwrap(URL(string: "https://ex.com/art.png"))
         let loaded = await cache.load(url)
         XCTAssertNil(loaded)
         XCTAssertNil(cache.image(for: url))

@@ -40,9 +40,13 @@ struct SleepTimerMenu: View {
         return String(format: "%d:%02d", t / 60, t % 60)
     }
 
-    @ViewBuilder private func row(_ label: String, isOn: Bool, action: @escaping () -> Void) -> some View {
+    private func row(_ label: String, isOn: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            if isOn { Label(label, systemImage: "checkmark") } else { Text(label) }
+            if isOn {
+                Label(label, systemImage: "checkmark")
+            } else {
+                Text(label)
+            }
         }
     }
 }

@@ -26,15 +26,15 @@ struct CandidateReranker {
         // Fetch feeds concurrently (only ~15, but sequential awaits made this scale with
         // candidate count); a failed fetch falls back to metadata text.
         let tasks = top.map { dto in
-            Task { @MainActor in (dto, await self.candidateVector(dto)) }
+            Task { @MainActor in await (dto, self.candidateVector(dto)) }
         }
         var docs: [(dto: PodcastDTO, vector: TermVector)] = []
-        for task in tasks { docs.append(await task.value) }
+        for task in tasks { await docs.append(task.value) }
 
         let idf = TFIDF.idf(documents: docs.map(\.vector))
         let scored = docs.map { doc -> Recommendation in
             let score = HybridScorer.score(profile: profile.terms, candidate: doc.vector,
-                                            idf: idf, embedding: embedding)
+                                           idf: idf, embedding: embedding)
             return Recommendation(dto: doc.dto, score: score,
                                   reasons: reasons(for: doc.dto, candidate: doc.vector, profile: profile))
         }

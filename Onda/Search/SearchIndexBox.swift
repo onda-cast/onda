@@ -5,5 +5,7 @@ import Foundation
 @Observable
 final class SearchIndexBox {
     let index: SearchIndex?
-    init(index: SearchIndex?) { self.index = index }
+    init(index: SearchIndex?) {
+        self.index = index
+    }
 }

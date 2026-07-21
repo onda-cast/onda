@@ -21,8 +21,13 @@ private struct HardShadow: ViewModifier {
 }
 
 extension View {
-    func brutalBorder(width: CGFloat = 2.5) -> some View { modifier(BrutalBorder(width: width)) }
-    func hardShadow(offset: CGFloat = 4) -> some View { modifier(HardShadow(offset: offset)) }
+    func brutalBorder(width: CGFloat = 2.5) -> some View {
+        modifier(BrutalBorder(width: width))
+    }
+
+    func hardShadow(offset: CGFloat = 4) -> some View {
+        modifier(HardShadow(offset: offset))
+    }
 }
 
 extension Text {

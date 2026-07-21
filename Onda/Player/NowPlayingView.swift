@@ -34,8 +34,14 @@ struct NowPlayingView: View {
         let end: TimeInterval
     }
 
-    private var ep: Episode? { playback.currentEpisode }
-    private var settings: ShowSettings? { ep?.podcast?.settings }
+    private var ep: Episode? {
+        playback.currentEpisode
+    }
+
+    private var settings: ShowSettings? {
+        ep?.podcast?.settings
+    }
+
     // Chips display the effective (override ?? global) values; tapping writes a per-show override.
     private var resolved: ResolvedPlaybackSettings {
         ResolvedPlaybackSettings(show: settings, app: appSettings)
@@ -118,7 +124,7 @@ struct NowPlayingView: View {
             Spacer()
             Button { toggleClipCapture() } label: { headerIcon("scissors") }
                 .foregroundStyle(clipStart == nil ? theme.color(.textSecondary)
-                                                  : theme.color(.accent))
+                    : theme.color(.accent))
                 .disabled(ep == nil)
                 .accessibilityLabel(clipStart == nil ? "Start clip" : "End clip")
                 .accessibilityIdentifier("clip-button")
@@ -139,7 +145,7 @@ struct NowPlayingView: View {
 
     // Download progress of the current episode, while it's actively downloading.
     private var downloadFraction: Double? {
-        guard let ep, case .downloading(let p) = downloads.state(for: ep) else { return nil }
+        guard let ep, case let .downloading(p) = downloads.state(for: ep) else { return nil }
         return p
     }
 
@@ -207,44 +213,49 @@ struct NowPlayingView: View {
             .brutalBorder(width: 2)
     }
 
-    private var speedLabel: String { Self.speedText(resolved.speed) }
+    private var speedLabel: String {
+        Self.speedText(resolved.speed)
+    }
+
     static func speedText(_ s: Double) -> String {
         s == s.rounded() ? "\(Int(s))×" : "\(s)×"
     }
-    private var boostLabel: String { ["Off", "Med", "High"][min(2, max(0, resolved.voiceBoost))] }
 
+    private var boostLabel: String {
+        ["Off", "Med", "High"][min(2, max(0, resolved.voiceBoost))]
+    }
+
+    @ViewBuilder
     private func chapterList(_ ep: Episode) -> some View {
-        Group {
-            if !ep.chapters.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Chapters").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
-                    ForEach(ep.chapters.sorted { $0.startTime < $1.startTime }, id: \.startTime) { ch in
-                        Button { playback.seek(toFraction: ch.startTime / max(1, ep.duration)) } label: {
-                            HStack {
-                                Text(ch.title).scaledFont(14.5, weight: .semibold)
-                                    .foregroundStyle(theme.color(.text))
-                                Spacer()
-                                Text(timeStr(ch.startTime)).scaledFont(12.5).monospacedDigit()
-                                    .foregroundStyle(theme.color(.textTertiary))
-                            }.padding(.vertical, 10)
-                        }.buttonStyle(.plain)
-                        Divider().overlay(theme.color(.separator))
-                    }
-                }.frame(maxWidth: 280)
-            } else if chapterGen.canGenerate(ep) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Button {
-                        Task { _ = await chapterGen.generate(for: ep) }
-                    } label: {
-                        Text(chapterGen.isGenerating[ep.guid] == true ? "Generating…" : "Generate chapters")
-                            .scaledFont(13, weight: .bold).foregroundStyle(theme.color(.accent))
-                    }
-                    .disabled(chapterGen.isGenerating[ep.guid] == true)
-                    if let failure = chapterGen.lastFailure[ep.guid] {
-                        Text(failure).scaledFont(12).foregroundStyle(.red)
-                    }
-                }.frame(maxWidth: 280)
-            }
+        if !ep.chapters.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Chapters").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
+                ForEach(ep.chapters.sorted { $0.startTime < $1.startTime }, id: \.startTime) { ch in
+                    Button { playback.seek(toFraction: ch.startTime / max(1, ep.duration)) } label: {
+                        HStack {
+                            Text(ch.title).scaledFont(14.5, weight: .semibold)
+                                .foregroundStyle(theme.color(.text))
+                            Spacer()
+                            Text(timeStr(ch.startTime)).scaledFont(12.5).monospacedDigit()
+                                .foregroundStyle(theme.color(.textTertiary))
+                        }.padding(.vertical, 10)
+                    }.buttonStyle(.plain)
+                    Divider().overlay(theme.color(.separator))
+                }
+            }.frame(maxWidth: 280)
+        } else if chapterGen.canGenerate(ep) {
+            VStack(alignment: .leading, spacing: 8) {
+                Button {
+                    Task { _ = await chapterGen.generate(for: ep) }
+                } label: {
+                    Text(chapterGen.isGenerating[ep.guid] == true ? "Generating…" : "Generate chapters")
+                        .scaledFont(13, weight: .bold).foregroundStyle(theme.color(.accent))
+                }
+                .disabled(chapterGen.isGenerating[ep.guid] == true)
+                if let failure = chapterGen.lastFailure[ep.guid] {
+                    Text(failure).scaledFont(12).foregroundStyle(.red)
+                }
+            }.frame(maxWidth: 280)
         }
     }
 
@@ -276,10 +287,10 @@ struct NowPlayingView: View {
             Text(ep.notes).scaledFont(14.5).foregroundStyle(theme.color(.textSecondary))
         }.frame(maxWidth: 280, alignment: .leading)
     }
-
 }
 
 // MARK: - Clip capture
+
 extension NowPlayingView {
     /// Live capture banner: running clip length, End Clip, and a discard ×. White-on-accentStrong
     /// for AA contrast (CLAUDE.md); same top placement as BackToTranscriptButton.
@@ -307,6 +318,7 @@ extension NowPlayingView {
 }
 
 // MARK: - Scrubber
+
 extension NowPlayingView {
     var scrubber: some View {
         VStack(spacing: 2) {
@@ -318,13 +330,14 @@ extension NowPlayingView {
             // Commit exactly one real seek when the drag ends.
             Slider(value: Binding(
                 get: { scrubValue ?? playback.progressFraction },
-                set: { scrubValue = $0 }),
-                   in: 0...1,
-                   onEditingChanged: { editing in
-                       guard !editing, let v = scrubValue else { return }
-                       playback.seek(toFraction: v)
-                       scrubValue = nil
-                   })
+                set: { scrubValue = $0 }
+            ),
+            in: 0 ... 1,
+            onEditingChanged: { editing in
+                guard !editing, let v = scrubValue else { return }
+                playback.seek(toFraction: v)
+                scrubValue = nil
+            })
             .tint(theme.color(.accent))
             // A still hold opens type-a-timecode; an actual drag moves >10pt, which cancels the
             // long press, so normal scrubbing is unaffected.
@@ -335,7 +348,8 @@ extension NowPlayingView {
             .accessibilityLabel("Playback position")
             .accessibilityValue(
                 "\(timeStr(scrubValue.map { $0 * playback.durationSeconds } ?? playback.positionSeconds)) "
-                + "of \(timeStr(playback.durationSeconds))")
+                    + "of \(timeStr(playback.durationSeconds))"
+            )
             .accessibilityHint("Long press to type a time")
             .alert("Jump to Time", isPresented: $showJumpToTime) {
                 TextField("1:23:45", text: $jumpText)
@@ -384,12 +398,13 @@ extension NowPlayingView {
 }
 
 // MARK: - Audio-effect chips
+
 extension NowPlayingView {
     /// Parses a typed timecode: "SS" (plain seconds, any size), "MM:SS", or "HH:MM:SS".
     /// Sub-parts after the first must be 0–59. Returns nil for anything malformed.
     static func parseTimecode(_ input: String) -> TimeInterval? {
         let parts = input.trimmingCharacters(in: .whitespaces).split(separator: ":", omittingEmptySubsequences: false)
-        guard (1...3).contains(parts.count) else { return nil }
+        guard (1 ... 3).contains(parts.count) else { return nil }
         var values: [Int] = []
         for (i, raw) in parts.enumerated() {
             guard !raw.isEmpty, let v = Int(raw), v >= 0 else { return nil }
@@ -419,11 +434,13 @@ extension NowPlayingView {
         settings?.speed = speed
         playback.applyAudioSettings()
     }
+
     func toggleBoost() {
         let next = (resolved.voiceBoost + 1) % 3
         settings.map { $0.voiceBoost = next }
         playback.applyAudioSettings()
     }
+
     func toggleSilence() {
         let next = !resolved.skipSilence
         settings.map { $0.skipSilence = next }

@@ -5,7 +5,7 @@ import SwiftData
 
 private struct StubEngine: AudioTranscribing {
     var cues: [ParsedCue]
-    func transcribe(fileURL: URL, progress: @escaping @Sendable (Double) -> Void) async throws -> [ParsedCue] {
+    func transcribe(fileURL _: URL, progress: @escaping @Sendable (Double) -> Void) async throws -> [ParsedCue] {
         progress(1.0); return cues
     }
 }
@@ -15,8 +15,11 @@ private struct StubEngine: AudioTranscribing {
 private final class CountingEngine: AudioTranscribing, @unchecked Sendable {
     var calls = 0
     let cues: [ParsedCue]
-    init(cues: [ParsedCue]) { self.cues = cues }
-    func transcribe(fileURL: URL, progress: @escaping @Sendable (Double) -> Void) async throws -> [ParsedCue] {
+    init(cues: [ParsedCue]) {
+        self.cues = cues
+    }
+
+    func transcribe(fileURL _: URL, progress: @escaping @Sendable (Double) -> Void) async throws -> [ParsedCue] {
         calls += 1
         await Task.yield()
         progress(1.0)
@@ -31,6 +34,7 @@ final class TranscriptServiceTests: XCTestCase {
                                    configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         return ModelContext(c)
     }
+
     private func episode(in ctx: ModelContext, transcriptURL: URL? = nil) -> Episode {
         let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!, title: "S", author: "A",
                           artworkURL: nil, category: "Tech", itunesId: 1)
@@ -94,7 +98,7 @@ final class TranscriptServiceTests: XCTestCase {
         let ep = episode(in: ctx, transcriptURL: nil)
         let svc = TranscriptService(modelContext: ctx, engine: nil,
                                     fetch: { _ in Data() }, localURL: { _ in nil })
-        let cues = (0..<5000).map {
+        let cues = (0 ..< 5000).map {
             ParsedCue(startTime: Double($0), endTime: Double($0) + 1,
                       text: "cue number \($0)", speaker: nil)
         }
@@ -167,6 +171,7 @@ final class TranscriptServiceTests: XCTestCase {
 }
 
 // MARK: - Background completion notice
+
 extension TranscriptServiceTests {
     func test_backgroundNotice_postedOnSuccess_onlyWhenRequested() async throws {
         let ctx = try makeContext()

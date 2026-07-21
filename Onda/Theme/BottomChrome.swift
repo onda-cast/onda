@@ -1,5 +1,6 @@
 //  BottomChrome.swift
 import CoreGraphics
+
 //  Single source of truth for how much bottom clearance scrollable content and floating
 //  toasts need to clear RootView's overlay chrome (mini-player + tab bar), which is NOT part
 //  of the safe area — SwiftUI has no automatic inset for it. Screens hardcoding their own

@@ -5,7 +5,10 @@ import XCTest
 // Deterministic RNG (SplitMix64) so shuffles/picks are reproducible in tests.
 private struct SeededRNG: RandomNumberGenerator {
     var state: UInt64
-    init(seed: UInt64) { state = seed }
+    init(seed: UInt64) {
+        state = seed
+    }
+
     mutating func next() -> UInt64 {
         state = state &+ 0x9E37_79B9_7F4A_7C15
         var z = state
@@ -23,8 +26,14 @@ private struct StubSearch: Searching {
         if throwingTerms.contains(term) { throw StubError.boom }
         return byTerm[term] ?? []
     }
-    func lookup(ids: [Int]) async throws -> [PodcastDTO] { [] }
-    func topChartIds(limit: Int) async throws -> [Int] { [] }
+
+    func lookup(ids _: [Int]) async throws -> [PodcastDTO] {
+        []
+    }
+
+    func topChartIds(limit _: Int) async throws -> [Int] {
+        []
+    }
 }
 
 private func dto(_ name: String, feed: String?, id: Int? = nil, genre: String? = nil) -> PodcastDTO {
@@ -35,7 +44,6 @@ private func dto(_ name: String, feed: String?, id: Int? = nil, genre: String? =
 
 @MainActor
 final class DiscoverSuggestionsTests: XCTestCase {
-
     func test_usesFollowedCategories_whenPresent() async {
         let client = StubSearch(byTerm: [
             "Technology": [dto("Tech Show", feed: "https://ex.com/tech.xml")],
@@ -44,7 +52,8 @@ final class DiscoverSuggestionsTests: XCTestCase {
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
             followedCategories: ["Technology"], fallbackCategories: ["Comedy"],
-            subscribedFeeds: [], using: client, rng: &rng)
+            subscribedFeeds: [], using: client, rng: &rng
+        )
 
         XCTAssertFalse(result.usedFallback)
         XCTAssertEqual(result.categories, ["Technology"])
@@ -58,23 +67,25 @@ final class DiscoverSuggestionsTests: XCTestCase {
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
             followedCategories: [], fallbackCategories: ["Comedy"],
-            subscribedFeeds: [], using: client, rng: &rng)
+            subscribedFeeds: [], using: client, rng: &rng
+        )
 
         XCTAssertTrue(result.usedFallback)
         XCTAssertEqual(result.categories, ["Comedy"])
         XCTAssertEqual(Set(result.picks.map(\.collectionName)), ["Funny Show"])
     }
 
-    func test_filtersAlreadyFollowedShows() async {
+    func test_filtersAlreadyFollowedShows() async throws {
         let followedFeed = "https://ex.com/tech-a.xml"
         let client = StubSearch(byTerm: [
             "Technology": [dto("Tech A", feed: followedFeed),
                            dto("Tech B", feed: "https://ex.com/tech-b.xml")]
         ])
         var rng = SeededRNG(seed: 1)
-        let result = await shakeSuggestions(
+        let result = try await shakeSuggestions(
             followedCategories: ["Technology"], fallbackCategories: ["Comedy"],
-            subscribedFeeds: [URL(string: followedFeed)!], using: client, rng: &rng)
+            subscribedFeeds: [XCTUnwrap(URL(string: followedFeed))], using: client, rng: &rng
+        )
 
         XCTAssertEqual(Set(result.picks.map(\.collectionName)), ["Tech B"])
     }
@@ -88,19 +99,21 @@ final class DiscoverSuggestionsTests: XCTestCase {
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
             followedCategories: ["Technology", "Comedy"], fallbackCategories: ["News"],
-            subscribedFeeds: [], using: client, rng: &rng)
+            subscribedFeeds: [], using: client, rng: &rng
+        )
 
         XCTAssertEqual(result.picks.count, 2)
         XCTAssertEqual(Set(result.picks.map(\.collectionName)), ["Shared Show", "Comedy Only"])
     }
 
     func test_capsResultsAtLimit() async {
-        let many = (0..<30).map { dto("Show \($0)", feed: "https://ex.com/\($0).xml") }
+        let many = (0 ..< 30).map { dto("Show \($0)", feed: "https://ex.com/\($0).xml") }
         let client = StubSearch(byTerm: ["Technology": many])
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
             followedCategories: ["Technology"], fallbackCategories: ["Comedy"],
-            subscribedFeeds: [], limit: 20, using: client, rng: &rng)
+            subscribedFeeds: [], limit: 20, using: client, rng: &rng
+        )
 
         XCTAssertEqual(result.picks.count, 20)
     }
@@ -108,11 +121,13 @@ final class DiscoverSuggestionsTests: XCTestCase {
     func test_skipsThrowingCategory() async {
         let client = StubSearch(
             byTerm: ["Comedy": [dto("Funny Show", feed: "https://ex.com/comedy.xml")]],
-            throwingTerms: ["Technology"])
+            throwingTerms: ["Technology"]
+        )
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
             followedCategories: ["Technology", "Comedy"], fallbackCategories: ["News"],
-            subscribedFeeds: [], using: client, rng: &rng)
+            subscribedFeeds: [], using: client, rng: &rng
+        )
 
         XCTAssertEqual(Set(result.picks.map(\.collectionName)), ["Funny Show"])
     }
@@ -120,12 +135,13 @@ final class DiscoverSuggestionsTests: XCTestCase {
     func test_filtersHiddenCategoryShows() async {
         let client = StubSearch(byTerm: [
             "Technology": [dto("Tech Show", feed: "https://ex.com/tech.xml", genre: "Technology"),
-                            dto("Crime Show", feed: "https://ex.com/crime.xml", genre: "True Crime")]
+                           dto("Crime Show", feed: "https://ex.com/crime.xml", genre: "True Crime")]
         ])
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
             followedCategories: ["Technology"], fallbackCategories: ["Comedy"],
-            subscribedFeeds: [], hiddenCategories: ["True Crime"], using: client, rng: &rng)
+            subscribedFeeds: [], hiddenCategories: ["True Crime"], using: client, rng: &rng
+        )
 
         XCTAssertEqual(Set(result.picks.map(\.collectionName)), ["Tech Show"])
     }
@@ -137,7 +153,8 @@ final class DiscoverSuggestionsTests: XCTestCase {
         var rng = SeededRNG(seed: 1)
         let result = await shakeSuggestions(
             followedCategories: ["Technology"], fallbackCategories: ["Comedy"],
-            subscribedFeeds: [], using: client, rng: &rng)
+            subscribedFeeds: [], using: client, rng: &rng
+        )
 
         XCTAssertEqual(Set(result.picks.map(\.collectionName)), ["Crime Show"])
     }

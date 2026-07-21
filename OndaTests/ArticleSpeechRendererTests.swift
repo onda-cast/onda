@@ -45,7 +45,7 @@ final class ArticleSpeechRendererTests: XCTestCase {
             .appendingPathComponent("render-\(UUID().uuidString).m4a")
         defer { try? FileManager.default.removeItem(at: out) }
 
-        let sentences = (0..<50).map { "This is sentence number \($0), spoken so rendering takes a while." }
+        let sentences = (0 ..< 50).map { "This is sentence number \($0), spoken so rendering takes a while." }
         let renderer = ArticleSpeechRenderer()
         let task = Task {
             try await renderer.render(sentences: sentences, voiceIdentifier: nil, outputURL: out,

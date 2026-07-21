@@ -4,7 +4,7 @@ import XCTest
 
 final class TranscriptFollowProbeUITests: XCTestCase {
     @MainActor
-    func test_transcriptFollowsPlayback() throws {
+    func test_transcriptFollowsPlayback() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()
@@ -25,12 +25,15 @@ final class TranscriptFollowProbeUITests: XCTestCase {
         // native Look Up/Search Web selection) — it surfaces through .value, not .label like a
         // plain SwiftUI Text, so the query must target textViews, not staticTexts.
         let firstCue = app.textViews.matching(
-            NSPredicate(format: "value CONTAINS 'Hello world'")).firstMatch
+            NSPredicate(format: "value CONTAINS 'Hello world'")
+        ).firstMatch
         XCTAssertTrue(firstCue.waitForExistence(timeout: 5), "transcript cues not shown")
         try? XCUIScreen.main.screenshot().pngRepresentation.write(
-            to: URL(fileURLWithPath: "/tmp/onda-follow-early.png"))
+            to: URL(fileURLWithPath: "/tmp/onda-follow-early.png")
+        )
         sleep(6)   // playback advances ~2.5 cues
         try? XCUIScreen.main.screenshot().pngRepresentation.write(
-            to: URL(fileURLWithPath: "/tmp/onda-follow-late.png"))
+            to: URL(fileURLWithPath: "/tmp/onda-follow-late.png")
+        )
     }
 }

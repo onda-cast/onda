@@ -71,7 +71,7 @@ struct ClipsView: View {
                             exportError = "Couldn't export clips: \(error.localizedDescription)"
                         }
                     } label: { Image(systemName: "square.and.arrow.up.on.square").accessibilityLabel("Export All") }
-                    .disabled(allClips.isEmpty)
+                        .disabled(allClips.isEmpty)
                 }
             }
             .sheet(item: $editing) { ClipReviewSheet(clip: $0) }
@@ -118,10 +118,11 @@ struct ClipsView: View {
 // Minimal UIKit bridge — ShareLink can't take a lazily-exported file + text pair cleanly.
 struct ActivityShareSheet: UIViewControllerRepresentable {
     let items: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController {
+    func makeUIViewController(context _: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
-    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
+
+    func updateUIViewController(_: UIActivityViewController, context _: Context) {}
 }
 
 extension Clip: Identifiable {}

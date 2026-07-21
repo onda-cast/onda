@@ -6,9 +6,14 @@ struct Recommendation: Identifiable, Equatable {
     let score: Double
     let reasons: [String]
 
-    var id: String { dto.feedUrl?.absoluteString ?? dto.collectionId.map(String.init) ?? dto.collectionName }
+    var id: String {
+        dto.feedUrl?.absoluteString ?? dto.collectionId.map(String.init) ?? dto.collectionName
+    }
+
     /// Single-line "why" shown under the card.
-    var reasonLine: String? { reasons.first }
+    var reasonLine: String? {
+        reasons.first
+    }
 }
 
 @MainActor
@@ -16,7 +21,9 @@ final class DismissedShows {
     private static let key = "dismissedRecommendationFeeds"
     private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
     private(set) var feeds: Set<String> {
         get { Set(defaults.stringArray(forKey: Self.key) ?? []) }

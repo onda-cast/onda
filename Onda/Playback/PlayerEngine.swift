@@ -26,13 +26,18 @@ final class AVPlayerEngine: PlayerEngine {
     var onTimeUpdate: ((TimeInterval) -> Void)?
     var onRMS: ((Float, Double) -> Void)?
 
-    func setBoostGain(_ gain: Float) { tap?.gain = gain }
+    func setBoostGain(_ gain: Float) {
+        tap?.gain = gain
+    }
 
     var rate: Float {
         get { player.rate }
         set { if player.timeControlStatus == .playing { player.rate = newValue } else { player.defaultRate = newValue } }
     }
-    var currentTimeSeconds: TimeInterval { player.currentTime().seconds.isFinite ? player.currentTime().seconds : 0 }
+
+    var currentTimeSeconds: TimeInterval {
+        player.currentTime().seconds.isFinite ? player.currentTime().seconds : 0
+    }
 
     func load(url: URL, startAt: TimeInterval) {
         let item = AVPlayerItem(url: url)
@@ -63,8 +68,14 @@ final class AVPlayerEngine: PlayerEngine {
         }
     }
 
-    func play() { player.play() }
-    func pause() { player.pause() }
+    func play() {
+        player.play()
+    }
+
+    func pause() {
+        player.pause()
+    }
+
     func seek(to seconds: TimeInterval) {
         player.seek(to: CMTime(seconds: max(0, seconds), preferredTimescale: 600))
     }
@@ -75,7 +86,7 @@ final class AVPlayerEngine: PlayerEngine {
         // listening session.
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime,
-                                                              object: item, queue: .main) { [weak self] _ in
+                                                             object: item, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.onEndOfItem?() }
         }
         if timeObserver == nil {

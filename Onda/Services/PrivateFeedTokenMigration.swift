@@ -22,9 +22,9 @@ enum PrivateFeedTokenMigration {
                 try tokenStore.store(realURL: realURL, hash: hash)
             } catch {
                 migrationLog.error("""
-                    failed to store token for podcast \(podcast.title, privacy: .public): \
-                    \(String(describing: error), privacy: .public)
-                    """)
+                failed to store token for podcast \(podcast.title, privacy: .public): \
+                \(String(describing: error), privacy: .public)
+                """)
                 continue
             }
             podcast.feedURL = PrivateFeedIdentity.placeholderURL(forHash: hash)

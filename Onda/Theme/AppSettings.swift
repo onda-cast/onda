@@ -45,21 +45,54 @@ final class AppSettings {
     }
 
     // MARK: Global playback defaults — a show inherits these unless it has an override.
-    var defaultSpeed: Double { didSet { defaults.set(defaultSpeed, forKey: Self.defaultSpeedKey) } }
-    var defaultVoiceBoost: Int { didSet { defaults.set(defaultVoiceBoost, forKey: Self.defaultBoostKey) } }
-    var defaultSkipSilence: Bool { didSet { defaults.set(defaultSkipSilence, forKey: Self.defaultSkipSilenceKey) } }
-    var defaultAdSkipMode: String { didSet { defaults.set(defaultAdSkipMode, forKey: Self.defaultAdSkipKey) } }
-    var defaultAutoDownload: Bool { didSet { defaults.set(defaultAutoDownload, forKey: Self.defaultAutoDownloadKey) } }
+
+    var defaultSpeed: Double {
+        didSet { defaults.set(defaultSpeed, forKey: Self.defaultSpeedKey) }
+    }
+
+    var defaultVoiceBoost: Int {
+        didSet { defaults.set(defaultVoiceBoost, forKey: Self.defaultBoostKey) }
+    }
+
+    var defaultSkipSilence: Bool {
+        didSet { defaults.set(defaultSkipSilence, forKey: Self.defaultSkipSilenceKey) }
+    }
+
+    var defaultAdSkipMode: String {
+        didSet { defaults.set(defaultAdSkipMode, forKey: Self.defaultAdSkipKey) }
+    }
+
+    var defaultAutoDownload: Bool {
+        didSet { defaults.set(defaultAutoDownload, forKey: Self.defaultAutoDownloadKey) }
+    }
 
     // MARK: Nitpicky details
-    var seekForwardSec: Int { didSet { defaults.set(seekForwardSec, forKey: Self.seekForwardKey) } }
-    var seekBackSec: Int { didSet { defaults.set(seekBackSec, forKey: Self.seekBackKey) } }
-    var smartResumeEnabled: Bool { didSet { defaults.set(smartResumeEnabled, forKey: Self.smartResumeKey) } }
-    var autoplayNext: Bool { didSet { defaults.set(autoplayNext, forKey: Self.autoplayNextKey) } }
-    var seekAccelerationEnabled: Bool { didSet { defaults.set(seekAccelerationEnabled, forKey: Self.seekAccelKey) } }
+
+    var seekForwardSec: Int {
+        didSet { defaults.set(seekForwardSec, forKey: Self.seekForwardKey) }
+    }
+
+    var seekBackSec: Int {
+        didSet { defaults.set(seekBackSec, forKey: Self.seekBackKey) }
+    }
+
+    var smartResumeEnabled: Bool {
+        didSet { defaults.set(smartResumeEnabled, forKey: Self.smartResumeKey) }
+    }
+
+    var autoplayNext: Bool {
+        didSet { defaults.set(autoplayNext, forKey: Self.autoplayNextKey) }
+    }
+
+    var seekAccelerationEnabled: Bool {
+        didSet { defaults.set(seekAccelerationEnabled, forKey: Self.seekAccelKey) }
+    }
 
     // MARK: Download policy
-    var wifiOnlyDownloads: Bool { didSet { defaults.set(wifiOnlyDownloads, forKey: Self.wifiOnlyKey) } }
+
+    var wifiOnlyDownloads: Bool {
+        didSet { defaults.set(wifiOnlyDownloads, forKey: Self.wifiOnlyKey) }
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults

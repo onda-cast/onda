@@ -15,11 +15,14 @@ struct EpisodeRow: View {
     var onDownload: () -> Void = {}
     var onOpen: () -> Void = {}
 
-    private var downloadState: DownloadState { downloads.state(for: episode) }
+    private var downloadState: DownloadState {
+        downloads.state(for: episode)
+    }
 
     private var dateText: String {
         episode.publishDate.formatted(.relative(presentation: .named))
     }
+
     // nil when the feed gives no (or a sub-minute) duration — better to omit than show "0 min".
     private var durationText: String? {
         let m = Int(episode.duration) / 60
@@ -43,8 +46,8 @@ struct EpisodeRow: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }.buttonStyle(.plain)
-            .accessibilityIdentifier("play-episode")
-            .accessibilityLabel(episode.played ? "Play again" : "Play")
+                .accessibilityIdentifier("play-episode")
+                .accessibilityLabel(episode.played ? "Play again" : "Play")
 
             Button(action: onOpen) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -80,10 +83,10 @@ struct EpisodeRow: View {
 
     private var downloadAccessibilityLabel: String {
         switch downloadState {
-        case .none: return "Download episode"
-        case .downloading(let p): return "Downloading, \(Int(p * 100)) percent"
-        case .downloaded: return "Downloaded, delete"
-        case .failed: return "Download failed, retry"
+        case .none: "Download episode"
+        case let .downloading(p): "Downloading, \(Int(p * 100)) percent"
+        case .downloaded: "Downloaded, delete"
+        case .failed: "Download failed, retry"
         }
     }
 
@@ -96,7 +99,7 @@ struct EpisodeRow: View {
                 .frame(width: 30, height: 30)
                 .background(theme.color(.bgElevated))
                 .brutalBorder(width: 2)
-        case .downloading(let progress):
+        case let .downloading(progress):
             // Square progress: the border fills clockwise — brutal, no circles.
             Rectangle()
                 .fill(theme.color(.accentWash))

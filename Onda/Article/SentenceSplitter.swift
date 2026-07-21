@@ -30,7 +30,7 @@ enum SentenceSplitter {
         var sentences: [String] = []
         let tokenizer = NLTokenizer(unit: .sentence)
         tokenizer.string = text
-        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
+        tokenizer.enumerateTokens(in: text.startIndex ..< text.endIndex) { range, _ in
             let s = text[range].trimmingCharacters(in: .whitespacesAndNewlines)
             if !s.isEmpty { sentences.append(s) }
             return true

@@ -4,7 +4,7 @@ import XCTest
 
 final class SkipSilenceProbeUITests: XCTestCase {
     @MainActor
-    func test_playSeededEpisode_forTapDiagnostics() throws {
+    func test_playSeededEpisode_forTapDiagnostics() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()

@@ -94,38 +94,38 @@ struct EpisodeListView: View {
                                }
                            },
                            onOpen: { detailEpisode = ep })
-                .listRowBackground(theme.color(.bg))
-                .listRowSeparatorTint(theme.color(.separator))
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button {
-                        subscriptions.setPlayed(ep, !ep.played)
-                    } label: {
-                        Label(ep.played ? "UNPLAYED" : "PLAYED",
-                              systemImage: ep.played ? "arrow.uturn.backward" : "checkmark")
+                    .listRowBackground(theme.color(.bg))
+                    .listRowSeparatorTint(theme.color(.separator))
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            subscriptions.setPlayed(ep, !ep.played)
+                        } label: {
+                            Label(ep.played ? "UNPLAYED" : "PLAYED",
+                                  systemImage: ep.played ? "arrow.uturn.backward" : "checkmark")
+                        }
+                        .tint(theme.color(.accent))
                     }
-                    .tint(theme.color(.accent))
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    // Flat black over system red: matches the brutal palette. Trash icon +
-                    // placement keep the destructive meaning unambiguous.
-                    Button { deleteEpisode(ep) } label: {
-                        Label("DELETE", systemImage: "trash.fill")
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        // Flat black over system red: matches the brutal palette. Trash icon +
+                        // placement keep the destructive meaning unambiguous.
+                        Button { deleteEpisode(ep) } label: {
+                            Label("DELETE", systemImage: "trash.fill")
+                        }
+                        .tint(.black)
                     }
-                    .tint(.black)
-                }
-                .contextMenu {
-                    Button {
-                        subscriptions.setPlayed(ep, !ep.played)
-                    } label: {
-                        Label(ep.played ? "Mark as Unplayed" : "Mark as Played",
-                              systemImage: ep.played ? "circle" : "checkmark.circle")
+                    .contextMenu {
+                        Button {
+                            subscriptions.setPlayed(ep, !ep.played)
+                        } label: {
+                            Label(ep.played ? "Mark as Unplayed" : "Mark as Played",
+                                  systemImage: ep.played ? "circle" : "checkmark.circle")
+                        }
+                        Button(role: .destructive) {
+                            deleteEpisode(ep)
+                        } label: {
+                            Label("Delete Episode", systemImage: "trash")
+                        }
                     }
-                    Button(role: .destructive) {
-                        deleteEpisode(ep)
-                    } label: {
-                        Label("Delete Episode", systemImage: "trash")
-                    }
-                }
             }
         }
         .listStyle(.plain)
@@ -154,21 +154,21 @@ struct EpisodeListView: View {
         .sheet(item: $detailEpisode) { EpisodeDetailView(episode: $0) }
         .onChange(of: query) { _, _ in runSearch() }
         .confirmationDialog(podcast.isLocal
-                            ? "Delete \(podcast.title)?"
-                            : "Unsubscribe from \(podcast.title)?",
-                            isPresented: $pendingUnsubscribe,
-                            titleVisibility: .visible) {
-            Button(podcast.isLocal ? "Delete" : "Unsubscribe", role: .destructive) {
-                subscriptions.unsubscribe(podcast); dismiss()
-            }
-            Button("Cancel", role: .cancel) {}
+            ? "Delete \(podcast.title)?"
+            : "Unsubscribe from \(podcast.title)?",
+            isPresented: $pendingUnsubscribe,
+            titleVisibility: .visible) {
+                Button(podcast.isLocal ? "Delete" : "Unsubscribe", role: .destructive) {
+                    subscriptions.unsubscribe(podcast); dismiss()
+                }
+                Button("Cancel", role: .cancel) {}
         } message: {
             Text(podcast.isLocal
-                 ? "Permanently deletes every converted article in this show. This can't be undone."
-                 : podcast.isPrivateFeed
-                 ? "Removes this show and frees its downloads. Re-adding it requires the original "
-                       + "private feed URL \u{2014} it can't be found by search."
-                 : "Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
+                ? "Permanently deletes every converted article in this show. This can't be undone."
+                : podcast.isPrivateFeed
+                ? "Removes this show and frees its downloads. Re-adding it requires the original "
+                + "private feed URL \u{2014} it can't be found by search."
+                : "Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
         }
         .confirmationDialog("Delete this download?",
                             isPresented: Binding(get: { pendingDownloadDelete != nil },

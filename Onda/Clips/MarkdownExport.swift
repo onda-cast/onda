@@ -12,7 +12,7 @@ enum MarkdownExport {
         let episode = clip.episode?.title ?? "Unknown episode"
         let show = clip.episode?.podcast?.title ?? "Unknown show"
         var lines: [String] = []
-        if !clip.text.isEmpty { lines.append("> \(clip.text)") ; lines.append("") }
+        if !clip.text.isEmpty { lines.append("> \(clip.text)"); lines.append("") }
         lines.append("\u{2014} \(episode), \(show) @ \(timeStr(clip.startTime))\u{2013}\(timeStr(clip.endTime))")
         if let note = clip.note, !note.isEmpty { lines.append("**Note:** \(note)") }
         return lines.joined(separator: "\n")

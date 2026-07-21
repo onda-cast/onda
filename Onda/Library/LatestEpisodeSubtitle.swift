@@ -14,7 +14,8 @@ struct LatestEpisodeSubtitle: View {
         let feedURL = podcast.feedURL
         var descriptor = FetchDescriptor<Episode>(
             predicate: #Predicate<Episode> { $0.podcast?.feedURL == feedURL },
-            sortBy: [SortDescriptor(\.publishDate, order: .reverse)])
+            sortBy: [SortDescriptor(\.publishDate, order: .reverse)]
+        )
         descriptor.fetchLimit = 1
         _latest = Query(descriptor)
     }

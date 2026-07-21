@@ -13,7 +13,9 @@ struct SmartQuery: Equatable, Sendable {
     var show: String?
 
     /// Plain text handed to SearchIndex.search (FTS5 MATCH is built there).
-    var ftsQueryText: String { terms.joined(separator: " ") }
+    var ftsQueryText: String {
+        terms.joined(separator: " ")
+    }
 }
 
 enum SmartQueryParser {
@@ -54,7 +56,8 @@ enum SmartQueryParser {
         var speaker: String?
         if let match = text.range(
             of: #"\b(?:by|from)\s+([A-Z][A-Za-z]*(?:\s+[A-Z][A-Za-z]*)*|[a-z]+)"#,
-            options: .regularExpression) {
+            options: .regularExpression
+        ) {
             let phrase = String(text[match])
             let name = phrase.split(separator: " ").dropFirst().joined(separator: " ")
             if !name.isEmpty {
@@ -78,7 +81,7 @@ enum SmartQueryParser {
         tagger.string = text
         var nameStart: String.Index?
         var nameEnd: String.Index?
-        tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word,
+        tagger.enumerateTags(in: text.startIndex ..< text.endIndex, unit: .word,
                              scheme: .nameType,
                              options: [.omitWhitespace, .omitPunctuation, .joinNames]) { tag, range in
             if tag == .personalName {
@@ -89,14 +92,14 @@ enum SmartQueryParser {
             return nameStart == nil   // stop once a name run has ended
         }
         guard let s = nameStart, let e = nameEnd else { return nil }
-        return (String(text[s..<e]), s..<e)
+        return (String(text[s ..< e]), s ..< e)
     }
 
     private static func contentTerms(in text: String) -> [String] {
         let tagger = NLTagger(tagSchemes: [.lexicalClass, .lemma])
         tagger.string = text
         var terms: [String] = []
-        tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word,
+        tagger.enumerateTags(in: text.startIndex ..< text.endIndex, unit: .word,
                              scheme: .lexicalClass,
                              options: [.omitWhitespace, .omitPunctuation]) { tag, range in
             if let tag, droppedClasses.contains(tag) { return true }
@@ -105,9 +108,9 @@ enum SmartQueryParser {
             // a tiny stoplist catches what POS filtering misses.
             let lemma = tagger.tag(at: range.lowerBound, unit: .word, scheme: .lemma).0?
                 .rawValue.lowercased() ?? word.lowercased()
-            let auxiliaries: Set<String> = ["be", "do", "have", "will", "would", "can",
-                                            "could", "should", "what", "which", "who",
-                                            "when", "where", "how", "why"]
+            let auxiliaries: Set = ["be", "do", "have", "will", "would", "can",
+                                    "could", "should", "what", "which", "who",
+                                    "when", "where", "how", "why"]
             guard !auxiliaries.contains(lemma), !stopwords.contains(lemma),
                   lemma.count > 1 else { return true }
             terms.append(lemma)

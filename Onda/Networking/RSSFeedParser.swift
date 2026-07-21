@@ -59,6 +59,7 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
         var transcriptURL: URL?
         var transcriptType: String?
     }
+
     private var items: [Item] = []
     private var current: Item?
     private var inItem = false
@@ -71,14 +72,18 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
         return f
     }()
 
-    func parser(_ p: XMLParser, didStartElement el: String, namespaceURI: String?,
-                qualifiedName qn: String?, attributes attrs: [String: String]) {
+    func parser(_: XMLParser, didStartElement el: String, namespaceURI _: String?,
+                qualifiedName _: String?, attributes attrs: [String: String]) {
         text = ""
         switch el {
         case "channel": sawChannel = true
         case "item": inItem = true; current = Item()
         default:
-            if inItem { handleItemStartElement(el, attrs: attrs) } else { handleChannelStartElement(el, attrs: attrs) }
+            if inItem {
+                handleItemStartElement(el, attrs: attrs)
+            } else {
+                handleChannelStartElement(el, attrs: attrs)
+            }
         }
     }
 
@@ -116,12 +121,15 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
         return 0
     }
 
-    func parser(_ p: XMLParser, foundCharacters s: String) { text += s }
-    func parser(_ p: XMLParser, foundCDATA CDATABlock: Data) {
+    func parser(_: XMLParser, foundCharacters s: String) {
+        text += s
+    }
+
+    func parser(_: XMLParser, foundCDATA CDATABlock: Data) {
         if let s = String(data: CDATABlock, encoding: .utf8) { text += s }
     }
 
-    func parser(_ p: XMLParser, didEndElement el: String, namespaceURI: String?, qualifiedName qn: String?) {
+    func parser(_: XMLParser, didEndElement el: String, namespaceURI _: String?, qualifiedName _: String?) {
         let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if inItem { handleItemEndElement(el, value: value) } else { handleChannelEndElement(el, value: value) }
         text = ""
@@ -171,8 +179,9 @@ private final class FeedDelegate: NSObject, XMLParserDelegate {
 
     private func stripHTML(_ s: String) -> String {
         decodeEntities(
-            s.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression))
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+            s.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        )
+        .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // Feeds commonly double-encode HTML entities; XMLParser only unwraps one layer,

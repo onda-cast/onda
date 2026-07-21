@@ -8,7 +8,9 @@ struct HiddenShow: Codable, Equatable, Identifiable {
     let feed: String          // feedURL absoluteString — the identity every surface shares
     let title: String
     let author: String?
-    var id: String { feed }
+    var id: String {
+        feed
+    }
 }
 
 @MainActor

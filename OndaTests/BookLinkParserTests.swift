@@ -3,7 +3,9 @@ import XCTest
 @testable import Onda
 
 final class BookLinkParserTests: XCTestCase {
-    private func url(_ s: String) -> URL { URL(string: s)! }
+    private func url(_ s: String) -> URL {
+        URL(string: s)!
+    }
 
     func test_amazonDP_yieldsASINCandidate() {
         let c = BookLinkParser.candidates(from: [url("https://www.amazon.com/dp/0735211299?tag=aff-20")])

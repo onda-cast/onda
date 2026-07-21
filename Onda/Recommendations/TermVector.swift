@@ -28,7 +28,9 @@ enum RecTokenizer {
 struct TermVector: Equatable {
     private(set) var weights: [String: Double]
 
-    init(_ weights: [String: Double] = [:]) { self.weights = weights }
+    init(_ weights: [String: Double] = [:]) {
+        self.weights = weights
+    }
 
     /// Accumulate `weight` for each token found in `text`.
     init(text: String, weight: Double = 1) {
@@ -37,8 +39,13 @@ struct TermVector: Equatable {
         weights = w
     }
 
-    var terms: Set<String> { Set(weights.keys) }
-    var isEmpty: Bool { weights.isEmpty }
+    var terms: Set<String> {
+        Set(weights.keys)
+    }
+
+    var isEmpty: Bool {
+        weights.isEmpty
+    }
 
     mutating func add(_ other: TermVector) {
         for (t, w) in other.weights { weights[t, default: 0] += w }
@@ -74,7 +81,7 @@ struct TermVector: Equatable {
     /// Terms shared with `other`, ranked by this vector's weight — the "matched: …" reasons.
     func overlap(with other: TermVector, limit: Int) -> [String] {
         let shared = terms.intersection(other.terms)
-        return shared.sorted { (weights[$0] ?? 0) > (weights[$1] ?? 0) }.prefix(limit).map { $0 }
+        return shared.sorted { (weights[$0] ?? 0) > (weights[$1] ?? 0) }.prefix(limit).map(\.self)
     }
 }
 

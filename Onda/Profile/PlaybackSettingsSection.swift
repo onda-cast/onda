@@ -28,7 +28,8 @@ struct PlaybackSettingsSection: View {
                     divider
                     toggleRow("Skip Silence", isOn: Binding(
                         get: { appSettings.defaultSkipSilence },
-                        set: { appSettings.defaultSkipSilence = $0; playback.applyAudioSettings() }))
+                        set: { appSettings.defaultSkipSilence = $0; playback.applyAudioSettings() }
+                    ))
                     divider
                     segmented("Ad Skip", options: [("Off", "off"), ("Manual", "manual"), ("Auto", "auto")],
                               selection: appSettings.defaultAdSkipMode) { appSettings.defaultAdSkipMode = $0 }

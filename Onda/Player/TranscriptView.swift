@@ -38,6 +38,7 @@ struct TranscriptView: View {
         let speaker: String?
         let words: [WordTiming]?
     }
+
     @State private var cueVMs: [CueVM] = []
     @State private var timeRanges: [(start: TimeInterval, end: TimeInterval)] = []
     // Parallel to cueVMs: per-cue word start/end tuples, precomputed once so activeWordIndex
@@ -47,9 +48,14 @@ struct TranscriptView: View {
     @State private var lastUserScrollAt: Date = .distantPast
 
     // Highlight only applies when THIS episode is the one loaded in the player.
-    private var isCurrentEpisode: Bool { playback.currentEpisode?.guid == episode.guid }
+    private var isCurrentEpisode: Bool {
+        playback.currentEpisode?.guid == episode.guid
+    }
+
     // Auto-scroll only while it's actually playing, and never while the user is reading around.
-    private var isFollowing: Bool { isCurrentEpisode && playback.isPlaying }
+    private var isFollowing: Bool {
+        isCurrentEpisode && playback.isPlaying
+    }
 
     private var activeIndex: Int? {
         guard isCurrentEpisode else { return nil }
@@ -138,8 +144,8 @@ struct TranscriptView: View {
                         // Staged guidance: a single anchored line is easy to mistake for a
                         // finished selection — say explicitly that an end tap is expected.
                         Text(selEnd == nil
-                             ? "Now tap the last line \u{2014} or clip just this one."
-                             : "Tap another line to adjust the end.")
+                            ? "Now tap the last line \u{2014} or clip just this one."
+                            : "Tap another line to adjust the end.")
                             .scaledFont(12, weight: .semibold)
                             .foregroundStyle(theme.color(.textSecondary))
                         Button {
@@ -212,7 +218,8 @@ struct TranscriptView: View {
             (selecting && (selectionRange?.contains(i) ?? false))
                 ? theme.color(.accentWash)
                 : (i == currentMatchCue || (i == activeIndex && !selecting && !searching)
-                    ? theme.color(.accentWash) : .clear))
+                    ? theme.color(.accentWash) : .clear)
+        )
         .contentShape(Rectangle())
         // Read mode: tapping anywhere on the line jumps to the player (the side button reinforces
         // it). Select mode: tapping picks the clip range instead.
@@ -292,6 +299,7 @@ struct TranscriptView: View {
 }
 
 // MARK: - Cue text, search & clip-selection helpers
+
 extension TranscriptView {
     // Read mode gets natively-selectable text (long-press → Look Up / Search Web); clip Select
     // mode gets plain Text so the row's range-tap gesture has no competing recognizer.
@@ -311,8 +319,10 @@ extension TranscriptView {
                     style: .init(font: .systemFont(ofSize: cueFontSize),
                                  base: UIColor(theme.color(i == activeIndex ? .text : .textTertiary)),
                                  emphasis: UIColor(theme.color(.text)),
-                                 accent: UIColor(theme.color(.accent)))),
-                onTap: { playback.jumpFromTranscript(episode: episode, to: cue.start) })
+                                 accent: UIColor(theme.color(.accent)))
+                ),
+                onTap: { playback.jumpFromTranscript(episode: episode, to: cue.start) }
+            )
         }
     }
 
@@ -377,7 +387,7 @@ extension TranscriptView {
     var selectionRange: ClosedRange<Int>? {
         guard let s = selStart else { return nil }
         let e = selEnd ?? s
-        return min(s, e)...max(s, e)
+        return min(s, e) ... max(s, e)
     }
 
     func handleSelectionTap(_ i: Int) {
@@ -397,10 +407,13 @@ extension TranscriptView {
         selecting = false; selStart = nil; selEnd = nil
     }
 
-    func timeStr(_ s: TimeInterval) -> String { TimeFormatting.timeStr(s) }
+    func timeStr(_ s: TimeInterval) -> String {
+        TimeFormatting.timeStr(s)
+    }
 }
 
 // MARK: - Progress & empty states
+
 extension TranscriptView {
     private var progressState: some View {
         VStack(spacing: 12) {

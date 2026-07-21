@@ -5,7 +5,10 @@ import Foundation
 /// populated only when the match came from the transcript FTS index; a title/notes-only
 /// match leaves them nil.
 struct EpisodeSearchResult: Identifiable {
-    var id: String { episode.guid }
+    var id: String {
+        episode.guid
+    }
+
     let episode: Episode
     let snippet: String?
     let snippetStartTime: TimeInterval?
@@ -29,7 +32,7 @@ struct PodcastEpisodeSearch {
         let podcastGuids = Set(episodes.map(\.guid))
         if let index, let hits = try? index.search(query) {
             for hit in hits where podcastGuids.contains(hit.episodeGuid)
-            && snippetByGuid[hit.episodeGuid] == nil {
+                && snippetByGuid[hit.episodeGuid] == nil {
                 snippetByGuid[hit.episodeGuid] = (hit.snippet, hit.startTime)
             }
         }

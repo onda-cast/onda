@@ -47,8 +47,8 @@ final class ClipServiceTests: XCTestCase {
         let c = try ModelContainer(for: Schema(ondaSchema),
                                    configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(c)
-        let ep = Episode(guid: "z", title: "E", publishDate: .now, duration: 600,
-                         audioURL: URL(string: "https://ex.com/z.mp3")!, notes: "")   // no transcript cues
+        let ep = try Episode(guid: "z", title: "E", publishDate: .now, duration: 600,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/z.mp3")), notes: "")   // no transcript cues
         ctx.insert(ep); try ctx.save()
         let svc = ClipService(modelContext: ctx)
         let clip = svc.quickClip(episode: ep, at: 0.2)

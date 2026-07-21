@@ -12,8 +12,13 @@ protocol WordEmbedding {
 
 struct AppleWordEmbedding: WordEmbedding {
     private let embedding = NLEmbedding.wordEmbedding(for: .english)
-    var isAvailable: Bool { embedding != nil }
-    func vector(for word: String) -> [Double]? { embedding?.vector(for: word) }
+    var isAvailable: Bool {
+        embedding != nil
+    }
+
+    func vector(for word: String) -> [Double]? {
+        embedding?.vector(for: word)
+    }
 }
 
 enum EmbeddingSimilarity {

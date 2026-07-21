@@ -3,7 +3,10 @@ import Foundation
 import SwiftData
 
 struct TranscriptHit: Identifiable {
-    var id: String { kind + "-" + episodeGuid + "-\(startTime)" }
+    var id: String {
+        kind + "-" + episodeGuid + "-\(startTime)"
+    }
+
     let kind: String            // "cue" | "clip"
     let episodeGuid: String
     let episodeTitle: String
@@ -50,7 +53,7 @@ struct TranscriptSearch {
 
     func search(_ query: String) -> [TranscriptHit] {
         let results = (try? index.search(query)) ?? []
-        let guids = Array(Set(results.map { $0.episodeGuid }))
+        let guids = Array(Set(results.map(\.episodeGuid)))
         let descriptor = FetchDescriptor<Episode>(predicate: #Predicate { guids.contains($0.guid) })
         let episodes = (try? modelContext.fetch(descriptor)) ?? []
         let episodesByGuid = Dictionary(uniqueKeysWithValues: episodes.map { ($0.guid, $0) })

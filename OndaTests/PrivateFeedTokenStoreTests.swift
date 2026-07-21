@@ -17,7 +17,7 @@ final class PrivateFeedTokenStoreTests: XCTestCase {
     }
 
     func test_store_thenRealURL_returnsStoredURL() throws {
-        let url = URL(string: "https://feeds.example.com/private.xml?token=abc")!
+        let url = try XCTUnwrap(URL(string: "https://feeds.example.com/private.xml?token=abc"))
         try store.store(realURL: url, hash: "hash-a")
         XCTAssertEqual(try store.realURL(forHash: "hash-a"), url)
     }
@@ -27,15 +27,15 @@ final class PrivateFeedTokenStoreTests: XCTestCase {
     }
 
     func test_store_overwritesExistingValue() throws {
-        let first = URL(string: "https://feeds.example.com/a.xml?token=1")!
-        let second = URL(string: "https://feeds.example.com/a.xml?token=2")!
+        let first = try XCTUnwrap(URL(string: "https://feeds.example.com/a.xml?token=1"))
+        let second = try XCTUnwrap(URL(string: "https://feeds.example.com/a.xml?token=2"))
         try store.store(realURL: first, hash: "hash-a")
         try store.store(realURL: second, hash: "hash-a")
         XCTAssertEqual(try store.realURL(forHash: "hash-a"), second)
     }
 
     func test_delete_removesEntry() throws {
-        let url = URL(string: "https://feeds.example.com/private.xml?token=abc")!
+        let url = try XCTUnwrap(URL(string: "https://feeds.example.com/private.xml?token=abc"))
         try store.store(realURL: url, hash: "hash-a")
         try store.delete(hash: "hash-a")
         XCTAssertNil(try store.realURL(forHash: "hash-a"))

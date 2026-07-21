@@ -16,15 +16,17 @@ struct RetentionSettingsSection: View {
                 VStack(spacing: 0) {
                     toggleRow("Wi-Fi only downloads", subtitle: "Never download over cellular",
                               isOn: Binding(
-                                get: { appSettings.wifiOnlyDownloads },
-                                set: { appSettings.wifiOnlyDownloads = $0 }))
+                                  get: { appSettings.wifiOnlyDownloads },
+                                  set: { appSettings.wifiOnlyDownloads = $0 }
+                              ))
                     divider
                     // The value every show's "Default" auto-download hint resolves to — it was
                     // previously unwritable anywhere in the UI.
                     toggleRow("Auto-download new episodes", subtitle: "Newest episode of each show, on refresh",
                               isOn: Binding(
-                                get: { appSettings.defaultAutoDownload },
-                                set: { appSettings.defaultAutoDownload = $0 }))
+                                  get: { appSettings.defaultAutoDownload },
+                                  set: { appSettings.defaultAutoDownload = $0 }
+                              ))
                     divider
                     // Segmented (not a bare Toggle) to match the per-show override screen's
                     // control family for the same setting — both are "Off/Custom-with-a-
@@ -47,7 +49,7 @@ struct RetentionSettingsSection: View {
                             stepperRow("Keep per show",
                                        value: Binding(get: { appSettings.defaultMaxDownloadsKept },
                                                       set: { appSettings.defaultMaxDownloadsKept = $0 }),
-                                       range: 1...50, label: { "\($0)" })
+                                       range: 1 ... 50, label: { "\($0)" })
                         }
                     }
                     divider
@@ -68,21 +70,23 @@ struct RetentionSettingsSection: View {
                             stepperRow("After",
                                        value: Binding(get: { appSettings.defaultAutoDeleteListenedAfterDays },
                                                       set: { appSettings.defaultAutoDeleteListenedAfterDays = $0 }),
-                                       range: 2...30, label: { "\($0) days" })
+                                       range: 2 ... 30, label: { "\($0) days" })
                         }
                     }
                     divider
                     toggleRow("Auto-transcribe downloads",
                               subtitle: "On-device, when no transcript is published",
                               isOn: Binding(
-                                get: { appSettings.defaultAutoTranscribeOnDownload },
-                                set: { appSettings.defaultAutoTranscribeOnDownload = $0 }))
+                                  get: { appSettings.defaultAutoTranscribeOnDownload },
+                                  set: { appSettings.defaultAutoTranscribeOnDownload = $0 }
+                              ))
                     divider
                     toggleRow("Keep transcripts of deleted episodes",
                               subtitle: "Deleted episodes stay searchable",
                               isOn: Binding(
-                                get: { appSettings.keepTranscriptsOnDelete },
-                                set: { appSettings.keepTranscriptsOnDelete = $0 }))
+                                  get: { appSettings.keepTranscriptsOnDelete },
+                                  set: { appSettings.keepTranscriptsOnDelete = $0 }
+                              ))
                 }
                 .padding(16)
             }

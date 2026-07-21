@@ -39,7 +39,7 @@ final class PrivateFeedTokenMigrationTests: XCTestCase {
 
     func test_run_migratesPrivatePodcastWithRealFeedURL() throws {
         let ctx = try context()
-        let realURL = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let realURL = try XCTUnwrap(URL(string: "https://feeds.example.com/private.xml?token=s3cret"))
         let pod = Podcast(feedURL: realURL, title: "T", author: "A", artworkURL: nil,
                           category: "Tech", itunesId: nil, isSubscribed: true, isPrivateFeed: true)
         ctx.insert(pod)
@@ -49,13 +49,13 @@ final class PrivateFeedTokenMigrationTests: XCTestCase {
         PrivateFeedTokenMigration.run(context: ctx, tokenStore: tokenStore)
 
         XCTAssertTrue(PrivateFeedIdentity.isPlaceholder(pod.feedURL), "feedURL rewritten to placeholder")
-        let hash = pod.feedURL.host!
+        let hash = try XCTUnwrap(pod.feedURL.host)
         XCTAssertEqual(try tokenStore.realURL(forHash: hash), realURL, "real URL stored in token store")
     }
 
     func test_run_skipsAlreadyMigratedPodcast() throws {
         let ctx = try context()
-        let hash = PrivateFeedIdentity.hash(for: URL(string: "https://feeds.example.com/x.xml?t=1")!)
+        let hash = try PrivateFeedIdentity.hash(for: XCTUnwrap(URL(string: "https://feeds.example.com/x.xml?t=1")))
         let placeholder = PrivateFeedIdentity.placeholderURL(forHash: hash)
         let pod = Podcast(feedURL: placeholder, title: "T", author: "A", artworkURL: nil,
                           category: "Tech", itunesId: nil, isSubscribed: true, isPrivateFeed: true)
@@ -71,7 +71,7 @@ final class PrivateFeedTokenMigrationTests: XCTestCase {
 
     func test_run_leavesPublicPodcastsUntouched() throws {
         let ctx = try context()
-        let realURL = URL(string: "https://ex.com/public.xml")!
+        let realURL = try XCTUnwrap(URL(string: "https://ex.com/public.xml"))
         let pod = Podcast(feedURL: realURL, title: "T", author: "A", artworkURL: nil,
                           category: "Tech", itunesId: 1, isSubscribed: true, isPrivateFeed: false)
         ctx.insert(pod)
@@ -84,8 +84,8 @@ final class PrivateFeedTokenMigrationTests: XCTestCase {
 
     func test_run_mixedBatch_oneFailsOneSucceeds_savesTheSuccessfulOne() throws {
         let ctx = try context()
-        let okURL = URL(string: "https://feeds.example.com/ok.xml?token=good")!
-        let failURL = URL(string: "https://feeds.example.com/fail.xml?token=bad")!
+        let okURL = try XCTUnwrap(URL(string: "https://feeds.example.com/ok.xml?token=good"))
+        let failURL = try XCTUnwrap(URL(string: "https://feeds.example.com/fail.xml?token=bad"))
         let okHash = PrivateFeedIdentity.hash(for: okURL)
         let failHash = PrivateFeedIdentity.hash(for: failURL)
 
@@ -104,7 +104,7 @@ final class PrivateFeedTokenMigrationTests: XCTestCase {
         XCTAssertTrue(PrivateFeedIdentity.isPlaceholder(okPod.feedURL),
                       "the podcast whose Keychain store succeeded is rewritten to a placeholder")
         XCTAssertEqual(try tokenStore.realURL(forHash: okHash), okURL,
-                      "the successfully-migrated podcast's real URL is retrievable from the token store")
+                       "the successfully-migrated podcast's real URL is retrievable from the token store")
 
         XCTAssertEqual(failPod.feedURL, failURL,
                        "the podcast whose Keychain store failed keeps its real feedURL untouched")

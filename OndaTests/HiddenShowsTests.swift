@@ -30,7 +30,7 @@ final class HiddenShowsTests: XCTestCase {
         XCTAssertEqual(reloaded.shows.map(\.title), ["Hidden Show"])
     }
 
-    func test_unhide_removes_andUndoRestoresVisibility() {
+    func test_unhide_removes_andUndoRestoresVisibility() throws {
         let store = HiddenShows(defaults: defaults)
         let show = dto("Show")
         store.hide(show)
@@ -39,7 +39,7 @@ final class HiddenShowsTests: XCTestCase {
         XCTAssertTrue(store.shows.isEmpty)
 
         store.hide(show)
-        store.unhide(show.feedUrl!.absoluteString)
+        try store.unhide(XCTUnwrap(show.feedUrl?.absoluteString))
         XCTAssertFalse(store.isHidden(show))
     }
 

@@ -26,7 +26,9 @@ final class HiddenCategories {
         hidden = Set(defaults.stringArray(forKey: Self.key) ?? [])
     }
 
-    func isHidden(category: String) -> Bool { hidden.contains(category) }
+    func isHidden(category: String) -> Bool {
+        hidden.contains(category)
+    }
 
     func isHidden(_ dto: PodcastDTO) -> Bool {
         dto.primaryGenreName.map(isHidden(category:)) ?? false

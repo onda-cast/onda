@@ -62,7 +62,7 @@ struct TranscriptParser: Sendable {
                 body.removeSubrange(r)
             }
             body = body.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-                       .trimmingCharacters(in: .whitespacesAndNewlines)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !body.isEmpty else { continue }
             cues.append(ParsedCue(startTime: start, endTime: end, text: body, speaker: speaker))
         }

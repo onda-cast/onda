@@ -7,13 +7,13 @@ import SwiftUI
 private struct ShakeDetector: UIViewControllerRepresentable {
     let onShake: () -> Void
 
-    func makeUIViewController(context: Context) -> ShakeViewController {
+    func makeUIViewController(context _: Context) -> ShakeViewController {
         let controller = ShakeViewController()
         controller.onShake = onShake
         return controller
     }
 
-    func updateUIViewController(_ controller: ShakeViewController, context: Context) {
+    func updateUIViewController(_ controller: ShakeViewController, context _: Context) {
         controller.onShake = onShake
     }
 }
@@ -21,7 +21,9 @@ private struct ShakeDetector: UIViewControllerRepresentable {
 final class ShakeViewController: UIViewController {
     var onShake: (() -> Void)?
 
-    override var canBecomeFirstResponder: Bool { true }
+    override var canBecomeFirstResponder: Bool {
+        true
+    }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)

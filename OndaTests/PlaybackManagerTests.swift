@@ -12,17 +12,37 @@ final class FakeEngine: PlayerEngine {
     var onTimeUpdate: ((TimeInterval) -> Void)?
     var onRMS: ((Float, Double) -> Void)?
     private(set) var boostGain: Float = 1.0
-    func setBoostGain(_ gain: Float) { boostGain = gain }
+    func setBoostGain(_ gain: Float) {
+        boostGain = gain
+    }
+
     private(set) var loadedURL: URL?
     private(set) var startAt: TimeInterval = 0
     private(set) var playing = false
-    func load(url: URL, startAt: TimeInterval) { loadedURL = url; self.startAt = startAt; currentTimeSeconds = startAt }
-    func play() { playing = true }
-    func pause() { playing = false }
-    func seek(to seconds: TimeInterval) { currentTimeSeconds = max(0, seconds) }
+    func load(url: URL, startAt: TimeInterval) {
+        loadedURL = url; self.startAt = startAt; currentTimeSeconds = startAt
+    }
+
+    func play() {
+        playing = true
+    }
+
+    func pause() {
+        playing = false
+    }
+
+    func seek(to seconds: TimeInterval) {
+        currentTimeSeconds = max(0, seconds)
+    }
+
     // test helpers
-    func emitTime(_ t: TimeInterval) { currentTimeSeconds = t; onTimeUpdate?(t) }
-    func emitEnd() { onEndOfItem?() }
+    func emitTime(_ t: TimeInterval) {
+        currentTimeSeconds = t; onTimeUpdate?(t)
+    }
+
+    func emitEnd() {
+        onEndOfItem?()
+    }
 }
 
 @MainActor
@@ -32,12 +52,14 @@ final class PlaybackManagerTests: XCTestCase {
                                    configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         return ModelContext(c)
     }
+
     private func makeAppSettings() -> AppSettings {
         let suite = "PMTests-\(UUID().uuidString)"
         let d = UserDefaults(suiteName: suite)!
         d.removePersistentDomain(forName: suite)
         return AppSettings(defaults: d)
     }
+
     private func makeEpisode(in ctx: ModelContext, guid: String = "g", duration: TimeInterval = 1000,
                              intro: Int = 0, outro: Int = 0, speed: Double? = nil,
                              position: TimeInterval = 0) -> Episode {
@@ -251,13 +273,13 @@ final class PlaybackManagerTests: XCTestCase {
         let ctx = try makeContext()
         let engine = FakeEngine()
         let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
-        let pod = Podcast(feedURL: URL(string: "https://ex.com/show.xml")!, title: "S", author: "A",
-                          artworkURL: nil, category: "Tech", itunesId: 1)
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/show.xml")), title: "S", author: "A",
+                              artworkURL: nil, category: "Tech", itunesId: 1)
         let s = ShowSettings.makeDefault(); s.podcast = pod; pod.settings = s
-        let ep1 = Episode(guid: "e1", title: "E1", publishDate: .now, duration: 100,
-                          audioURL: URL(string: "https://ex.com/e1.mp3")!, notes: "")
-        let ep2 = Episode(guid: "e2", title: "E2", publishDate: .now.addingTimeInterval(-100), duration: 100,
-                          audioURL: URL(string: "https://ex.com/e2.mp3")!, notes: "")
+        let ep1 = try Episode(guid: "e1", title: "E1", publishDate: .now, duration: 100,
+                              audioURL: XCTUnwrap(URL(string: "https://ex.com/e1.mp3")), notes: "")
+        let ep2 = try Episode(guid: "e2", title: "E2", publishDate: .now.addingTimeInterval(-100), duration: 100,
+                              audioURL: XCTUnwrap(URL(string: "https://ex.com/e2.mp3")), notes: "")
         ep1.podcast = pod; ep2.podcast = pod; pod.episodes = [ep1, ep2]
         ctx.insert(pod); ctx.insert(s); ctx.insert(ep1); ctx.insert(ep2)
 
@@ -328,7 +350,7 @@ final class PlaybackManagerTests: XCTestCase {
         pm.play(ep)
         engine.emitTime(100)
         // Feed sustained silence via the engine RMS hook.
-        for _ in 0..<10 { engine.onRMS?(0.001, 0.1) }
+        for _ in 0 ..< 10 { engine.onRMS?(0.001, 0.1) }
         XCTAssertGreaterThan(engine.currentTimeSeconds, 100, "a silence skip advanced position")
     }
 
@@ -470,6 +492,7 @@ final class PlaybackManagerTests: XCTestCase {
 }
 
 // MARK: - Global defaults, seek intervals, Smart Resume, autoplay
+
 extension PlaybackManagerTests {
     func test_play_usesGlobalDefaultSpeed_whenShowHasNoOverride() throws {
         let ctx = try makeContext()
@@ -504,7 +527,7 @@ extension PlaybackManagerTests {
         let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: app)
         var clock = Date(timeIntervalSinceReferenceDate: 0)
         pm.now = { clock }
-        let ep = makeEpisode(in: ctx, duration: 10_000, position: 100)
+        let ep = makeEpisode(in: ctx, duration: 10000, position: 100)
         pm.play(ep)
         pm.skipForward()                                   // 30 → 130
         clock = clock.addingTimeInterval(0.5)
@@ -568,6 +591,7 @@ extension PlaybackManagerTests {
 }
 
 // MARK: - Cold-launch restore
+
 extension PlaybackManagerTests {
     func test_restoreLastEpisode_reloadsLastPlayedPaused() throws {
         let ctx = try makeContext()
@@ -600,6 +624,7 @@ extension PlaybackManagerTests {
         XCTAssertEqual(pm.currentEpisode?.guid, "current", "restore never clobbers an active episode")
         UserDefaults.standard.removeObject(forKey: "lastPlayedEpisodeGuid")
     }
+
     // MARK: Retention sweep on natural playback completion
 
     // Regression: SubscriptionService.setPlayed always swept retention after marking an episode
@@ -751,10 +776,10 @@ extension PlaybackManagerTests {
         pm.play(makeEpisode(in: ctx))
         XCTAssertFalse(pm.miniPlayerHidden, "starting playback always shows the bar")
     }
-
 }
 
 // MARK: - Clip preview (Clip Review sheet)
+
 extension PlaybackManagerTests {
     func test_previewRange_loopsBackToStart_atEndBound() throws {
         let ctx = try makeContext()
@@ -864,7 +889,7 @@ extension PlaybackManagerTests {
         pm.play(ep)
         pm.beginClipPreview()
         pm.previewRange(episode: ep, start: 100, end: 130)
-        for _ in 0..<10 { engine.onRMS?(0.001, 0.1) }   // sustained silence
+        for _ in 0 ..< 10 { engine.onRMS?(0.001, 0.1) }   // sustained silence
         XCTAssertEqual(engine.currentTimeSeconds, 100, accuracy: 0.5,
                        "no silence skip while previewing")
         engine.emitTime(131)

@@ -39,8 +39,8 @@ struct ArticlePendingRow: View {
 
     private var stageLabel: String {
         switch item.stage {
-        case .fetching: return "Fetching article…"
-        case .synthesizing(let p): return "Synthesizing speech… \(Int(p * 100))%"
+        case .fetching: "Fetching article…"
+        case let .synthesizing(p): "Synthesizing speech… \(Int(p * 100))%"
         }
     }
 }

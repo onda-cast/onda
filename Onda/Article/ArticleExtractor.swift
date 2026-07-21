@@ -7,10 +7,10 @@ enum ArticleExtractionError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return "That link isn't a valid web address."
-        case .fetchFailed: return "Couldn't load the page. Check the link and your connection."
-        case .noReadableContent: return "No readable article found on that page."
-        case .timeout: return "The page took too long to process."
+        case .invalidURL: "That link isn't a valid web address."
+        case .fetchFailed: "Couldn't load the page. Check the link and your connection."
+        case .noReadableContent: "No readable article found on that page."
+        case .timeout: "The page took too long to process."
         }
     }
 }
@@ -53,7 +53,7 @@ final class ArticleExtractor {
         let data: Data
         do { data = try await fetch(url) } catch { throw ArticleExtractionError.fetchFailed }
         guard let html = String(data: data, encoding: .utf8)
-                ?? String(data: data, encoding: .isoLatin1) else {
+            ?? String(data: data, encoding: .isoLatin1) else {
             throw ArticleExtractionError.noReadableContent
         }
         return try await withTimeout { try await self.runReadability(html: html, baseURL: url) }
@@ -80,7 +80,7 @@ final class ArticleExtractor {
 
         guard let jsURL = Bundle(for: ArticleExtractor.self).url(forResource: "Readability",
                                                                  withExtension: "js"),
-              let readability = try? String(contentsOf: jsURL, encoding: .utf8) else {
+            let readability = try? String(contentsOf: jsURL, encoding: .utf8) else {
             assertionFailure("Readability.js missing from bundle — check project.yml resources")
             throw ArticleExtractionError.noReadableContent
         }
@@ -90,7 +90,7 @@ final class ArticleExtractor {
               let obj = try? JSONSerialization.jsonObject(with: Data(raw.utf8)),
               let dict = obj as? [String: Any],
               let text = (dict["textContent"] as? String)?
-                  .trimmingCharacters(in: .whitespacesAndNewlines),
+              .trimmingCharacters(in: .whitespacesAndNewlines),
               text.count >= Self.minReadableTextLength else {
             throw ArticleExtractionError.noReadableContent
         }
@@ -99,11 +99,13 @@ final class ArticleExtractor {
                 ?? baseURL.host() ?? "Article",
             byline: dict["byline"] as? String,
             siteName: dict["siteName"] as? String,
-            textContent: text)
+            textContent: text
+        )
     }
 
     private func withTimeout(
-        _ op: @escaping @Sendable () async throws -> ExtractedArticle) async throws -> ExtractedArticle {
+        _ op: @escaping @Sendable () async throws -> ExtractedArticle
+    ) async throws -> ExtractedArticle {
         try await withThrowingTaskGroup(of: ExtractedArticle.self) { group in
             group.addTask { try await op() }
             group.addTask { [timeout] in
@@ -142,16 +144,16 @@ private final class WebLoadDelegate: NSObject, WKNavigationDelegate {
         }
     }
 
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    func webView(_: WKWebView, didFinish _: WKNavigation!) {
         resume()
     }
 
-    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+    func webView(_: WKWebView, didFail _: WKNavigation!, withError _: Error) {
         resume(throwing: ArticleExtractionError.fetchFailed)
     }
 
-    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!,
-                 withError error: Error) {
+    func webView(_: WKWebView, didFailProvisionalNavigation _: WKNavigation!,
+                 withError _: Error) {
         resume(throwing: ArticleExtractionError.fetchFailed)
     }
 }

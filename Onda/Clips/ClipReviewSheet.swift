@@ -40,7 +40,9 @@ struct ClipReviewSheet: View {
     }
 
     // End-of-capture clamps can push `end` past a mis-reported feed duration; never clamp below it.
-    private var duration: TimeInterval { max(episode?.duration ?? 0, end) }
+    private var duration: TimeInterval {
+        max(episode?.duration ?? 0, end)
+    }
 
     private var excerpt: String {
         guard let episode else { return "" }
@@ -63,7 +65,7 @@ struct ClipReviewSheet: View {
                         .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                     Text("Note").brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
                     TextField("Why does this matter?", text: $note, axis: .vertical)
-                        .lineLimit(3...6).padding(12)
+                        .lineLimit(3 ... 6).padding(12)
                         .background(theme.color(.bgElevated)).brutalBorder(width: 2)
                 }.padding(20)
             }
@@ -192,7 +194,7 @@ struct ClipReviewSheet: View {
     private func timecode(_ s: TimeInterval) -> String {
         let t = Int(max(0, s))
         return t >= 3600 ? String(format: "%d:%02d:%02d", t / 3600, (t % 3600) / 60, t % 60)
-                         : String(format: "%d:%02d", t / 60, t % 60)
+            : String(format: "%d:%02d", t / 60, t % 60)
     }
 
     private func save() {

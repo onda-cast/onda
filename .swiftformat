@@ -1,0 +1,15 @@
+--swiftversion 6.0
+--indent 4
+--maxwidth 150
+
+# Match the existing codebase's house style rather than impose a new one:
+# - compact single-line `if`/`for` bodies (`if x { return }`) are used pervasively as a terse
+#   guard-clause convention — wrapIfStatementBodies/wrapLoopBodies would rewrite ~150 files.
+# - trailing line comments are hand-aligned in columns with extra spaces
+#   (`x = 1          // why`) — consecutiveSpaces would collapse that alignment.
+# - `//` vs `///` is chosen deliberately per CLAUDE.md ("only comment the non-obvious WHY"),
+#   not "every API gets a doc comment" — docComments would fight that.
+# - compact multi-statement seed/test lines (`a = 1; b = 2`) — semicolons would split them.
+--disable redundantSelf,semicolons,wrapMultilineStatementBraces,wrapIfStatementBodies,wrapLoopBodies,consecutiveSpaces,docComments,trailingCommas,andOperator,sortImports
+
+--exclude build,DerivedData,.build

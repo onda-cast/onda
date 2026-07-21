@@ -31,7 +31,7 @@ final class SpeechEngineReproTests: XCTestCase {
 
     func test_realEngine_transcribesSpokenFixture() async throws {
         guard #available(iOS 26, *) else { throw XCTSkip("needs iOS 26") }
-        let url = Bundle(for: Self.self).url(forResource: "spoken", withExtension: "aiff")!
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "spoken", withExtension: "aiff"))
         let engine = SpeechTranscriberEngine()
         do {
             // Timeout guard: on simulators the model-asset fetch can stall for many minutes

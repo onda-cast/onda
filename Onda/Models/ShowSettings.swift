@@ -33,5 +33,7 @@ final class ShowSettings {
     }
 
     /// Fresh settings that inherit every global default (all overrides nil).
-    static func makeDefault() -> ShowSettings { ShowSettings() }
+    static func makeDefault() -> ShowSettings {
+        ShowSettings()
+    }
 }

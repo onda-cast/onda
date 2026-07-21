@@ -15,13 +15,13 @@ final class SmartQueryParserTests: XCTestCase {
         let lemmaProbe = "books"
         let lemmaTagger = NLTagger(tagSchemes: [.lemma])
         lemmaTagger.string = lemmaProbe
-        lemmaTagger.setLanguage(.english, range: lemmaProbe.startIndex..<lemmaProbe.endIndex)
+        lemmaTagger.setLanguage(.english, range: lemmaProbe.startIndex ..< lemmaProbe.endIndex)
         let lemma = lemmaTagger.tag(at: lemmaProbe.startIndex, unit: .word, scheme: .lemma).0
 
         let nameProbe = "Tim Cook spoke yesterday"
         let nameTagger = NLTagger(tagSchemes: [.nameType])
         nameTagger.string = nameProbe
-        nameTagger.setLanguage(.english, range: nameProbe.startIndex..<nameProbe.endIndex)
+        nameTagger.setLanguage(.english, range: nameProbe.startIndex ..< nameProbe.endIndex)
         let nameTag = nameTagger.tag(at: nameProbe.startIndex, unit: .word, scheme: .nameType).0
 
         try XCTSkipIf(lemma == nil || nameTag != .personalName,

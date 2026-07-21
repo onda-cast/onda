@@ -79,6 +79,7 @@ final class LibrarySortTests: XCTestCase {
     }
 
     // MARK: unplayedCount (Library grid's "new episodes" badge)
+
     // Badge count = unplayed AND downloaded AND non-archived — the shared `show()` helper
     // doesn't model downloads, so these build episodes manually.
 

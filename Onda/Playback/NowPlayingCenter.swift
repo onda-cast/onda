@@ -107,7 +107,7 @@ final class NowPlayingCenter {
     // (dispatch_assert_queue → EXC_BREAKPOINT), a device-only crash. Building the artwork here, in
     // a nonisolated context, gives the handler no isolation so it's callable from any queue. Data
     // is Sendable (safe in); byPreparingForDisplay force-decodes so no lazy decode races either.
-    nonisolated private static func makeArtwork(from data: Data) async -> MPMediaItemArtwork? {
+    private nonisolated static func makeArtwork(from data: Data) async -> MPMediaItemArtwork? {
         guard let raw = UIImage(data: data) else { return nil }
         let image = await raw.byPreparingForDisplay() ?? raw
         return MPMediaItemArtwork(boundsSize: image.size) { _ in image }

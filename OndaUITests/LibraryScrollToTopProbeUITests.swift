@@ -4,7 +4,7 @@ import XCTest
 
 final class LibraryScrollToTopProbeUITests: XCTestCase {
     @MainActor
-    func test_layoutMenuButton_scrollsToTop() throws {
+    func test_layoutMenuButton_scrollsToTop() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_SCALE"] = "1"   // 25 shows — enough to scroll
         app.launch()
@@ -16,7 +16,7 @@ final class LibraryScrollToTopProbeUITests: XCTestCase {
         XCTAssertTrue(title.isHittable, "starts scrolled to top")
 
         // Scroll down until the header is off-screen.
-        for _ in 0..<6 { app.swipeUp() }
+        for _ in 0 ..< 6 { app.swipeUp() }
         XCTAssertFalse(title.isHittable, "scrolled away from the top")
 
         // Tap the layout/sort menu button — it should also jump the list back to the top.
@@ -33,5 +33,7 @@ final class LibraryScrollToTopProbeUITests: XCTestCase {
 }
 
 private extension XCUIElement {
-    func tapIfExists() { if exists { tap() } }
+    func tapIfExists() {
+        if exists { tap() }
+    }
 }

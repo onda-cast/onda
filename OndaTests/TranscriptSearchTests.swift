@@ -10,10 +10,10 @@ final class TranscriptSearchTests: XCTestCase {
                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(container)
         let index = try SearchIndex(path: ":memory:")
-        let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!, title: "The Signal", author: "A",
-                          artworkURL: nil, category: "Tech", itunesId: 1, isSubscribed: true)
-        let ep = Episode(guid: "g", title: "Ep 1", publishDate: .now, duration: 100,
-                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/f.xml")), title: "The Signal", author: "A",
+                              artworkURL: nil, category: "Tech", itunesId: 1, isSubscribed: true)
+        let ep = try Episode(guid: "g", title: "Ep 1", publishDate: .now, duration: 100,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/e.mp3")), notes: "")
         ep.podcast = pod
         ctx.insert(pod); ctx.insert(ep); try ctx.save()
         try index.upsert(SearchDoc(kind: "cue", episodeGuid: "g", startTime: 10,
@@ -31,10 +31,10 @@ final class TranscriptSearchTests: XCTestCase {
                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(container)
         let index = try SearchIndex(path: ":memory:")
-        let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!, title: "The Signal", author: "A",
-                          artworkURL: nil, category: "Tech", itunesId: 1, isSubscribed: false)
-        let ep = Episode(guid: "g", title: "Ep 1", publishDate: .now, duration: 100,
-                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/f.xml")), title: "The Signal", author: "A",
+                              artworkURL: nil, category: "Tech", itunesId: 1, isSubscribed: false)
+        let ep = try Episode(guid: "g", title: "Ep 1", publishDate: .now, duration: 100,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/e.mp3")), notes: "")
         ep.podcast = pod
         ctx.insert(pod); ctx.insert(ep); try ctx.save()
         try index.upsert(SearchDoc(kind: "cue", episodeGuid: "g", startTime: 10, body: "homepage"))
@@ -49,11 +49,11 @@ final class TranscriptSearchTests: XCTestCase {
         let index = try SearchIndex(path: ":memory:")
 
         func makeShow(_ title: String, guid: String, speaker: String) throws -> Episode {
-            let pod = Podcast(feedURL: URL(string: "https://ex.com/\(guid).xml")!, title: title,
-                              author: "A", artworkURL: nil, category: "Tech", itunesId: nil,
-                              isSubscribed: true)
-            let ep = Episode(guid: guid, title: "Ep", publishDate: .now, duration: 100,
-                             audioURL: URL(string: "https://ex.com/\(guid).mp3")!, notes: "")
+            let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/\(guid).xml")), title: title,
+                                  author: "A", artworkURL: nil, category: "Tech", itunesId: nil,
+                                  isSubscribed: true)
+            let ep = try Episode(guid: guid, title: "Ep", publishDate: .now, duration: 100,
+                                 audioURL: XCTUnwrap(URL(string: "https://ex.com/\(guid).mp3")), notes: "")
             ep.podcast = pod
             let tr = Transcript(source: "published", language: "en")
             tr.episode = ep; ep.transcript = tr
@@ -95,10 +95,10 @@ final class TranscriptSearchTests: XCTestCase {
                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(container)
         let index = try SearchIndex(path: ":memory:")
-        let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!, title: "The Signal", author: "A",
-                          artworkURL: nil, category: "Tech", itunesId: 1, isSubscribed: true)
-        let ep = Episode(guid: "g", title: "Ep 1", publishDate: .now, duration: 100,
-                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/f.xml")), title: "The Signal", author: "A",
+                              artworkURL: nil, category: "Tech", itunesId: 1, isSubscribed: true)
+        let ep = try Episode(guid: "g", title: "Ep 1", publishDate: .now, duration: 100,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/e.mp3")), notes: "")
         ep.podcast = pod
         ctx.insert(pod); ctx.insert(ep); try ctx.save()
         try index.upsert(SearchDoc(kind: "clip", episodeGuid: "g", startTime: 20, body: "a great insight"))

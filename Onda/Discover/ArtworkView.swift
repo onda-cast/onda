@@ -9,7 +9,10 @@ struct ArtworkView: View {
     // shouldn't take cache slots from the library's art.
     var cached: Bool = false
 
-    private var hue: Double { Double(abs(seed.hashValue) % 360) }
+    private var hue: Double {
+        Double(abs(seed.hashValue) % 360)
+    }
+
     @State private var loaded: UIImage?
 
     var body: some View {
@@ -33,6 +36,7 @@ struct ArtworkView: View {
         LinearGradient(
             colors: [Color(hue: hue / 360, saturation: 0.35, brightness: theme.resolvedAppearance == .dark ? 0.32 : 0.82),
                      Color(hue: hue / 360, saturation: 0.30, brightness: theme.resolvedAppearance == .dark ? 0.24 : 0.72)],
-            startPoint: .topLeading, endPoint: .bottomTrailing)
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
     }
 }

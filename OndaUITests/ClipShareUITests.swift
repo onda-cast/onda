@@ -3,7 +3,7 @@ import XCTest
 
 final class ClipShareUITests: XCTestCase {
     @MainActor
-    func test_shareClip_exportsAndPresentsShareSheet() throws {
+    func test_shareClip_exportsAndPresentsShareSheet() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()
@@ -31,7 +31,7 @@ final class ClipShareUITests: XCTestCase {
     }
 
     @MainActor
-    func test_exportAllMarkdown_presentsShareSheet() throws {
+    func test_exportAllMarkdown_presentsShareSheet() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()

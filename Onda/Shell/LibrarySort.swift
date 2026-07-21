@@ -8,18 +8,19 @@ enum LibrarySort: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .alphabetical: return "Alphabetical"
-        case .newestEpisode: return "Newest Episode"
-        case .mostListened: return "Most Listened"
-        case .recentlyPlayed: return "Recently Played"
+        case .alphabetical: "Alphabetical"
+        case .newestEpisode: "Newest Episode"
+        case .mostListened: "Most Listened"
+        case .recentlyPlayed: "Recently Played"
         }
     }
+
     var icon: String {
         switch self {
-        case .alphabetical: return "textformat.abc"
-        case .newestEpisode: return "sparkles"
-        case .mostListened: return "headphones"
-        case .recentlyPlayed: return "clock.arrow.circlepath"
+        case .alphabetical: "textformat.abc"
+        case .newestEpisode: "sparkles"
+        case .mostListened: "headphones"
+        case .recentlyPlayed: "clock.arrow.circlepath"
         }
     }
 
@@ -28,13 +29,13 @@ enum LibrarySort: String, CaseIterable {
     func sorted(_ shows: [Podcast], keys: LibrarySortKeys) -> [Podcast] {
         switch self {
         case .alphabetical:
-            return shows.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+            shows.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
         case .newestEpisode:
-            return keySorted(shows) { keys.newestEpisode[$0.feedURL.absoluteString] }
+            keySorted(shows) { keys.newestEpisode[$0.feedURL.absoluteString] }
         case .mostListened:
-            return keySorted(shows) { keys.playedCount[$0.feedURL.absoluteString].map(Double.init) }
+            keySorted(shows) { keys.playedCount[$0.feedURL.absoluteString].map(Double.init) }
         case .recentlyPlayed:
-            return keySorted(shows) { keys.lastPlayed[$0.feedURL.absoluteString] }
+            keySorted(shows) { keys.lastPlayed[$0.feedURL.absoluteString] }
         }
     }
 

@@ -15,13 +15,13 @@ final class RSSFeedParserTests: XCTestCase {
     func test_client_fetchFeed_parsesViaDetachedTask() async throws {
         let data = try fixture("feed_basic")
         let client = RSSFeedClient(transport: { _ in data })
-        let feed = try await client.fetchFeed(URL(string: "https://ex.com/feed.xml")!)
+        let feed = try await client.fetchFeed(XCTUnwrap(URL(string: "https://ex.com/feed.xml")))
         XCTAssertEqual(feed.title, "The Signal")
         XCTAssertEqual(feed.episodes.count, 1)
     }
 
     func test_parseBasic_extractsChannelAndEpisode() throws {
-        let feed = RSSFeedParser().parse(try fixture("feed_basic"))
+        let feed = try RSSFeedParser().parse(fixture("feed_basic"))
         let f = try XCTUnwrap(feed)
         XCTAssertEqual(f.title, "The Signal")
         XCTAssertEqual(f.author, "Ex Media")
@@ -36,7 +36,7 @@ final class RSSFeedParserTests: XCTestCase {
     }
 
     func test_parseMessy_skipsItemWithoutAudio_andParsesHMSDuration() throws {
-        let feed = RSSFeedParser().parse(try fixture("feed_messy"))
+        let feed = try RSSFeedParser().parse(fixture("feed_messy"))
         let f = try XCTUnwrap(feed)
         XCTAssertEqual(f.episodes.count, 1, "episode without an enclosure URL is skipped")
         XCTAssertEqual(f.episodes[0].guid, "good-1")

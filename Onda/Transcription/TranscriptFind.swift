@@ -26,9 +26,9 @@ enum TranscriptFind {
         var result: [Segment] = []
         var cursor = text.startIndex
         while cursor < text.endIndex,
-              let r = text.range(of: q, options: .caseInsensitive, range: cursor..<text.endIndex) {
+              let r = text.range(of: q, options: .caseInsensitive, range: cursor ..< text.endIndex) {
             if r.lowerBound > cursor {
-                result.append(Segment(text: String(text[cursor..<r.lowerBound]), isMatch: false))
+                result.append(Segment(text: String(text[cursor ..< r.lowerBound]), isMatch: false))
             }
             result.append(Segment(text: String(text[r]), isMatch: true))
             cursor = r.upperBound

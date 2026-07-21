@@ -4,7 +4,7 @@ import SwiftData
 import BackgroundTasks
 import OSLog
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #endif
 
 /// Orchestrates URL → extracted article → sentences → rendered TTS audio → SwiftData rows.
@@ -106,7 +106,8 @@ final class ArticleConversionService {
                       !pending.contains(where: { $0.id == entry.url }) {
                 pending.append(Pending(
                     id: entry.url,
-                    failure: "Conversion failed \(entry.attempts) times — retry to try again."))
+                    failure: "Conversion failed \(entry.attempts) times — retry to try again."
+                ))
             }
         }
     }
@@ -201,60 +202,63 @@ final class ArticleConversionService {
     /// enough for typical articles. If it expires, the conversion freezes with the app;
     /// its queue entry survives for the BGProcessingTask window.
     #if canImport(UIKit)
-    private static func beginBackgroundContinuation() -> ContinuationHolder {
-        let holder = ContinuationHolder()
-        let id = UIApplication.shared.beginBackgroundTask(withName: "article-conversion") {
+        private static func beginBackgroundContinuation() -> ContinuationHolder {
+            let holder = ContinuationHolder()
+            let id = UIApplication.shared.beginBackgroundTask(withName: "article-conversion") {
+                holder.end()
+            }
+            holder.started(id)
+            return holder
+        }
+
+        private static func endBackgroundContinuation(_ holder: ContinuationHolder) {
             holder.end()
         }
-        holder.started(id)
-        return holder
-    }
 
-    private static func endBackgroundContinuation(_ holder: ContinuationHolder) {
-        holder.end()
-    }
+        /// Single gatekeeper for one background-task assertion: begin stores the id, and
+        /// BOTH completion (the `defer` in add()) and expiration route through end(), which is
+        /// idempotent behind the lock — UIKit treats a second endBackgroundTask on the same
+        /// (possibly recycled) identifier as an over-release. Expiration handlers are documented
+        /// to arrive on the main thread, and the conversion Task in add() is MainActor-inherited
+        /// (it's an unstructured Task created synchronously from this @MainActor-isolated class),
+        /// so assumeIsolated is sound on both the expiration path and the defer path.
+        private final class ContinuationHolder: @unchecked Sendable {
+            private let lock = NSLock()
+            private var id: UIBackgroundTaskIdentifier = .invalid
+            private var ended = false
 
-    /// Single gatekeeper for one background-task assertion: begin stores the id, and
-    /// BOTH completion (the `defer` in add()) and expiration route through end(), which is
-    /// idempotent behind the lock — UIKit treats a second endBackgroundTask on the same
-    /// (possibly recycled) identifier as an over-release. Expiration handlers are documented
-    /// to arrive on the main thread, and the conversion Task in add() is MainActor-inherited
-    /// (it's an unstructured Task created synchronously from this @MainActor-isolated class),
-    /// so assumeIsolated is sound on both the expiration path and the defer path.
-    private final class ContinuationHolder: @unchecked Sendable {
-        private let lock = NSLock()
-        private var id: UIBackgroundTaskIdentifier = .invalid
-        private var ended = false
-
-        /// Records the identifier returned by beginBackgroundTask. If the expiration handler
-        /// already fired (racing ahead of this call, before `id` was known), `end()` no-oped
-        /// against `.invalid` and set `ended` — so this catches up by ending immediately.
-        func started(_ id: UIBackgroundTaskIdentifier) {
-            let endNow: Bool = lock.withLock {
-                self.id = id
-                return ended
+            /// Records the identifier returned by beginBackgroundTask. If the expiration handler
+            /// already fired (racing ahead of this call, before `id` was known), `end()` no-oped
+            /// against `.invalid` and set `ended` — so this catches up by ending immediately.
+            func started(_ id: UIBackgroundTaskIdentifier) {
+                let endNow: Bool = lock.withLock {
+                    self.id = id
+                    return ended
+                }
+                if endNow { finish(id) }
             }
-            if endNow { finish(id) }
-        }
 
-        func end() {
-            let target: UIBackgroundTaskIdentifier? = lock.withLock {
-                if ended { return nil }
-                ended = true
-                return id == .invalid ? nil : id
+            func end() {
+                let target: UIBackgroundTaskIdentifier? = lock.withLock {
+                    if ended { return nil }
+                    ended = true
+                    return id == .invalid ? nil : id
+                }
+                if let target { finish(target) }
             }
-            if let target { finish(target) }
-        }
 
-        private func finish(_ id: UIBackgroundTaskIdentifier) {
-            MainActor.assumeIsolated {
-                UIApplication.shared.endBackgroundTask(id)
+            private func finish(_ id: UIBackgroundTaskIdentifier) {
+                MainActor.assumeIsolated {
+                    UIApplication.shared.endBackgroundTask(id)
+                }
             }
         }
-    }
     #else
-    private static func beginBackgroundContinuation() -> Int { 0 }
-    private static func endBackgroundContinuation(_ id: Int) {}
+        private static func beginBackgroundContinuation() -> Int {
+            0
+        }
+
+        private static func endBackgroundContinuation(_: Int) {}
     #endif
 
     private func isCurrentGeneration(_ url: URL, _ id: UUID) -> Bool {
@@ -281,7 +285,8 @@ final class ArticleConversionService {
                 outputURL: out,
                 progress: { [weak self] p in
                     Task { @MainActor in self?.updateStage(url, .synthesizing(p), generation: id) }
-                })
+                }
+            )
             // A dismiss() may have cancelled this Task while render() was finishing up; don't
             // resurrect the dismissed row with a freshly-inserted episode. render() already
             // succeeded, so clean up the now-orphaned audio file it wrote.
@@ -311,7 +316,7 @@ final class ArticleConversionService {
             if isCurrentGeneration(url, id) { queue.recordAttempt(url) }
             Self.log.error("conversion failed for \(url.absoluteString, privacy: .public): \(error)")
             setFailure(url, message: (error as? LocalizedError)?.errorDescription
-                       ?? "Conversion failed: \(error.localizedDescription)", generation: id)
+                ?? "Conversion failed: \(error.localizedDescription)", generation: id)
         }
     }
 
@@ -320,7 +325,7 @@ final class ArticleConversionService {
         let pod = articlesPodcast()
         let ep = Episode(guid: guid, title: article.title, publishDate: .now,
                          duration: rendered.duration, audioURL: rendered.fileURL,
-                         notes: [article.byline, article.siteName].compactMap { $0 }
+                         notes: [article.byline, article.siteName].compactMap(\.self)
                              .joined(separator: " — "))
         ep.sourceType = "article"
         modelContext.insert(ep)

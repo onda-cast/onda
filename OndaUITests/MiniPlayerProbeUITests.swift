@@ -4,7 +4,7 @@ import XCTest
 
 final class MiniPlayerProbeUITests: XCTestCase {
     @MainActor
-    func test_swipeDismiss_andDiscoverScrollHide() throws {
+    func test_swipeDismiss_andDiscoverScrollHide() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()

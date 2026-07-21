@@ -12,11 +12,14 @@ struct TasteProfile: Equatable {
     /// transcript tokens (which can read like "murder, elon"). Scoring still uses `terms`.
     var displayVocabulary: Set<String> = []
 
-    var isEmpty: Bool { terms.isEmpty && categories.isEmpty && authors.isEmpty }
+    var isEmpty: Bool {
+        terms.isEmpty && categories.isEmpty && authors.isEmpty
+    }
 
     var topCategories: [String] {
         categories.sorted { $0.value > $1.value }.map(\.key)
     }
+
     var topAuthors: [String] {
         authors.sorted { $0.value > $1.value }.map(\.key)
     }
@@ -35,6 +38,7 @@ enum TasteProfileBuilder {
         static let showTitle = 0.75
         static let tally = 1.0        // per-subscription category/author tally
     }
+
     // Transcripts can be enormous; cap how much cue text feeds the profile per episode.
     static let transcriptCueCap = 120
 

@@ -2,7 +2,7 @@
 import Foundation
 import SwiftData
 #if canImport(Speech)
-import Speech
+    import Speech
 #endif
 
 @MainActor
@@ -26,9 +26,12 @@ final class TranscriptService {
     private var inFlightTasks: [String: Task<Void, Never>] = [:]
 
     /// True while an on-device transcription is running for this episode.
-    func isTranscribing(_ episode: Episode) -> Bool { inFlightTasks[episode.guid] != nil }
+    func isTranscribing(_ episode: Episode) -> Bool {
+        inFlightTasks[episode.guid] != nil
+    }
 
     // MARK: Background completion notice
+
     /// App-wide toast text shown when a backgrounded transcription finishes (see RootView).
     var completionNotice: String?
     private var notifyGuids: Set<String> = []
@@ -43,7 +46,7 @@ final class TranscriptService {
     private func postNoticeIfRequested(guid: String, episodeTitle: String, success: Bool) {
         guard notifyGuids.remove(guid) != nil else { return }
         completionNotice = success ? "Transcript ready — \(episodeTitle)"
-                                   : "Transcription failed — \(episodeTitle)"
+            : "Transcription failed — \(episodeTitle)"
         noticeTask?.cancel()
         noticeTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(4))
@@ -64,8 +67,13 @@ final class TranscriptService {
         self.index = index
     }
 
-    var hasEngine: Bool { engine != nil }
-    func canTranscribeOnDevice(_ episode: Episode) -> Bool { engine != nil && localURL(episode) != nil }
+    var hasEngine: Bool {
+        engine != nil
+    }
+
+    func canTranscribeOnDevice(_ episode: Episode) -> Bool {
+        engine != nil && localURL(episode) != nil
+    }
 
     func transcript(for episode: Episode) async -> Transcript? {
         if let existing = episode.transcript, !existing.cues.isEmpty { return existing }
@@ -125,9 +133,9 @@ final class TranscriptService {
             let ns = error as NSError
             if ns.domain == "SFSpeechErrorDomain" {
                 lastFailure[guid] = """
-                    Couldn't get Apple's on-device speech model. Check your connection — \
-                    and note the iOS Simulator often can't download it (a real device can).
-                    """
+                Couldn't get Apple's on-device speech model. Check your connection — \
+                and note the iOS Simulator often can't download it (a real device can).
+                """
             } else {
                 lastFailure[guid] = "Transcription failed: \(error.localizedDescription)"
             }
@@ -177,9 +185,9 @@ final class TranscriptService {
     /// Non-prompting check — auto-transcription must never trigger the permission dialog.
     nonisolated static var speechAuthorizationGranted: Bool {
         #if canImport(Speech)
-        SFSpeechRecognizer.authorizationStatus() == .authorized
+            SFSpeechRecognizer.authorizationStatus() == .authorized
         #else
-        false
+            false
         #endif
     }
 
@@ -187,13 +195,13 @@ final class TranscriptService {
     // not inherit this class's MainActor isolation (docs/BUGS.md #1 — dispatch_assert_queue trap).
     nonisolated static func requestSpeechAuthorization() async -> Bool {
         #if canImport(Speech)
-        await withCheckedContinuation { cont in
-            SFSpeechRecognizer.requestAuthorization { @Sendable status in
-                cont.resume(returning: status == .authorized)
+            await withCheckedContinuation { cont in
+                SFSpeechRecognizer.requestAuthorization { @Sendable status in
+                    cont.resume(returning: status == .authorized)
+                }
             }
-        }
         #else
-        return false
+            return false
         #endif
     }
 }

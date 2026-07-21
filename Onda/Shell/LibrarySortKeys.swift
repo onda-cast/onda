@@ -49,7 +49,8 @@ struct LibrarySortKeys: Equatable, Sendable, Codable {
         let fresh = await Task.detached(priority: .userInitiated) {
             let context = ModelContext(container)
             let pods = (try? context.fetch(FetchDescriptor<Podcast>(
-                predicate: #Predicate { $0.isSubscribed }))) ?? []
+                predicate: #Predicate { $0.isSubscribed }
+            ))) ?? []
             return compute(podcasts: pods)
         }.value
         save(fresh, defaults: defaults)

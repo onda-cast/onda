@@ -67,9 +67,9 @@ final class PlaybackManager {
                 let longest = self.silence.longestRunSeconds
                 let need = self.silence.minSilenceSeconds
                 tapLog.notice("""
-                    silence detector armed: longest quiet run so far \
-                    \(longest, format: .fixed(precision: 2))s (need \(need, format: .fixed(precision: 1))s)
-                    """)
+                silence detector armed: longest quiet run so far \
+                \(longest, format: .fixed(precision: 2))s (need \(need, format: .fixed(precision: 1))s)
+                """)
             }
         }
         nowPlaying.configureRemoteCommands(
@@ -77,7 +77,8 @@ final class PlaybackManager {
             pause: { [weak self] in self?.pauseExternally() },
             toggle: { [weak self] in self?.toggleExternally() },
             skipForward: { [weak self] in self?.skipForward() },
-            skipBack: { [weak self] in self?.skipBack() })
+            skipBack: { [weak self] in self?.skipBack() }
+        )
         nowPlaying.configureBookmarkCommand { [weak self] in self?.onCaptureRequested?() }
         refreshSkipIntervals()
         observeInterruptions()
@@ -94,6 +95,7 @@ final class PlaybackManager {
     var retention: EpisodeRetentionService?
 
     // MARK: Capture (lock-screen quick clip)
+
     var onCaptureRequested: (() -> Void)?
     var captureToast: String?
     /// The clip a quick-capture (lock-screen bookmark) just created, if any — lets the capture
@@ -115,13 +117,22 @@ final class PlaybackManager {
         }
     }
 
-    private func resumeExternally() { guard !isPlaying, currentEpisode != nil else { return }; togglePlayPause() }
-    private func pauseExternally() { guard isPlaying else { return }; togglePlayPause() }
+    private func resumeExternally() {
+        guard !isPlaying, currentEpisode != nil else { return }; togglePlayPause()
+    }
+
+    private func pauseExternally() {
+        guard isPlaying else { return }; togglePlayPause()
+    }
+
     // AirPods stem press: flip whatever state we're in (guarding on an episode so a stray
     // press with nothing loaded stays a no-op).
-    private func toggleExternally() { guard currentEpisode != nil else { return }; togglePlayPause() }
+    private func toggleExternally() {
+        guard currentEpisode != nil else { return }; togglePlayPause()
+    }
 
     // MARK: Mini-player coordination
+
     /// True while a scroll surface (Discover) wants the mini-player out of the way; RootView
     /// animates it off. Reset on tab switch and whenever playback starts.
     var miniPlayerHidden = false
@@ -132,6 +143,7 @@ final class PlaybackManager {
     var tabBarHidden = false
 
     // MARK: Jump-from-transcript coordination
+
     // Bound to RootView's Now Playing sheet, so a transcript jump can surface the player.
     var showNowPlaying = false
     // Bumped on a jump; TranscriptView and ShowTranscriptsView dismiss themselves when it changes.
@@ -182,7 +194,7 @@ final class PlaybackManager {
         while Date() < deadline {
             guard let root = UIApplication.shared.connectedScenes
                 .compactMap({ ($0 as? UIWindowScene) })
-                .flatMap({ $0.windows })
+                .flatMap(\.windows)
                 .first(where: \.isKeyWindow)?.rootViewController
             else { return }   // no window yet (e.g. in tests) — nothing to wait for
             var top = root
@@ -199,11 +211,15 @@ final class PlaybackManager {
         returnToTranscriptEpisode = nil
     }
 
-    private var settings: ShowSettings? { currentEpisode?.podcast?.settings }
+    private var settings: ShowSettings? {
+        currentEpisode?.podcast?.settings
+    }
+
     /// Effective playback settings for the current episode: per-show override ?? global default.
     var resolved: ResolvedPlaybackSettings {
         ResolvedPlaybackSettings(show: settings, app: appSettings)
     }
+
     /// Injectable clock (Smart Resume + seek acceleration are time-window behaviors).
     var now: () -> Date = { .now }
     /// Playback progress as a fraction `0...1` (position ÷ duration); `0` when nothing is loaded.
@@ -215,6 +231,7 @@ final class PlaybackManager {
     private var clipEndBound: TimeInterval?
 
     // MARK: Clip preview (Clip Review sheet)
+
     // Scoped, looping playback of a candidate clip range. Opening the sheet snapshots the
     // listener's spot (episode/position/play-state); closing restores it, so previewing can
     // never lose their place. While a preview is active, ticks do nothing but loop.
@@ -347,9 +364,9 @@ final class PlaybackManager {
         engine.setBoostGain(boost.gain)
         if !r.skipSilence { silence.reset() }
         tapLog.notice("""
-            audio settings applied: speed=\(r.speed) \
-            boost=\(boost.rawValue) skipSilence=\(r.skipSilence)
-            """)
+        audio settings applied: speed=\(r.speed) \
+        boost=\(boost.rawValue) skipSilence=\(r.skipSilence)
+        """)
     }
 
     // Chapters don't change during playback, but handleTimeUpdate runs ~every 0.5s — rebuilding
@@ -537,12 +554,14 @@ final class PlaybackManager {
     }
 
     // MARK: Queue
+
     private(set) var queue: [Episode] = []
 
     // MARK: Sleep timer
+
     enum SleepMode: Equatable { case off, duration(TimeInterval), endOfEpisode }
     var sleepMode: SleepMode = .off
-    fileprivate var sleepTimer: Timer?
+    private var sleepTimer: Timer?
     private(set) var sleepFireDate: Date?
 
     /// Seconds left on a duration sleep timer, or nil when none is armed.
@@ -553,6 +572,7 @@ final class PlaybackManager {
 }
 
 // MARK: - Configured skips (seek intervals, acceleration, Smart Resume)
+
 extension PlaybackManager {
     /// Smart Resume rewind: after a break, back up a little so the listener regains context.
     /// Fixed internal thresholds (not user-tunable); the feature toggle lives in AppSettings.
@@ -587,6 +607,7 @@ extension PlaybackManager {
 }
 
 // MARK: - Queue + sleep timer
+
 extension PlaybackManager {
     /// Appends an episode to the end of the cross-show queue (no-op if already queued).
     func enqueue(_ episode: Episode) {
@@ -639,8 +660,8 @@ extension PlaybackManager {
         }
         if let show = currentEpisode?.podcast,
            let next = show.episodes
-               .filter({ !$0.played && $0.guid != currentEpisode?.guid })
-               .sorted(by: { $0.publishDate > $1.publishDate }).first {
+           .filter({ !$0.played && $0.guid != currentEpisode?.guid })
+           .sorted(by: { $0.publishDate > $1.publishDate }).first {
             play(next)
             return
         }
@@ -694,6 +715,7 @@ extension PlaybackManager {
 }
 
 // MARK: - Mini-player dismissal + audio-session interruptions
+
 extension PlaybackManager {
     /// Swipe-to-dismiss on the mini-player: stop playback and remove the bar. The queue survives;
     /// the saved last-episode guid is cleared so an explicitly closed player doesn't come back on
@@ -721,7 +743,7 @@ extension PlaybackManager {
     }
 
     /// Internal (not private) so tests can drive interruption sequences with raw values.
-    func handleInterruption(typeRaw: UInt?, optionsRaw: UInt?) {
+    func handleInterruption(typeRaw: UInt?, optionsRaw _: UInt?) {
         guard let typeRaw, let type = AVAudioSession.InterruptionType(rawValue: typeRaw) else { return }
         switch type {
         case .began:

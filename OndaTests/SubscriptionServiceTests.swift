@@ -5,11 +5,13 @@ import SwiftData
 
 private struct StubFeeds: FeedFetching {
     var feed: ParsedFeed
-    func fetchFeed(_ url: URL) async throws -> ParsedFeed { feed }
+    func fetchFeed(_: URL) async throws -> ParsedFeed {
+        feed
+    }
 }
 
 private struct FailingFeeds: FeedFetching {
-    func fetchFeed(_ url: URL) async throws -> ParsedFeed {
+    func fetchFeed(_: URL) async throws -> ParsedFeed {
         throw NSError(domain: "test", code: 404,
                       userInfo: [NSLocalizedDescriptionKey: "not found"])
     }
@@ -78,15 +80,15 @@ final class SubscriptionServiceTests: XCTestCase {
     func test_subscribe_autoDownloadsNewestEpisode() async throws {
         let ctx = try context()
         let base = Date(timeIntervalSince1970: 1_800_000_000)
-        let feed = ParsedFeed(title: "The Signal", author: "Ex", artworkURL: nil, category: "Tech",
-                              episodes: [
-                                ParsedEpisode(guid: "old", title: "Old", publishDate: base,
-                                              duration: 100, audioURL: URL(string: "https://ex.com/old.mp3")!,
-                                              notes: "", chaptersURL: nil),
-                                ParsedEpisode(guid: "new", title: "New", publishDate: base.addingTimeInterval(86_400),
-                                              duration: 100, audioURL: URL(string: "https://ex.com/new.mp3")!,
-                                              notes: "", chaptersURL: nil)
-                              ])
+        let feed = try ParsedFeed(title: "The Signal", author: "Ex", artworkURL: nil, category: "Tech",
+                                  episodes: [
+                                      ParsedEpisode(guid: "old", title: "Old", publishDate: base,
+                                                    duration: 100, audioURL: XCTUnwrap(URL(string: "https://ex.com/old.mp3")),
+                                                    notes: "", chaptersURL: nil),
+                                      ParsedEpisode(guid: "new", title: "New", publishDate: base.addingTimeInterval(86400),
+                                                    duration: 100, audioURL: XCTUnwrap(URL(string: "https://ex.com/new.mp3")),
+                                                    notes: "", chaptersURL: nil)
+                                  ])
         let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed))
         var downloaded: [String] = []
         svc.downloadEpisode = { downloaded.append($0.guid) }
@@ -117,7 +119,7 @@ final class SubscriptionServiceTests: XCTestCase {
     func test_refreshEpisodes_privateFeed_resolvesRealURLFromTokenStore() async throws {
         let ctx = try context()
         let tokenStore = InMemoryTokenStore()
-        let realURL = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let realURL = try XCTUnwrap(URL(string: "https://feeds.example.com/private.xml?token=s3cret"))
         let subscribeSvc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])),
                                                tokenStore: tokenStore)
         let pod = try await subscribeSvc.subscribeToFeedURL(realURL)
@@ -134,7 +136,7 @@ final class SubscriptionServiceTests: XCTestCase {
     func test_refreshEpisodes_privateFeed_missingToken_throws() async throws {
         let ctx = try context()
         let tokenStore = InMemoryTokenStore()
-        let realURL = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let realURL = try XCTUnwrap(URL(string: "https://feeds.example.com/private.xml?token=s3cret"))
         let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])),
                                       tokenStore: tokenStore)
         let pod = try await svc.subscribeToFeedURL(realURL)
@@ -151,7 +153,7 @@ final class SubscriptionServiceTests: XCTestCase {
         // written to the store. subscribeToFeedURL always creates placeholders, so this row is
         // built directly, bypassing it.
         let ctx = try context()
-        let realURL = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let realURL = try XCTUnwrap(URL(string: "https://feeds.example.com/private.xml?token=s3cret"))
         let pod = Podcast(feedURL: realURL, title: "T", author: "A", artworkURL: nil,
                           category: "Tech", itunesId: nil, isSubscribed: true, isPrivateFeed: true)
         ctx.insert(pod)
@@ -170,7 +172,7 @@ final class SubscriptionServiceTests: XCTestCase {
         // check: an existing row with the real URL still in feedURL must be found and reused,
         // not missed (which would create a duplicate Podcast).
         let ctx = try context()
-        let url = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let url = try XCTUnwrap(URL(string: "https://feeds.example.com/private.xml?token=s3cret"))
         let existing = Podcast(feedURL: url, title: "T", author: "A", artworkURL: nil,
                                category: "Tech", itunesId: nil, isSubscribed: false, isPrivateFeed: true)
         ctx.insert(existing)
@@ -240,14 +242,14 @@ final class SubscriptionServiceTests: XCTestCase {
         let tokenStore = InMemoryTokenStore()
         let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a", "b"])),
                                       tokenStore: tokenStore)
-        let url = URL(string: "https://feeds.example.com/private.xml?token=s3cret")!
+        let url = try XCTUnwrap(URL(string: "https://feeds.example.com/private.xml?token=s3cret"))
         let pod = try await svc.subscribeToFeedURL(url)
         XCTAssertTrue(pod.isPrivateFeed)
         XCTAssertTrue(pod.isSubscribed)
         XCTAssertEqual(pod.feedURL.scheme, "onda-private-feed", "feedURL is replaced with a placeholder")
         XCTAssertNotEqual(pod.feedURL, url, "the real tokenized URL must not be stored in SwiftData")
-        XCTAssertEqual(try tokenStore.realURL(forHash: pod.feedURL.host!), url,
-                      "the real URL is retrievable from the token store")
+        XCTAssertEqual(try tokenStore.realURL(forHash: XCTUnwrap(pod.feedURL.host)), url,
+                       "the real URL is retrievable from the token store")
         XCTAssertEqual(pod.title, "The Signal", "title comes from the feed channel")
         XCTAssertEqual(pod.author, "Ex")
         XCTAssertEqual(pod.category, "Technology")
@@ -262,7 +264,7 @@ final class SubscriptionServiceTests: XCTestCase {
                                       tokenStore: InMemoryTokenStore())
         var downloaded: [String] = []
         svc.downloadEpisode = { downloaded.append($0.guid) }
-        _ = try await svc.subscribeToFeedURL(URL(string: "https://ex.com/p.xml?t=k")!)
+        _ = try await svc.subscribeToFeedURL(XCTUnwrap(URL(string: "https://ex.com/p.xml?t=k")))
         XCTAssertEqual(downloaded, ["a"])
     }
 
@@ -270,7 +272,7 @@ final class SubscriptionServiceTests: XCTestCase {
         let ctx = try context()
         let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])),
                                       tokenStore: InMemoryTokenStore())
-        let url = URL(string: "https://ex.com/p.xml?t=k")!
+        let url = try XCTUnwrap(URL(string: "https://ex.com/p.xml?t=k"))
         _ = try await svc.subscribeToFeedURL(url)
         let again = try await svc.subscribeToFeedURL(url)
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<Podcast>()).count, 1)
@@ -281,7 +283,7 @@ final class SubscriptionServiceTests: XCTestCase {
         let ctx = try context()
         let svc = SubscriptionService(modelContext: ctx, feeds: FailingFeeds())
         do {
-            _ = try await svc.subscribeToFeedURL(URL(string: "https://ex.com/bad.xml")!)
+            _ = try await svc.subscribeToFeedURL(XCTUnwrap(URL(string: "https://ex.com/bad.xml")))
             XCTFail("expected throw")
         } catch { /* expected */ }
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<Podcast>()).count, 0)
@@ -309,19 +311,19 @@ final class SubscriptionServiceTests: XCTestCase {
         // (see SubscriptionService.unsubscribe) — proving the row deletions below succeed
         // without it is part of the point.
         let svc = SubscriptionService(modelContext: ctx, feeds: StubFeeds(feed: feed(["a"])))
-        let pod = Podcast(feedURL: URL(string: "onda-local:articles")!, title: "Articles",
-                          author: "You", artworkURL: nil, category: "Articles", itunesId: nil,
-                          isSubscribed: true)
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "onda-local:articles")), title: "Articles",
+                              author: "You", artworkURL: nil, category: "Articles", itunesId: nil,
+                              isSubscribed: true)
         pod.isLocal = true
         let settings = ShowSettings.makeDefault(); settings.podcast = pod; pod.settings = settings
         ctx.insert(pod); ctx.insert(settings)
 
-        let ep = Episode(guid: "art-1", title: "Article One", publishDate: .now, duration: 100,
-                         audioURL: URL(string: "https://ex.com/art-1.m4a")!, notes: "")
+        let ep = try Episode(guid: "art-1", title: "Article One", publishDate: .now, duration: 100,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/art-1.m4a")), notes: "")
         ep.sourceType = "article"
         ep.podcast = pod; pod.episodes.append(ep)
-        let source = ArticleSource(sourceURL: URL(string: "https://example.com/article")!,
-                                   siteName: "Example", addedAt: .now)
+        let source = try ArticleSource(sourceURL: XCTUnwrap(URL(string: "https://example.com/article")),
+                                       siteName: "Example", addedAt: .now)
         source.episode = ep; ep.articleSource = source
         let fileName = "art-1.m4a"
         let file = DownloadedFile(localFileName: fileName, fileSizeBytes: 100, downloadedAt: .now)
@@ -352,7 +354,7 @@ final class SubscriptionServiceTests: XCTestCase {
         // File removal happens off-main in a detached Task — poll (bounded) instead of asserting
         // immediately.
         var stillExists = FileManager.default.fileExists(atPath: fileURL.path)
-        for _ in 0..<100 where stillExists {
+        for _ in 0 ..< 100 where stillExists {
             try await Task.sleep(for: .milliseconds(20))
             stillExists = FileManager.default.fileExists(atPath: fileURL.path)
         }
@@ -368,21 +370,21 @@ final class SubscriptionServiceTests: XCTestCase {
         XCTAssertFalse(pod.isSubscribed)
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<Episode>()).count, 1,
                        "unsubscribing a normal feed show only frees downloads — episodes stay so " +
-                       "resubscribing doesn't need to re-fetch history")
+                           "resubscribing doesn't need to re-fetch history")
     }
 
     func test_refreshEpisodes_localShow_neverTouchesTheFeed() async throws {
         struct ThrowingFeeds: FeedFetching {
-            func fetchFeed(_ url: URL) async throws -> ParsedFeed {
+            func fetchFeed(_: URL) async throws -> ParsedFeed {
                 XCTFail("local shows must not be fetched")
                 throw NSError(domain: "test", code: 1)
             }
         }
         let ctx = try context()
         let svc = SubscriptionService(modelContext: ctx, feeds: ThrowingFeeds())
-        let pod = Podcast(feedURL: URL(string: "onda-local:articles")!, title: "Articles",
-                          author: "You", artworkURL: nil, category: "Articles", itunesId: nil,
-                          isSubscribed: true)
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "onda-local:articles")), title: "Articles",
+                              author: "You", artworkURL: nil, category: "Articles", itunesId: nil,
+                              isSubscribed: true)
         pod.isLocal = true
         ctx.insert(pod)
         try await svc.refreshEpisodes(for: pod)   // must be a silent no-op

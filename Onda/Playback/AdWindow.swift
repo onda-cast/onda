@@ -25,7 +25,7 @@ struct AdWindow: Sendable {
     /// If currently inside an ad, the feed-second where the ad ends (next non-ad start, or duration).
     func adEnd(at seconds: TimeInterval) -> TimeInterval? {
         guard let i = index(at: seconds), sorted[i].isAd else { return nil }
-        for j in (i + 1)..<sorted.count where !sorted[j].isAd { return sorted[j].start }
+        for j in (i + 1) ..< sorted.count where !sorted[j].isAd { return sorted[j].start }
         return duration
     }
 }

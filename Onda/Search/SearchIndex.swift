@@ -12,7 +12,10 @@ struct SearchDoc: Sendable {
 }
 
 struct SearchResult: Identifiable, Sendable, Equatable {
-    var id: String { "\(kind)-\(episodeGuid)-\(startTime)" }
+    var id: String {
+        "\(kind)-\(episodeGuid)-\(startTime)"
+    }
+
     let kind: String
     let episodeGuid: String
     let startTime: TimeInterval
@@ -23,7 +26,7 @@ enum SearchIndexError: Error { case openFailed, sqlError(String) }
 
 @MainActor
 final class SearchIndex {
-    nonisolated(unsafe) private var db: OpaquePointer?
+    private nonisolated(unsafe) var db: OpaquePointer?
 
     init(path: String) throws {
         var handle: OpaquePointer?
@@ -33,10 +36,10 @@ final class SearchIndex {
         }
         db = handle
         try exec("""
-            CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
-              kind UNINDEXED, episode_guid UNINDEXED, start_time UNINDEXED, body
-            );
-            """)
+        CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+          kind UNINDEXED, episode_guid UNINDEXED, start_time UNINDEXED, body
+        );
+        """)
     }
 
     nonisolated deinit {
@@ -97,9 +100,9 @@ final class SearchIndex {
         // search silently returns nothing for a one-character Chinese/Japanese/Korean query.
         guard q.count >= 2 || Self.containsCJK(q) else { return [] }
         let sql = """
-            SELECT kind, episode_guid, start_time, snippet(search_index, 3, '', '', '…', 12)
-            FROM search_index WHERE search_index MATCH ? ORDER BY bm25(search_index) LIMIT ?;
-            """
+        SELECT kind, episode_guid, start_time, snippet(search_index, 3, '', '', '…', 12)
+        FROM search_index WHERE search_index MATCH ? ORDER BY bm25(search_index) LIMIT ?;
+        """
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { throw sqlError() }
         defer { sqlite3_finalize(stmt) }
@@ -127,7 +130,9 @@ final class SearchIndex {
         return sqlite3_column_int64(stmt, 0) == 0
     }
 
-    func reset() throws { try exec("DELETE FROM search_index;") }
+    func reset() throws {
+        try exec("DELETE FROM search_index;")
+    }
 
     private func matchExpression(for query: String) -> String {
         "\"\(query.replacingOccurrences(of: "\"", with: "\"\""))\"*"
@@ -137,10 +142,10 @@ final class SearchIndex {
     /// single character already carries word-level meaning.
     private static func containsCJK(_ s: String) -> Bool {
         s.unicodeScalars.contains {
-            (0x4E00...0x9FFF).contains($0.value)      // CJK Unified Ideographs
-                || (0x3400...0x4DBF).contains($0.value)   // CJK Extension A
-                || (0x3040...0x30FF).contains($0.value)   // Hiragana + Katakana
-                || (0xAC00...0xD7A3).contains($0.value)   // Hangul Syllables
+            (0x4E00 ... 0x9FFF).contains($0.value)      // CJK Unified Ideographs
+                || (0x3400 ... 0x4DBF).contains($0.value)   // CJK Extension A
+                || (0x3040 ... 0x30FF).contains($0.value)   // Hiragana + Katakana
+                || (0xAC00 ... 0xD7A3).contains($0.value)   // Hangul Syllables
         }
     }
 

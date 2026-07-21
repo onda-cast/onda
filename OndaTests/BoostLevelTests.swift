@@ -9,6 +9,7 @@ final class BoostLevelTests: XCTestCase {
         XCTAssertEqual(BoostLevel.medium.gain, 1.6, accuracy: 0.001)
         XCTAssertEqual(BoostLevel.high.gain, 2.4, accuracy: 0.001)
     }
+
     func test_clampingOutOfRange() {
         XCTAssertEqual(BoostLevel(clamping: -1), .off)
         XCTAssertEqual(BoostLevel(clamping: 5), .high)

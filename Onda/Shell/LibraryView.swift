@@ -4,11 +4,16 @@ import SwiftData
 
 private struct ChipsWidthKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
 }
+
 private struct ChipsViewportWidthKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
 }
 
 struct LibraryView: View {
@@ -23,13 +28,21 @@ struct LibraryView: View {
     // Chips are downloaded-only lenses, so their candidate set comes from the small
     // DownloadedFile table — never from a per-episode scan of the whole library.
     @Query private var downloadedFiles: [DownloadedFile]
-    private var chipCandidates: [Episode] { SmartQueue.downloadedCandidates(downloadedFiles) }
+    private var chipCandidates: [Episode] {
+        SmartQueue.downloadedCandidates(downloadedFiles)
+    }
 
     private let cols = [GridItem(.flexible(), spacing: 18), GridItem(.flexible(), spacing: 18)]
     @AppStorage("libraryLayout") private var layoutRaw = LibraryLayout.grid.rawValue
     @AppStorage("librarySort") private var sortRaw = LibrarySort.alphabetical.rawValue
-    private var layout: LibraryLayout { LibraryLayout(rawValue: layoutRaw) ?? .grid }
-    private var sort: LibrarySort { LibrarySort(rawValue: sortRaw) ?? .alphabetical }
+    private var layout: LibraryLayout {
+        LibraryLayout(rawValue: layoutRaw) ?? .grid
+    }
+
+    private var sort: LibrarySort {
+        LibrarySort(rawValue: sortRaw) ?? .alphabetical
+    }
+
     // Stale-while-revalidate: last run's keys sort instantly; a background recompute lands
     // fresh keys each time the Library appears. Sorting must never fault episodes (see
     // LibrarySortKeys) — that was the multi-second tab switch on device.
@@ -43,6 +56,7 @@ struct LibraryView: View {
         }
         return result
     }
+
     @State private var showSearch = false
     @State private var showClips = false
     @State private var showAddByURL = false
@@ -51,7 +65,10 @@ struct LibraryView: View {
     // Right-edge fade is a "scroll me" affordance — only meaningful when the chips actually overflow.
     @State private var chipsContentWidth: CGFloat = 0
     @State private var chipsViewportWidth: CGFloat = 0
-    private var chipsOverflow: Bool { chipsContentWidth > chipsViewportWidth + 1 }
+    private var chipsOverflow: Bool {
+        chipsContentWidth > chipsViewportWidth + 1
+    }
+
     @State private var toast: String?
     @State private var pendingSmartQueue: [Episode]?
     // Chips FILTER the library (like Discover's chips); queue replacement only happens via the
@@ -69,183 +86,183 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Text("Library").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
-                            .lineLimit(1).minimumScaleFactor(0.6)
-                            .accessibilityIdentifier("library-title")
-                        Spacer()
-                        Button { showClips = true } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "bookmark")
-                                    .scaledFont(15, weight: .semibold)
-                                Text("CLIPS").scaledFont(12, weight: .bold)
-                            }
-                            .foregroundStyle(theme.color(.textSecondary))
-                            .padding(.horizontal, 10).frame(height: 44)
-                            .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                        }.buttonStyle(.plain).accessibilityLabel("Clips")
-                        Button { showAddByURL = true } label: {
-                            Image(systemName: "link.badge.plus")
-                                .scaledFont(16, weight: .semibold)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("Library").brutalHeader(size: 32).foregroundStyle(theme.color(.text))
+                                .lineLimit(1).minimumScaleFactor(0.6)
+                                .accessibilityIdentifier("library-title")
+                            Spacer()
+                            Button { showClips = true } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "bookmark")
+                                        .scaledFont(15, weight: .semibold)
+                                    Text("CLIPS").scaledFont(12, weight: .bold)
+                                }
                                 .foregroundStyle(theme.color(.textSecondary))
-                                .frame(width: 44, height: 44)
+                                .padding(.horizontal, 10).frame(height: 44)
                                 .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                        }.buttonStyle(.plain).accessibilityLabel("Add by Link")
-                        Button { showSearch = true } label: {
-                            Image(systemName: "magnifyingglass")
-                                .scaledFont(17, weight: .semibold)
-                                .foregroundStyle(theme.color(.textSecondary))
-                                .frame(width: 44, height: 44)
-                                .background(theme.color(.bgElevated)).brutalBorder(width: 2)
-                        }.buttonStyle(.plain).accessibilityLabel("Search Transcripts")
-                        layoutMenu
-                    }
-                    .padding(.horizontal, 20).padding(.top, 56)
+                            }.buttonStyle(.plain).accessibilityLabel("Clips")
+                            Button { showAddByURL = true } label: {
+                                Image(systemName: "link.badge.plus")
+                                    .scaledFont(16, weight: .semibold)
+                                    .foregroundStyle(theme.color(.textSecondary))
+                                    .frame(width: 44, height: 44)
+                                    .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                            }.buttonStyle(.plain).accessibilityLabel("Add by Link")
+                            Button { showSearch = true } label: {
+                                Image(systemName: "magnifyingglass")
+                                    .scaledFont(17, weight: .semibold)
+                                    .foregroundStyle(theme.color(.textSecondary))
+                                    .frame(width: 44, height: 44)
+                                    .background(theme.color(.bgElevated)).brutalBorder(width: 2)
+                            }.buttonStyle(.plain).accessibilityLabel("Search Transcripts")
+                            layoutMenu
+                        }
+                        .padding(.horizontal, 20).padding(.top, 56)
 
-                    if !shows.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            let allEpisodes = chipCandidates
-                            HStack(spacing: 10) {
-                                ForEach(SmartQueue.allCases, id: \.self) { sq in
-                                    let isEmpty = !sq.hasMatches(in: allEpisodes)
-                                    let isActive = activeFilter == sq
-                                    // Filter toggle — same mental model as Discover's chips. The
-                                    // queue is only touched by the explicit Play All button.
-                                    Button {
-                                        withAnimation(.easeOut(duration: 0.15)) {
-                                            activeFilter = isActive ? nil : sq
-                                        }
-                                    } label: {
-                                        HStack(spacing: 4) {
-                                            if isActive {
-                                                Image(systemName: "checkmark")
-                                                    .scaledFont(10, weight: .black)
+                        if !shows.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                let allEpisodes = chipCandidates
+                                HStack(spacing: 10) {
+                                    ForEach(SmartQueue.allCases, id: \.self) { sq in
+                                        let isEmpty = !sq.hasMatches(in: allEpisodes)
+                                        let isActive = activeFilter == sq
+                                        // Filter toggle — same mental model as Discover's chips. The
+                                        // queue is only touched by the explicit Play All button.
+                                        Button {
+                                            withAnimation(.easeOut(duration: 0.15)) {
+                                                activeFilter = isActive ? nil : sq
                                             }
-                                            Text(sq.label.uppercased())
-                                                .scaledFont(12, weight: .bold)
+                                        } label: {
+                                            HStack(spacing: 4) {
+                                                if isActive {
+                                                    Image(systemName: "checkmark")
+                                                        .scaledFont(10, weight: .black)
+                                                }
+                                                Text(sq.label.uppercased())
+                                                    .scaledFont(12, weight: .bold)
+                                            }
+                                            .foregroundStyle(isActive ? .white : theme.color(.textSecondary))
+                                            .padding(.horizontal, 12).padding(.vertical, 8)
+                                            .background(isActive ? theme.color(.accentStrong)
+                                                : theme.color(.bgElevated))
+                                            .brutalBorder(width: 2)
                                         }
-                                        .foregroundStyle(isActive ? .white : theme.color(.textSecondary))
-                                        .padding(.horizontal, 12).padding(.vertical, 8)
-                                        .background(isActive ? theme.color(.accentStrong)
-                                                             : theme.color(.bgElevated))
-                                        .brutalBorder(width: 2)
+                                        .buttonStyle(.plain)
+                                        .disabled(isEmpty && !isActive)
+                                        .opacity(isEmpty && !isActive ? 0.4 : 1)
+                                        .accessibilityAddTraits(isActive ? .isSelected : [])
                                     }
-                                    .buttonStyle(.plain)
-                                    .disabled(isEmpty && !isActive)
-                                    .opacity(isEmpty && !isActive ? 0.4 : 1)
-                                    .accessibilityAddTraits(isActive ? .isSelected : [])
+                                }
+                                .padding(.horizontal, 20)
+                                .background(GeometryReader { g in
+                                    Color.clear.preference(key: ChipsWidthKey.self, value: g.size.width)
+                                })
+                            }
+                            .background(GeometryReader { g in
+                                Color.clear.preference(key: ChipsViewportWidthKey.self, value: g.size.width)
+                            })
+                            .onPreferenceChange(ChipsWidthKey.self) { chipsContentWidth = $0 }
+                            .onPreferenceChange(ChipsViewportWidthKey.self) { chipsViewportWidth = $0 }
+                            // Fade the right edge as a "more chips off-screen, scroll me" hint — but only
+                            // when the chips actually overflow; a full-width rectangle mask is a no-op.
+                            .mask {
+                                if chipsOverflow {
+                                    LinearGradient(stops: [
+                                        .init(color: .black, location: 0),
+                                        .init(color: .black, location: 0.88),
+                                        .init(color: .clear, location: 1)
+                                    ], startPoint: .leading, endPoint: .trailing)
+                                } else {
+                                    Rectangle()
                                 }
                             }
-                            .padding(.horizontal, 20)
-                            .background(GeometryReader { g in
-                                Color.clear.preference(key: ChipsWidthKey.self, value: g.size.width)
-                            })
+                            .padding(.top, 16)
                         }
-                        .background(GeometryReader { g in
-                            Color.clear.preference(key: ChipsViewportWidthKey.self, value: g.size.width)
-                        })
-                        .onPreferenceChange(ChipsWidthKey.self) { chipsContentWidth = $0 }
-                        .onPreferenceChange(ChipsViewportWidthKey.self) { chipsViewportWidth = $0 }
-                        // Fade the right edge as a "more chips off-screen, scroll me" hint — but only
-                        // when the chips actually overflow; a full-width rectangle mask is a no-op.
-                        .mask {
-                            if chipsOverflow {
-                                LinearGradient(stops: [
-                                    .init(color: .black, location: 0),
-                                    .init(color: .black, location: 0.88),
-                                    .init(color: .clear, location: 1)
-                                ], startPoint: .leading, endPoint: .trailing)
-                            } else {
-                                Rectangle()
-                            }
+
+                        // The Articles show is only created on first successful conversion, so
+                        // in-flight/failed first-article rows would otherwise have nowhere to
+                        // render. Surface them here until the show exists; once it does, they
+                        // show only inside its episode list (no double display).
+                        if !articles.pending.isEmpty
+                            && !shows.contains(where: { $0.feedURL == ArticleConversionService.articlesFeedURL }) {
+                            pendingArticlesSection
                         }
-                        .padding(.top, 16)
-                    }
 
-                    // The Articles show is only created on first successful conversion, so
-                    // in-flight/failed first-article rows would otherwise have nowhere to
-                    // render. Surface them here until the show exists; once it does, they
-                    // show only inside its episode list (no double display).
-                    if !articles.pending.isEmpty
-                        && !shows.contains(where: { $0.feedURL == ArticleConversionService.articlesFeedURL }) {
-                        pendingArticlesSection
+                        if shows.isEmpty {
+                            BrutalEmptyState("No shows yet", detail: "Find some in Discover.")
+                        } else if let filter = activeFilter {
+                            filteredEpisodeList(filter)
+                                .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, BottomChrome.clearance)
+                        } else {
+                            libraryContent
+                                .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, BottomChrome.clearance)
+                        }
                     }
-
-                    if shows.isEmpty {
-                        BrutalEmptyState("No shows yet", detail: "Find some in Discover.")
-                    } else if let filter = activeFilter {
-                        filteredEpisodeList(filter)
-                            .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, BottomChrome.clearance)
-                    } else {
-                        libraryContent
-                            .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, BottomChrome.clearance)
+                    .id(topAnchor)
+                }
+                .background(theme.color(.bg))
+                .refreshable { await pullRefresh() }
+                .miniPlayerAutoHide(playback)
+                .task { await refreshSortKeys() }
+                // A download landing while the grid is on screen changes a show's badge count.
+                .onChange(of: downloads.completedDownloadCount) { _, _ in Task { await refreshSortKeys() } }
+                .navigationDestination(for: Podcast.self) { EpisodeListView(podcast: $0) }
+                .sheet(isPresented: $showSearch) { LibrarySearchView() }
+                .sheet(isPresented: $showClips) { ClipsView() }
+                .sheet(isPresented: $showAddByURL) { AddByURLSheet().presentationDetents([.medium, .large]) }
+                .sheet(item: $settingsPodcast) { ShowSettingsSheet(podcast: $0) }
+                .sheet(item: $detailEpisode) { EpisodeDetailView(episode: $0) }
+                .confirmationDialog("Delete this download?",
+                                    isPresented: Binding(get: { pendingDownloadDelete != nil },
+                                                         set: { if !$0 { pendingDownloadDelete = nil } }),
+                                    titleVisibility: .visible, presenting: pendingDownloadDelete) { ep in
+                    Button("Delete Download", role: .destructive) {
+                        downloads.delete(ep)
+                        Task { await refreshSortKeys() }   // removing a download changes the badge count
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: { _ in
+                    Text("The episode stays in your library and can stream or re-download.")
+                }
+                .confirmationDialog(unsubscribeTarget?.isLocal == true
+                    ? "Delete \(unsubscribeTarget?.title ?? "")?"
+                    : "Unsubscribe from \(unsubscribeTarget?.title ?? "")?",
+                    isPresented: Binding(get: { unsubscribeTarget != nil },
+                                         set: { if !$0 { unsubscribeTarget = nil } }),
+                    titleVisibility: .visible, presenting: unsubscribeTarget) { show in
+                        Button(show.isLocal ? "Delete" : "Unsubscribe", role: .destructive) {
+                            subscriptions.unsubscribe(show)
+                        }
+                        Button("Cancel", role: .cancel) {}
+                } message: { show in
+                    Text(show.isLocal
+                        ? "Permanently deletes every converted article in this show. This can't be undone."
+                        : show.isPrivateFeed
+                        ? "Removes this show and frees its downloads. Re-adding it requires the original "
+                        + "private feed URL \u{2014} it can't be found by search."
+                        : "Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
+                }
+                .confirmationDialog("Replace your queue?",
+                                    isPresented: Binding(get: { pendingSmartQueue != nil },
+                                                         set: { if !$0 { pendingSmartQueue = nil } }),
+                                    titleVisibility: .visible, presenting: pendingSmartQueue) { eps in
+                    Button("Replace \(playback.queue.count) queued", role: .destructive) {
+                        playback.startSmartQueue(eps)
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: { eps in
+                    Text("Starts \(eps.count) episode\(eps.count == 1 ? "" : "s") and clears your current queue.")
+                }
+                .overlay(alignment: .bottom) {
+                    if let toast {
+                        BrutalToast(text: toast)
+                            .padding(.bottom, BottomChrome.clearance)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-                .id(topAnchor)
-            }
-            .background(theme.color(.bg))
-            .refreshable { await pullRefresh() }
-            .miniPlayerAutoHide(playback)
-            .task { await refreshSortKeys() }
-            // A download landing while the grid is on screen changes a show's badge count.
-            .onChange(of: downloads.completedDownloadCount) { _, _ in Task { await refreshSortKeys() } }
-            .navigationDestination(for: Podcast.self) { EpisodeListView(podcast: $0) }
-            .sheet(isPresented: $showSearch) { LibrarySearchView() }
-            .sheet(isPresented: $showClips) { ClipsView() }
-            .sheet(isPresented: $showAddByURL) { AddByURLSheet().presentationDetents([.medium, .large]) }
-            .sheet(item: $settingsPodcast) { ShowSettingsSheet(podcast: $0) }
-            .sheet(item: $detailEpisode) { EpisodeDetailView(episode: $0) }
-            .confirmationDialog("Delete this download?",
-                                isPresented: Binding(get: { pendingDownloadDelete != nil },
-                                                     set: { if !$0 { pendingDownloadDelete = nil } }),
-                                titleVisibility: .visible, presenting: pendingDownloadDelete) { ep in
-                Button("Delete Download", role: .destructive) {
-                    downloads.delete(ep)
-                    Task { await refreshSortKeys() }   // removing a download changes the badge count
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: { _ in
-                Text("The episode stays in your library and can stream or re-download.")
-            }
-            .confirmationDialog(unsubscribeTarget?.isLocal == true
-                                ? "Delete \(unsubscribeTarget?.title ?? "")?"
-                                : "Unsubscribe from \(unsubscribeTarget?.title ?? "")?",
-                                isPresented: Binding(get: { unsubscribeTarget != nil },
-                                                     set: { if !$0 { unsubscribeTarget = nil } }),
-                                titleVisibility: .visible, presenting: unsubscribeTarget) { show in
-                Button(show.isLocal ? "Delete" : "Unsubscribe", role: .destructive) {
-                    subscriptions.unsubscribe(show)
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: { show in
-                Text(show.isLocal
-                     ? "Permanently deletes every converted article in this show. This can't be undone."
-                     : show.isPrivateFeed
-                     ? "Removes this show and frees its downloads. Re-adding it requires the original "
-                       + "private feed URL \u{2014} it can't be found by search."
-                     : "Removes this show and frees its downloads. Transcripts follow your keep-transcripts setting.")
-            }
-            .confirmationDialog("Replace your queue?",
-                                isPresented: Binding(get: { pendingSmartQueue != nil },
-                                                     set: { if !$0 { pendingSmartQueue = nil } }),
-                                titleVisibility: .visible, presenting: pendingSmartQueue) { eps in
-                Button("Replace \(playback.queue.count) queued", role: .destructive) {
-                    playback.startSmartQueue(eps)
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: { eps in
-                Text("Starts \(eps.count) episode\(eps.count == 1 ? "" : "s") and clears your current queue.")
-            }
-            .overlay(alignment: .bottom) {
-                if let toast {
-                    BrutalToast(text: toast)
-                        .padding(.bottom, BottomChrome.clearance)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
-            .onAppear { scrollProxy = proxy }
+                .onAppear { scrollProxy = proxy }
             }
         }
     }
@@ -275,10 +292,10 @@ struct LibraryView: View {
             pendingSmartQueue = episodes
         }
     }
-
 }
 
 // MARK: - Layout menu, show list, and context actions
+
 extension LibraryView {
     private var layoutMenu: some View {
         Menu {
@@ -331,10 +348,10 @@ extension LibraryView {
                 ForEach(sortedShows) { show in
                     NavigationLink(value: show) {
                         ShowCard(podcast: show,
-                                unplayedCount: sortKeys.unplayedCount[show.feedURL.absoluteString] ?? 0)
+                                 unplayedCount: sortKeys.unplayedCount[show.feedURL.absoluteString] ?? 0)
                     }
-                        .buttonStyle(.plain)
-                        .contextMenu { contextMenu(for: show) }
+                    .buttonStyle(.plain)
+                    .contextMenu { contextMenu(for: show) }
                 }
             }
         case .compact, .text:
@@ -395,7 +412,7 @@ extension LibraryView {
             try? await subscriptions.refreshEpisodes(for: show)
             let added = show.episodes.count - before
             showToast(added == 0 ? "\(show.title): up to date"
-                      : "\(show.title): \(added) new episode\(added == 1 ? "" : "s")")
+                : "\(show.title): \(added) new episode\(added == 1 ? "" : "s")")
         }
     }
 
@@ -415,6 +432,7 @@ extension LibraryView {
 }
 
 // MARK: - Chip-filtered episode list
+
 extension LibraryView {
     private func filterHeader(_ episodes: [Episode]) -> some View {
         HStack {

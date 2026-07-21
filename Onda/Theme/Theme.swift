@@ -25,18 +25,18 @@ final class AppTheme {
     /// The concrete light/dark actually used for colours, resolving `.system` to the device scheme.
     var resolvedAppearance: Appearance {
         switch appearance {
-        case .system: return systemIsDark ? .dark : .light
-        case .light: return .light
-        case .dark: return .dark
+        case .system: systemIsDark ? .dark : .light
+        case .light: .light
+        case .dark: .dark
         }
     }
 
     /// nil for `.system` so SwiftUI follows the device; a fixed scheme otherwise.
     var colorScheme: ColorScheme? {
         switch appearance {
-        case .system: return nil
-        case .light: return .light
-        case .dark: return .dark
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
         }
     }
 
@@ -45,5 +45,7 @@ final class AppTheme {
         if persist { UserDefaults.standard.set(a.rawValue, forKey: Self.key) }
     }
 
-    func color(_ t: ColorToken) -> Color { OndaColors.token(t, for: resolvedAppearance) }
+    func color(_ t: ColorToken) -> Color {
+        OndaColors.token(t, for: resolvedAppearance)
+    }
 }

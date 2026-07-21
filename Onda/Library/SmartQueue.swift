@@ -6,10 +6,10 @@ enum SmartQueue: String, CaseIterable, Sendable {
 
     var label: String {
         switch self {
-        case .unplayed: return "Unplayed"
-        case .downloaded: return "Downloaded"
-        case .recentlyAdded: return "Recently Added"
-        case .shortestFirst: return "Shortest First"
+        case .unplayed: "Unplayed"
+        case .downloaded: "Downloaded"
+        case .recentlyAdded: "Recently Added"
+        case .shortestFirst: "Shortest First"
         }
     }
 

@@ -9,9 +9,13 @@ final class SearchTermLog {
     private static let maxTerms = 50
     private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
-    var terms: [String] { defaults.stringArray(forKey: Self.key) ?? [] }
+    var terms: [String] {
+        defaults.stringArray(forKey: Self.key) ?? []
+    }
 
     func record(_ term: String) {
         let cleaned = term.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

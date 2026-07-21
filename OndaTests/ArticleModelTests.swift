@@ -12,11 +12,11 @@ final class ArticleModelTests: XCTestCase {
     }
 
     func test_defaults_feedSourcedModels() throws {
-        let pod = Podcast(feedURL: URL(string: "https://ex.com/f.xml")!, title: "S", author: "A",
-                          artworkURL: nil, category: "Tech", itunesId: 1)
+        let pod = try Podcast(feedURL: XCTUnwrap(URL(string: "https://ex.com/f.xml")), title: "S", author: "A",
+                              artworkURL: nil, category: "Tech", itunesId: 1)
         XCTAssertFalse(pod.isLocal)
-        let ep = Episode(guid: "g", title: "E", publishDate: .now, duration: 10,
-                         audioURL: URL(string: "https://ex.com/e.mp3")!, notes: "")
+        let ep = try Episode(guid: "g", title: "E", publishDate: .now, duration: 10,
+                             audioURL: XCTUnwrap(URL(string: "https://ex.com/e.mp3")), notes: "")
         XCTAssertEqual(ep.sourceType, "feed")
         XCTAssertNil(ep.articleSource)
         XCTAssertNil(ShowSettings.makeDefault().ttsVoiceIdentifier)
@@ -28,8 +28,8 @@ final class ArticleModelTests: XCTestCase {
                          audioURL: URL(fileURLWithPath: "/tmp/a.m4a"), notes: "")
         ep.sourceType = "article"
         ctx.insert(ep)
-        let src = ArticleSource(sourceURL: URL(string: "https://ex.com/story")!,
-                                siteName: "Example", addedAt: .now)
+        let src = try ArticleSource(sourceURL: XCTUnwrap(URL(string: "https://ex.com/story")),
+                                    siteName: "Example", addedAt: .now)
         src.episode = ep
         ep.articleSource = src
         ctx.insert(src)

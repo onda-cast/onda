@@ -35,7 +35,7 @@ struct TrendingRow: View {
             // the ancestor's drag instead of toggling Follow.
             .highPriorityGesture(TapGesture().onEnded(onToggle))
             .accessibilityLabel(isSubscribed ? "Following \(dto.collectionName), tap to unfollow"
-                                             : "Follow \(dto.collectionName)")
+                : "Follow \(dto.collectionName)")
         }
         .padding(10)
         .background(theme.color(.bgElevated))

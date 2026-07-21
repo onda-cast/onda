@@ -20,7 +20,9 @@ struct ChapterFetcher: Sendable {
         }
     }
 
-    func fetch(_ url: URL) async throws -> [ParsedChapter] { decode(try await transport(url)) }
+    func fetch(_ url: URL) async throws -> [ParsedChapter] {
+        try await decode(transport(url))
+    }
 }
 
 // Podcasting 2.0 <podcast:chapters> JSON shape — kept file-private and flat (not nested inside
@@ -28,4 +30,5 @@ struct ChapterFetcher: Sendable {
 private struct ChaptersDoc: Codable {
     let chapters: [ChapterEntry]
 }
+
 private struct ChapterEntry: Codable { let startTime: Double?; let title: String?; let toc: Bool? }

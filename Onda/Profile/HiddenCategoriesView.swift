@@ -12,7 +12,7 @@ struct HiddenCategoriesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Hidden from Trending, category browsing, Shake, and For You. "
-                     + "Search results aren't affected.")
+                    + "Search results aren't affected.")
                     .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
                 // One card, toggle-per-row, matching the Settings-section convention used
                 // throughout Profile (PlaybackSettingsSection/RetentionSettingsSection) — a

@@ -15,6 +15,7 @@ struct ShowSettingsSheet: View {
         }
         return podcast.settings!
     }
+
     static let speedSteps: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2]
 
     /// Where a fresh "Custom" speed starts: the next step ABOVE the global default (wrapping),
@@ -91,7 +92,7 @@ struct ShowSettingsSheet: View {
                             countStepper("Keep per show",
                                          value: Binding(get: { cap },
                                                         set: { s.maxDownloadsKeptOverride = $0 }),
-                                         range: 1...50, label: { "\($0)" })
+                                         range: 1 ... 50, label: { "\($0)" })
                         }
                         overridePicker("Delete Played Episodes",
                                        state: overrideState(s.autoDeleteListenedAfterDaysOverride, offValue: -1),
@@ -103,7 +104,7 @@ struct ShowSettingsSheet: View {
                             countStepper("After",
                                          value: Binding(get: { days },
                                                         set: { s.autoDeleteListenedAfterDaysOverride = $0 }),
-                                         range: 0...30,
+                                         range: 0 ... 30,
                                          label: { $0 == 0 ? "When finished" : "After \($0) day\($0 == 1 ? "" : "s")" })
                         }
                         boolOverridePicker("Auto-Transcribe Downloads",
@@ -133,7 +134,7 @@ struct ShowSettingsSheet: View {
 
     // Speed override: Default inherits the global; Custom reveals a DIRECT selector of every
     // step — one tap to any speed (the old cycle button needed up to five taps to come around).
-    @ViewBuilder private var speedOverrideRow: some View {
+    private var speedOverrideRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Speed").scaledFont(16).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), ("Custom", 1)],
@@ -168,9 +169,9 @@ struct ShowSettingsSheet: View {
     }
 
     /// Three-way override control: 0 = inherit default, 1 = explicit off/unlimited, 2 = custom.
-    @ViewBuilder private func overridePicker(_ title: String, state: Int, offLabel: String,
-                                             defaultHint: String,
-                                             onChange: @escaping (Int) -> Void) -> some View {
+    private func overridePicker(_ title: String, state: Int, offLabel: String,
+                                defaultHint: String,
+                                onChange: @escaping (Int) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).scaledFont(16).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), (offLabel, 1), ("Custom", 2)],
@@ -179,8 +180,8 @@ struct ShowSettingsSheet: View {
         }
     }
 
-    @ViewBuilder private func boolOverridePicker(_ title: String, defaultHint: String,
-                                                 value: Binding<Bool?>) -> some View {
+    private func boolOverridePicker(_ title: String, defaultHint: String,
+                                    value: Binding<Bool?>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).scaledFont(16).foregroundStyle(theme.color(.text))
             SegmentedRow(options: [("Default", 0), ("Off", 1), ("On", 2)],
@@ -224,15 +225,17 @@ struct ShowSettingsSheet: View {
         .buttonStyle(.plain).accessibilityLabel(label)
     }
 
-    @ViewBuilder private func section(_ title: String, @ViewBuilder _ content: () -> some View) -> some View {
+    private func section(_ title: String, @ViewBuilder _ content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title).brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
             content()
         }
     }
-    @ViewBuilder private func row(_ title: String, @ViewBuilder _ trailing: () -> some View) -> some View {
+
+    private func row(_ title: String, @ViewBuilder _ trailing: () -> some View) -> some View {
         HStack { Text(title).scaledFont(16).foregroundStyle(theme.color(.text)); Spacer(); trailing() }
     }
+
     private func stepperRow(_ title: String, value: Binding<Int>) -> some View {
         HStack {
             Text(title).scaledFont(16).foregroundStyle(theme.color(.text)); Spacer()
@@ -254,7 +257,8 @@ struct ShowSettingsSheet: View {
             Menu {
                 Picker("Voice", selection: Binding(
                     get: { s.ttsVoiceIdentifier ?? "" },
-                    set: { s.ttsVoiceIdentifier = $0.isEmpty ? nil : $0 })) {
+                    set: { s.ttsVoiceIdentifier = $0.isEmpty ? nil : $0 }
+                )) {
                     Text("System Default").tag("")
                     ForEach(availableVoices, id: \.identifier) { voice in
                         Text("\(voice.name) (\(voice.language))").tag(voice.identifier)

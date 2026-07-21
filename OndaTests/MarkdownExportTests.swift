@@ -66,9 +66,9 @@ final class MarkdownExportTests: XCTestCase {
         XCTAssertTrue(md.contains("### Ep 142"))
         XCTAssertTrue(md.contains("### Ep 143"))
         // Within Ep 142, clips ordered by start time.
-        let ep142Range = md.range(of: "### Ep 142")!.lowerBound..<md.range(of: "### Ep 143")!.lowerBound
+        let ep142Range = try XCTUnwrap(md.range(of: "### Ep 142")?.lowerBound) ..< md.range(of: "### Ep 143")!.lowerBound
         let section = String(md[ep142Range])
-        XCTAssertLessThan(section.range(of: "one")!.lowerBound,
-                          section.range(of: "three")!.lowerBound)
+        XCTAssertLessThan(try XCTUnwrap(section.range(of: "one")?.lowerBound),
+                          try XCTUnwrap(section.range(of: "three")?.lowerBound))
     }
 }

@@ -3,7 +3,7 @@ import XCTest
 
 final class SwipeActionsUITests: XCTestCase {
     @MainActor
-    func test_swipeToDelete_removesEpisodeFromList() throws {
+    func test_swipeToDelete_removesEpisodeFromList() {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_SEED_CLIP"] = "1"
         app.launch()

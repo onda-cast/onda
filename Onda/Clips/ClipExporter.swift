@@ -41,7 +41,8 @@ struct ClipExporter {
 
         let range = CMTimeRange(
             start: CMTime(seconds: clip.startTime, preferredTimescale: 600),
-            end: CMTime(seconds: clip.endTime, preferredTimescale: 600))
+            end: CMTime(seconds: clip.endTime, preferredTimescale: 600)
+        )
         session.timeRange = range
 
         if #available(iOS 18, *) {

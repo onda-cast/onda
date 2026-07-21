@@ -54,7 +54,7 @@ final class SearchIndexTests: XCTestCase {
         try idx.upsert(SearchDoc(kind: "clip", episodeGuid: "g1", startTime: 5, body: "second note"))
         let hits = try idx.search("note")
         XCTAssertEqual(hits.count, 1, "second upsert replaces, doesn't duplicate")
-        XCTAssertTrue(hits.first!.snippet.localizedCaseInsensitiveContains("second"))
+        XCTAssertTrue(try XCTUnwrap(hits.first?.snippet.localizedCaseInsensitiveContains("second")))
     }
 
     func test_isEmpty_trueUntilFirstInsert() throws {

@@ -13,7 +13,7 @@ struct HiddenPodcastsView: View {
                 if hidden.shows.isEmpty {
                     BrutalEmptyState("No hidden podcasts",
                                      detail: "Swipe a show sideways in Discover to hide it "
-                                           + "from search, trending, and recommendations.")
+                                         + "from search, trending, and recommendations.")
                 } else {
                     Text("Hidden from Discover search, trending, and recommendations.")
                         .scaledFont(12).foregroundStyle(theme.color(.textTertiary))

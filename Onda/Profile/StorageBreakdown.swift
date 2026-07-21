@@ -9,14 +9,18 @@ struct StoragePodcastRow: Identifiable, Equatable, Sendable, Codable {
     let title: String
     let audioBytes: Int64
     let transcriptBytes: Int64
-    var totalBytes: Int64 { audioBytes + transcriptBytes }
+    var totalBytes: Int64 {
+        audioBytes + transcriptBytes
+    }
 }
 
 struct StorageBreakdown: Equatable, Sendable, Codable {
     var audioBytes: Int64 = 0
     var transcriptBytes: Int64 = 0
     var podcasts: [StoragePodcastRow] = []
-    var totalBytes: Int64 { audioBytes + transcriptBytes }
+    var totalBytes: Int64 {
+        audioBytes + transcriptBytes
+    }
 }
 
 import SwiftData
@@ -31,7 +35,8 @@ enum StorageCalculator {
         let fresh = await Task.detached(priority: .userInitiated) {
             let context = ModelContext(container)
             let pods = (try? context.fetch(FetchDescriptor<Podcast>(
-                predicate: #Predicate { $0.isSubscribed }))) ?? []
+                predicate: #Predicate { $0.isSubscribed }
+            ))) ?? []
             return breakdown(podcasts: pods)
         }.value
         saveCache(fresh, defaults: defaults)
@@ -39,6 +44,7 @@ enum StorageCalculator {
     }
 
     // MARK: Stale-while-revalidate cache
+
     // The screen shows the LAST measurement instantly and swaps in fresh numbers when the
     // background scan lands — storage totals drift slowly, so brief staleness is fine.
     static let cacheKey = "storageBreakdownCache"

@@ -48,7 +48,8 @@ final class BookVerifierTests: XCTestCase {
     func test_titleSimilarity_subtitleDropStillMatches() {
         XCTAssertGreaterThanOrEqual(
             BookVerifier.titleSimilarity("deep work",
-                                         "Deep Work: Rules for Focused Success"), 0.85)
+                                         "Deep Work: Rules for Focused Success"), 0.85
+        )
         XCTAssertLessThan(BookVerifier.titleSimilarity("sapiens", "homo deus"), 0.85)
     }
 }

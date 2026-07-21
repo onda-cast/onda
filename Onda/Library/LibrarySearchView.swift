@@ -13,7 +13,9 @@ struct LibrarySearchView: View {
     @State private var hits: [TranscriptHit] = []
     @State private var searchTask: Task<Void, Never>?
 
-    private var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var isSearching: Bool {
+        !query.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     var body: some View {
         NavigationStack {
@@ -29,10 +31,11 @@ struct LibrarySearchView: View {
                 if !isSearching {
                     BrutalEmptyState(
                         "Search across every transcript",
-                        detail: "Find a phrase, topic, or speaker from any episode you\u{2019}ve transcribed.")
+                        detail: "Find a phrase, topic, or speaker from any episode you\u{2019}ve transcribed."
+                    )
                 } else if hits.isEmpty {
                     BrutalEmptyState("No matches for \u{201C}\(query)\u{201D}",
-                        detail: "Try a shorter phrase, or a different show/speaker name.")
+                                     detail: "Try a shorter phrase, or a different show/speaker name.")
                 } else {
                     List(hits) { hit in
                         Button { open(hit) } label: {
@@ -89,5 +92,7 @@ struct LibrarySearchView: View {
         playback.seek(toFraction: hit.startTime / max(1, ep.duration))
     }
 
-    private func timeStr(_ s: TimeInterval) -> String { TimeFormatting.timeStr(s) }
+    private func timeStr(_ s: TimeInterval) -> String {
+        TimeFormatting.timeStr(s)
+    }
 }

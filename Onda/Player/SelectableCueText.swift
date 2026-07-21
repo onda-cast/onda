@@ -25,7 +25,8 @@ enum CueTextStyler {
                 result.append(NSAttributedString(
                     string: seg.text,
                     attributes: [.font: seg.isMatch ? bold : style.font,
-                                 .foregroundColor: seg.isMatch ? style.accent : style.base]))
+                                 .foregroundColor: seg.isMatch ? style.accent : style.base]
+                ))
             }
             return result
         }
@@ -37,7 +38,8 @@ enum CueTextStyler {
                 result.append(NSAttributedString(
                     string: prefix + w.text,
                     attributes: [.font: style.font,
-                                 .foregroundColor: i == activeWordIndex ? style.emphasis : style.base]))
+                                 .foregroundColor: i == activeWordIndex ? style.emphasis : style.base]
+                ))
             }
             return result
         }
@@ -80,18 +82,22 @@ struct SelectableCueText: UIViewRepresentable {
         if tv.attributedText != attributed { tv.attributedText = attributed }
     }
 
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context _: Context) -> CGSize? {
         guard let width = proposal.width, width > 0, width.isFinite else { return nil }
         let fitted = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
         return CGSize(width: width, height: fitted.height)
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator(onTap: onTap) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onTap: onTap)
+    }
 
     final class Coordinator: NSObject {
         var onTap: () -> Void
         weak var textView: UITextView?
-        init(onTap: @escaping () -> Void) { self.onTap = onTap }
+        init(onTap: @escaping () -> Void) {
+            self.onTap = onTap
+        }
 
         @objc func handleTap() {
             // A tap while text is selected clears the selection (standard iOS behavior)

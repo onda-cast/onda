@@ -58,11 +58,15 @@ struct DiscoverView: View {
     }
 
     private static let allChipCategories = ["Technology", "Comedy", "News", "Business",
-                                             "Health & Fitness", "Science"]
+                                            "Health & Fitness", "Science"]
     private var categories: [String] {
         Self.allChipCategories.filter { !hiddenCategories.isHidden(category: $0) }
     }
-    private var subscribedFeeds: Set<URL> { Set(subs.map(\.feedURL)) }
+
+    private var subscribedFeeds: Set<URL> {
+        Set(subs.map(\.feedURL))
+    }
+
     private var followedCategories: [String] {
         Array(Set(subs.map(\.category))).sorted()
             .filter { !hiddenCategories.isHidden(category: $0) }
@@ -77,10 +81,21 @@ struct DiscoverView: View {
         return subs.first { $0.feedURL == feed }
     }
 
-    private var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
-    private var trending: [PodcastDTO] { clientBox.trending }
-    private var loading: Bool { clientBox.trendingLoading }
-    private var trendingFailed: Bool { clientBox.trendingFailed }
+    private var isSearching: Bool {
+        !query.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var trending: [PodcastDTO] {
+        clientBox.trending
+    }
+
+    private var loading: Bool {
+        clientBox.trendingLoading
+    }
+
+    private var trendingFailed: Bool {
+        clientBox.trendingFailed
+    }
 
     // MARK: Browse sub-tab (search, categories, trending, shake)
 
@@ -206,22 +221,24 @@ struct DiscoverView: View {
             if showUndoToast, let rec = recs.lastDismissed {
                 UndoToastButton(
                     text: "Not interested: \(rec.dto.collectionName) \u{2014} UNDO",
-                    accessibility: "Dismissed \(rec.dto.collectionName). Double-tap to undo.") {
-                        undoToastTask?.cancel()
-                        withAnimation { showUndoToast = false }
-                        recs.undoDismiss()
-                    }
+                    accessibility: "Dismissed \(rec.dto.collectionName). Double-tap to undo."
+                ) {
+                    undoToastTask?.cancel()
+                    withAnimation { showUndoToast = false }
+                    recs.undoDismiss()
+                }
             }
         }
         .overlay(alignment: .bottom) {
             if showHideToast, let hiddenShow = hidden.lastHidden {
                 UndoToastButton(
                     text: "Hidden: \(hiddenShow.title) \u{2014} UNDO",
-                    accessibility: "Hid \(hiddenShow.title) from Discover. Double-tap to undo.") {
-                        hideToastTask?.cancel()
-                        withAnimation { showHideToast = false }
-                        hidden.undoHide()
-                    }
+                    accessibility: "Hid \(hiddenShow.title) from Discover. Double-tap to undo."
+                ) {
+                    hideToastTask?.cancel()
+                    withAnimation { showHideToast = false }
+                    hidden.undoHide()
+                }
             }
         }
     }
@@ -283,10 +300,11 @@ struct DiscoverView: View {
                 .id(dealID)
                 .transition(.asymmetric(
                     insertion: .scale(scale: 1.35, anchor: .leading).combined(with: .opacity),
-                    removal: .opacity))
+                    removal: .opacity
+                ))
         } else {
             Text(!results.isEmpty ? "Results"
-                 : selectedCategory.map { $0.uppercased() } ?? "Trending Today")
+                : selectedCategory.map { $0.uppercased() } ?? "Trending Today")
                 .brutalHeader(size: 13).foregroundStyle(theme.color(.textTertiary))
         }
     }
@@ -319,6 +337,7 @@ struct DiscoverView: View {
 }
 
 // MARK: - Status views
+
 extension DiscoverView {
     func loadingRow(_ text: String) -> some View {
         HStack(spacing: 8) {
@@ -346,11 +365,12 @@ extension DiscoverView {
 }
 
 // MARK: - Follow / toast
+
 extension DiscoverView {
     // Preview sheet's follow toggle. For an already-subscribed show, the unfollow confirmation
     // lives on the view UNDER this sheet — dismiss first, then present (400ms: same sheet
     // hand-off beat as the transcript-jump flow) instead of routing through toggleFollow directly.
-    fileprivate func handlePreviewToggle(_ target: PreviewTarget) {
+    private func handlePreviewToggle(_ target: PreviewTarget) {
         if isSubscribed(target.dto) {
             previewTarget = nil
             Task { @MainActor in
@@ -388,6 +408,7 @@ extension DiscoverView {
 }
 
 // MARK: - Search & add-feed row
+
 extension DiscoverView {
     var searchRow: some View {
         HStack(spacing: 10) {
@@ -411,6 +432,7 @@ extension DiscoverView {
 }
 
 // MARK: - Browse status + For You sub-tab
+
 extension DiscoverView {
     // Distinguish loading / error / genuinely-empty so a network failure never looks like "no results".
     @ViewBuilder private var browseStatus: some View {
@@ -503,6 +525,7 @@ extension DiscoverView {
 }
 
 // MARK: - Data loading & shake
+
 extension DiscoverView {
     // Shared entry point for the shake gesture and the visible Shuffle button. Locked out (button
     // disabled, physical shake ignored) while a previous shuffle is still fetching or dealing in —
@@ -523,7 +546,8 @@ extension DiscoverView {
             subscribedFeeds: subscribedFeeds,
             hiddenCategories: hiddenCategories.hidden,
             using: clientBox.client,
-            rng: &rng)
+            rng: &rng
+        )
         // Nothing new to show → say so; the wave/haptic already fired, so silence here
         // reads as a broken button. No deal-in animation follows, so unlock immediately.
         guard !result.picks.isEmpty else {

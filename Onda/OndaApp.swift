@@ -49,7 +49,8 @@ struct OndaApp: App {
             let ts = TranscriptService(
                 modelContext: c.mainContext, engine: engine,
                 localURL: { pm.localURL(for: $0) },
-                index: index)
+                index: index
+            )
             _transcripts = State(initialValue: ts)
             let ret = OndaApp.makeRetentionService(context: c.mainContext, settings: settings, dm: dm, pm: pm)
             _retention = State(initialValue: ret)
@@ -61,9 +62,11 @@ struct OndaApp: App {
             _clips = State(initialValue: cs)
             OndaApp.wirePlayback(pm: pm, dm: dm, cs: cs, settings: settings)
             _refresh = State(initialValue: OndaApp.makeRefreshService(
-                context: c.mainContext, subs: subs, dm: dm, settings: settings, ret: ret))
+                context: c.mainContext, subs: subs, dm: dm, settings: settings, ret: ret
+            ))
             let (hiddenCats, recs) = OndaApp.makeHiddenCategoriesAndRecommendations(
-                context: c.mainContext, hidden: hidden)
+                context: c.mainContext, hidden: hidden
+            )
             _hiddenCategories = State(initialValue: hiddenCats)
             _recommendations = State(initialValue: recs)
             let articlesService = OndaApp.makeArticleService(context: c.mainContext, ts: ts)
@@ -118,7 +121,8 @@ struct OndaApp: App {
             modelContext: context,
             extract: { try await extractor.extract(from: $0) },
             renderer: ArticleSpeechRenderer(),
-            persistTranscript: { ep, cues in ts.persist(cues: cues, for: ep, source: "tts") })
+            persistTranscript: { ep, cues in ts.persist(cues: cues, for: ep, source: "tts") }
+        )
     }
 
     private static func makeChapterGenerator() -> ChapterGenerating? {
@@ -150,7 +154,11 @@ struct OndaApp: App {
     }
 
     private static func makeTranscribingEngine() -> AudioTranscribing? {
-        if #available(iOS 26, *) { return SpeechTranscriberEngine() } else { return nil }
+        if #available(iOS 26, *) {
+            SpeechTranscriberEngine()
+        } else {
+            nil
+        }
     }
 
     private static func makeRetentionService(context: ModelContext, settings: AppSettings,
@@ -158,7 +166,8 @@ struct OndaApp: App {
         EpisodeRetentionService(
             modelContext: context, appSettings: settings,
             deleteDownload: { [weak dm] in dm?.delete($0) },
-            isCurrentlyPlaying: { [weak pm] ep in pm?.currentEpisode?.guid == ep.guid })
+            isCurrentlyPlaying: { [weak pm] ep in pm?.currentEpisode?.guid == ep.guid }
+        )
     }
 
     private static func makeChapterService(context: ModelContext) -> ChapterGenerationService {
@@ -169,7 +178,8 @@ struct OndaApp: App {
                 let cues = ep.transcript?.cues.sorted { $0.startTime < $1.startTime } ?? []
                 let joined = cues.map(\.text).joined(separator: " ")
                 return joined.isEmpty ? nil : joined
-            })
+            }
+        )
     }
 
     /// Auto-transcription after a download completes: only for episodes with no published
@@ -211,7 +221,7 @@ struct OndaApp: App {
         let clips = (try? context.fetch(FetchDescriptor<Clip>())) ?? []
         for clip in clips {
             guard let guid = clip.episode?.guid else { continue }
-            let body = [clip.text, clip.note].compactMap { $0 }.joined(separator: " ")
+            let body = [clip.text, clip.note].compactMap(\.self).joined(separator: " ")
             try? index.upsert(SearchDoc(kind: "clip", episodeGuid: guid,
                                         startTime: clip.startTime, body: body))
         }

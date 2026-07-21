@@ -86,7 +86,7 @@ struct EpisodeDetailView: View {
                     .frame(width: 48, height: 48)
                     .background(theme.color(.bgElevated)).brutalBorder(width: 2)
             }.buttonStyle(.plain)
-            .accessibilityLabel(hasTranscript ? "Transcript" : "No transcript yet \u{2014} opens transcription options")
+                .accessibilityLabel(hasTranscript ? "Transcript" : "No transcript yet \u{2014} opens transcription options")
 
             Button { downloadAction() } label: {
                 Image(systemName: downloadSymbol).scaledFont(17, weight: .bold)
@@ -115,20 +115,22 @@ struct EpisodeDetailView: View {
 
     private var downloadSymbol: String {
         switch downloads.state(for: episode) {
-        case .downloaded: return "checkmark"
-        case .downloading: return "arrow.down.circle"
-        case .failed: return "arrow.clockwise"
-        case .none: return "arrow.down"
+        case .downloaded: "checkmark"
+        case .downloading: "arrow.down.circle"
+        case .failed: "arrow.clockwise"
+        case .none: "arrow.down"
         }
     }
+
     private var downloadLabel: String {
         switch downloads.state(for: episode) {
-        case .downloaded: return "Downloaded, delete"
-        case .downloading: return "Downloading"
-        case .failed: return "Download failed, retry"
-        case .none: return "Download episode"
+        case .downloaded: "Downloaded, delete"
+        case .downloading: "Downloading"
+        case .failed: "Download failed, retry"
+        case .none: "Download episode"
         }
     }
+
     private func downloadAction() {
         switch downloads.state(for: episode) {
         case .downloaded: confirmDeleteDownload = true

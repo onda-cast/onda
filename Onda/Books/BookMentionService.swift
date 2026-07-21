@@ -110,8 +110,8 @@ final class BookMentionService {
     private func llmCandidates(cues: [(text: String, start: TimeInterval)]) async -> [BookCandidate] {
         guard let llm, !cues.isEmpty else { return [] }
         let fullText = cues.map(\.text).joined(separator: " ")
-        let chunks = stride(from: 0, to: fullText.count, by: 10_000).map {
-            String(fullText.dropFirst($0).prefix(10_000))
+        let chunks = stride(from: 0, to: fullText.count, by: 10000).map {
+            String(fullText.dropFirst($0).prefix(10000))
         }
         guard let found = try? await llm.bookCandidates(transcriptChunks: chunks) else { return [] }
         return found.map { c in
@@ -135,7 +135,7 @@ final class BookMentionService {
         let tagger = NLTagger(tagSchemes: [.nameType])
         tagger.string = name
         var isPerson = false
-        tagger.enumerateTags(in: name.startIndex..<name.endIndex, unit: .word,
+        tagger.enumerateTags(in: name.startIndex ..< name.endIndex, unit: .word,
                              scheme: .nameType,
                              options: [.omitWhitespace, .omitPunctuation, .joinNames]) { tag, _ in
             if tag == .personalName { isPerson = true }
