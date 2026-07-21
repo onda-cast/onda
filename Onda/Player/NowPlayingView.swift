@@ -9,9 +9,14 @@ struct NowPlayingView: View {
     @Environment(AppSettings.self) private var appSettings
     @Environment(\.dismiss) private var dismiss
     @State private var showQueue = false
-    @State private var showBooks = false
-    @State private var showSettings = false
-    @State private var showTranscript = false
+    // Captured at the moment each sheet opens, rather than a Bool driving `if let ep`
+    // (playback.currentEpisode) inside the sheet's content closure — the episode can legitimately
+    // finish/advance/dismiss out from under a long-running sheet (e.g. Books' async OpenLibrary
+    // lookup), which used to re-evaluate that closure to nil and leave the sheet presented but
+    // blank instead of dismissing.
+    @State private var booksEpisode: Episode?
+    @State private var settingsPodcast: Podcast?
+    @State private var transcriptEpisode: Episode?
     @State private var showJumpToTime = false
     @State private var jumpText = ""
     // Live drag position for the scrubber, kept as plain view @State instead of round-tripping
@@ -85,10 +90,10 @@ struct NowPlayingView: View {
         .overlay(alignment: .top) {
             if let s = clipStart {
                 clipBanner(startedAt: s)
-            } else if playback.returnToTranscriptEpisode != nil {
+            } else if let returnEp = playback.returnToTranscriptEpisode {
                 BackToTranscriptButton {
                     playback.clearTranscriptReturn()
-                    showTranscript = true
+                    transcriptEpisode = returnEp
                 }
             }
         }
@@ -99,18 +104,12 @@ struct NowPlayingView: View {
         // its start time belongs to the previous episode's timeline.
         .onChange(of: ep?.guid) { _, _ in clipStart = nil }
         .sheet(isPresented: $showQueue) { QueueView() }
-        .sheet(isPresented: $showSettings) {
-            if let pod = ep?.podcast { ShowSettingsSheet(podcast: pod) }
-        }
-        .sheet(isPresented: $showTranscript) {
-            if let ep { TranscriptView(episode: ep) }
-        }
+        .sheet(item: $settingsPodcast) { ShowSettingsSheet(podcast: $0) }
+        .sheet(item: $transcriptEpisode) { TranscriptView(episode: $0) }
         .sheet(item: $pendingClip) { p in
             ClipReviewSheet(episode: p.episode, start: p.start, end: p.end)
         }
-        .sheet(isPresented: $showBooks) {
-            if let ep { BooksSheet(episode: ep).presentationDetents([.medium, .large]) }
-        }
+        .sheet(item: $booksEpisode) { BooksSheet(episode: $0).presentationDetents([.medium, .large]) }
     }
 
     private var header: some View {
@@ -123,15 +122,17 @@ struct NowPlayingView: View {
                 .disabled(ep == nil)
                 .accessibilityLabel(clipStart == nil ? "Start clip" : "End clip")
                 .accessibilityIdentifier("clip-button")
-            Button { showBooks = true } label: { headerIcon("book") }
+            Button { booksEpisode = ep } label: { headerIcon("book") }
                 .disabled(ep == nil)
                 .accessibilityLabel("Books mentioned in this episode")
                 .accessibilityIdentifier("books-button")
             SleepTimerMenu()
-            Button { showTranscript = true } label: { headerIcon("text.quote") }
+            Button { transcriptEpisode = ep } label: { headerIcon("text.quote") }
+                .disabled(ep == nil)
                 .accessibilityIdentifier("transcript-button")
             Button { showQueue = true } label: { headerIcon("list.bullet") }
-            Button { showSettings = true } label: { headerIcon("ellipsis") }
+            Button { settingsPodcast = ep?.podcast } label: { headerIcon("ellipsis") }
+                .disabled(ep?.podcast == nil)
         }
         .foregroundStyle(theme.color(.textSecondary))
     }
