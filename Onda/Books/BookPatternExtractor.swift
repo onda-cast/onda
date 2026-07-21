@@ -22,19 +22,21 @@ struct BookPatternExtractor {
         }
     }
 
-    // "author of [the] [new] book <Title>" — the common show-notes construction where the person
+    // "author of [the] [new] [book] <Title>" — the common show-notes construction where the person
     // is introduced first and the (unquoted) title runs to the next clause boundary, e.g.
-    // "...author of the new book Blood & Progress, which argues...". Title-only candidate: the
-    // OpenLibrary gate resolves the author and rejects anything that isn't a real book, so the
-    // low delimiting precision (no quotes) is safe. Case-insensitive on the connective phrase only
-    // — the title itself must start with a capital so we don't grab a lowercase fragment.
+    // "...author of the new book Blood & Progress, which argues..." OR the barer "...author of
+    // Blood & Progress,". The media noun (book/novel/memoir/…) is optional; when it's absent this
+    // is looser and leans entirely on the OpenLibrary gate to reject non-books, which is why the
+    // title must start with a capital (skips lowercase fragments like "several essays"). Title-only
+    // candidate — the gate resolves the author. Case-insensitive on the connective phrase only.
     private func authorOfBookPatterns(in text: String, tier: String,
                                       timestamp: TimeInterval?) -> [BookCandidate] {
         let pattern = "(?i:(?:author|co-?author|wrote)\\s+of\\s+"
             + "(?:the\\s+|his\\s+|her\\s+|their\\s+|a\\s+)?"
             + "(?:new\\s+|latest\\s+|recent\\s+|debut\\s+|bestselling\\s+|best-selling\\s+|"
             + "upcoming\\s+|forthcoming\\s+|acclaimed\\s+|award-winning\\s+)*"
-            + "book,?\\s+(?:titled\\s+|called\\s+|entitled\\s+)?[\"\u{201C}]?)"
+            + "(?:book\\s+|novel\\s+|memoir\\s+|biography\\s+|collection\\s+)?"
+            + "(?:titled\\s+|called\\s+|entitled\\s+)?[\"\u{201C}]?)"
             + "([A-Z][^,.;:\n\"\u{201C}\u{201D}]{1,80})"
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
         let ns = text as NSString

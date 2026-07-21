@@ -55,6 +55,18 @@ final class BookPatternExtractorTests: XCTestCase {
         XCTAssertFalse(c.contains { $0.title?.contains("recommend") ?? false })
     }
 
+    func test_authorOf_noBookKeyword_barerForm() {
+        let c = extractor.candidates(fromNotes: "Noah Rothman, author of Blood & Progress, joins us today.")
+        XCTAssertTrue(c.contains { $0.title == "Blood & Progress" && $0.author == nil },
+                      "matches 'author of <Title>' even without the word 'book'")
+    }
+
+    func test_authorOf_lowercaseFragment_notMatched() {
+        // No capitalized title after "author of" → nothing to verify, must not produce a candidate.
+        let c = extractor.candidates(fromNotes: "She is the author of several acclaimed essays.")
+        XCTAssertTrue(c.isEmpty, "a lowercase fragment is not a title candidate")
+    }
+
     func test_authorOfBook_carriesCueTimestamp() {
         let cues = [(text: "He is the author of the book The Overstory, a Pulitzer winner", start: 240.0)]
         let c = extractor.candidates(fromCues: cues)
