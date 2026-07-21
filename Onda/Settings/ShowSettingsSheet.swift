@@ -29,6 +29,12 @@ struct ShowSettingsSheet: View {
     }
 
     @State private var showAllVoiceLanguages = false
+    // AVSpeechSynthesisVoice.speechVoices() enumerates every installed system TTS voice — a well
+    // documented slow AVFoundation call. It used to be re-run from scratch inside a plain computed
+    // property, so it fired on EVERY body re-evaluation of this sheet, i.e. on every single
+    // setting changed anywhere on the page (not just the voice picker) — the concrete lag. Voices
+    // installed on the device don't change while this sheet is open, so fetch once and cache.
+    @State private var allVoices: [AVSpeechSynthesisVoice] = []
 
     var body: some View {
         NavigationStack {
@@ -116,6 +122,12 @@ struct ShowSettingsSheet: View {
             .navigationTitle(podcast.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .task {
+                // Local/article shows only — this is where voiceSection (and availableVoices)
+                // actually renders. Fetch once; re-running would defeat the point of the cache.
+                guard podcast.isLocal, allVoices.isEmpty else { return }
+                allVoices = AVSpeechSynthesisVoice.speechVoices()
+            }
         }
     }
 
@@ -232,9 +244,8 @@ struct ShowSettingsSheet: View {
     }
 
     private var availableVoices: [AVSpeechSynthesisVoice] {
-        let all = AVSpeechSynthesisVoice.speechVoices()
         let lang = Locale.current.language.languageCode?.identifier ?? "en"
-        let filtered = showAllVoiceLanguages ? all : all.filter { $0.language.hasPrefix(lang) }
+        let filtered = showAllVoiceLanguages ? allVoices : allVoices.filter { $0.language.hasPrefix(lang) }
         return filtered.sorted { ($0.language, $0.name) < ($1.language, $1.name) }
     }
 

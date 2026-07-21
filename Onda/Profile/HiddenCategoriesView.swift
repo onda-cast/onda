@@ -14,11 +14,22 @@ struct HiddenCategoriesView: View {
                 Text("Hidden from Trending, category browsing, Shake, and For You. "
                      + "Search results aren't affected.")
                     .scaledFont(12).foregroundStyle(theme.color(.textTertiary))
-                ForEach(HiddenCategories.all, id: \.self) { category in
-                    categoryRow(category)
+                // One card, toggle-per-row, matching the Settings-section convention used
+                // throughout Profile (PlaybackSettingsSection/RetentionSettingsSection) — a
+                // standard Toggle instead of a checkmark that only appeared for hidden
+                // categories, which read backwards against the checkmark = "selected" meaning
+                // it carries everywhere else in the app (e.g. Discover's category chips).
+                BrutalCard {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(HiddenCategories.all.enumerated()), id: \.element) { index, category in
+                            categoryRow(category)
+                            if index < HiddenCategories.all.count - 1 { divider }
+                        }
+                    }
+                    .padding(16)
                 }
             }
-            .padding(20)
+            .padding(20).padding(.bottom, BottomChrome.clearance)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(theme.color(.bg))
@@ -26,26 +37,19 @@ struct HiddenCategoriesView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    private var divider: some View {
+        Rectangle().fill(theme.color(.separator)).frame(height: 1).padding(.vertical, 12)
+    }
+
     private func categoryRow(_ category: String) -> some View {
-        let isHidden = hiddenCategories.isHidden(category: category)
-        return Button { hiddenCategories.toggle(category) } label: {
-            BrutalCard {
-                HStack {
-                    Text(category).scaledFont(15, weight: .semibold)
-                        .foregroundStyle(theme.color(.text))
-                    Spacer()
-                    if isHidden {
-                        Image(systemName: "checkmark").scaledFont(14, weight: .bold)
-                            .foregroundStyle(theme.color(.accentStrong))
-                    }
-                }
-                .padding(14)
-            }
+        HStack {
+            Text(category).scaledFont(15, weight: .semibold).foregroundStyle(theme.color(.text))
+            Spacer()
+            Toggle("", isOn: Binding(get: { hiddenCategories.isHidden(category: category) },
+                                     set: { _ in hiddenCategories.toggle(category) }))
+                .labelsHidden().tint(theme.color(.accent))
+                .accessibilityLabel(category)
+                .accessibilityHint("Hides this category from Trending, category browsing, Shake, and For You.")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(category)
-        .accessibilityAddTraits(isHidden ? [.isSelected, .isButton] : .isButton)
-        .accessibilityHint(isHidden ? "Hidden. Double-tap to show again."
-                                    : "Double-tap to hide from suggestions.")
     }
 }
