@@ -19,6 +19,15 @@ final class TranscriptService {
     var progress: [String: Double] = [:]
     var lastFailure: [String: String] = [:]   // guid → human-readable reason
 
+    /// On-device runs currently executing, keyed by episode guid. A second `transcript(for:)`
+    /// for the same guid attaches to the running task instead of starting a second engine pass
+    /// (which would interleave progress writes and flicker the bar). Also lets a re-opened
+    /// transcript sheet detect a backgrounded run and show its progress.
+    private var inFlightTasks: [String: Task<Void, Never>] = [:]
+
+    /// True while an on-device transcription is running for this episode.
+    func isTranscribing(_ episode: Episode) -> Bool { inFlightTasks[episode.guid] != nil }
+
     // MARK: Background completion notice
     /// App-wide toast text shown when a backgrounded transcription finishes (see RootView).
     var completionNotice: String?
@@ -76,33 +85,55 @@ final class TranscriptService {
 
         if let engine, let file = localURL(episode) {
             let guid = episode.guid
-            do {
-                lastFailure[guid] = nil
-                let cues = try await engine.transcribe(fileURL: file) { p in
-                    Task { @MainActor [weak self] in self?.progress[guid] = p }
-                }
-                progress[guid] = nil
-                if !cues.isEmpty {
-                    let tr = persist(cues: cues, for: episode, source: "ondevice")
-                    postNoticeIfRequested(guid: guid, episodeTitle: episode.title, success: true)
-                    return tr
-                }
-                lastFailure[guid] = "Transcription produced no text for this audio."
-            } catch {
-                progress[guid] = nil
-                let ns = error as NSError
-                if ns.domain == "SFSpeechErrorDomain" {
-                    lastFailure[guid] = """
-                        Couldn't get Apple's on-device speech model. Check your connection — \
-                        and note the iOS Simulator often can't download it (a real device can).
-                        """
-                } else {
-                    lastFailure[guid] = "Transcription failed: \(error.localizedDescription)"
-                }
+            // Dedupe: attach to a run already in flight for this episode rather than starting a
+            // second engine pass. Fixes the reopened-sheet "no progress" gap and the progress-bar
+            // flicker from two concurrent runs writing progress[guid].
+            // Transcript is a SwiftData PersistentModel (not Sendable), so the shared task can't
+            // carry it across isolation — it persists to episode.transcript, which we read back
+            // after awaiting.
+            if let running = inFlightTasks[guid] {
+                await running.value
+                return episode.transcript
             }
-            // Reached only on the failure paths (empty result or thrown) — success returned above.
-            postNoticeIfRequested(guid: guid, episodeTitle: episode.title, success: false)
+            let task = Task { @MainActor [weak self] in
+                _ = await self?.runOnDevice(engine: engine, file: file, episode: episode)
+            }
+            inFlightTasks[guid] = task
+            defer { inFlightTasks[guid] = nil }
+            await task.value
+            return episode.transcript
         }
+        return nil
+    }
+
+    private func runOnDevice(engine: AudioTranscribing, file: URL, episode: Episode) async -> Transcript? {
+        let guid = episode.guid
+        do {
+            lastFailure[guid] = nil
+            let cues = try await engine.transcribe(fileURL: file) { p in
+                Task { @MainActor [weak self] in self?.progress[guid] = p }
+            }
+            progress[guid] = nil
+            if !cues.isEmpty {
+                let tr = persist(cues: cues, for: episode, source: "ondevice")
+                postNoticeIfRequested(guid: guid, episodeTitle: episode.title, success: true)
+                return tr
+            }
+            lastFailure[guid] = "Transcription produced no text for this audio."
+        } catch {
+            progress[guid] = nil
+            let ns = error as NSError
+            if ns.domain == "SFSpeechErrorDomain" {
+                lastFailure[guid] = """
+                    Couldn't get Apple's on-device speech model. Check your connection — \
+                    and note the iOS Simulator often can't download it (a real device can).
+                    """
+            } else {
+                lastFailure[guid] = "Transcription failed: \(error.localizedDescription)"
+            }
+        }
+        // Reached only on the failure paths (empty result or thrown) — success returned above.
+        postNoticeIfRequested(guid: guid, episodeTitle: episode.title, success: false)
         return nil
     }
 

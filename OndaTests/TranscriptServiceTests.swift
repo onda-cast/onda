@@ -10,6 +10,20 @@ private struct StubEngine: AudioTranscribing {
     }
 }
 
+/// Counts how many times the engine is actually invoked, and yields once mid-run so a
+/// concurrently-issued second request has a chance to (incorrectly) start its own run.
+private final class CountingEngine: AudioTranscribing, @unchecked Sendable {
+    var calls = 0
+    let cues: [ParsedCue]
+    init(cues: [ParsedCue]) { self.cues = cues }
+    func transcribe(fileURL: URL, progress: @escaping @Sendable (Double) -> Void) async throws -> [ParsedCue] {
+        calls += 1
+        await Task.yield()
+        progress(1.0)
+        return cues
+    }
+}
+
 @MainActor
 final class TranscriptServiceTests: XCTestCase {
     private func makeContext() throws -> ModelContext {
@@ -54,6 +68,25 @@ final class TranscriptServiceTests: XCTestCase {
         let tr = await svc.transcript(for: ep)
         XCTAssertEqual(tr?.source, "ondevice")
         XCTAssertEqual(tr?.cues.first?.text, "On device")
+    }
+
+    // Regression: reopening the sheet or tapping Transcribe while a run is in flight used to
+    // start a SECOND concurrent engine pass (bar flicker; reopened sheet showed no progress).
+    // Concurrent requests for the same episode must share one run, and isTranscribing must clear.
+    func test_concurrentRequests_dedupeToSingleEngineRun() async throws {
+        let ctx = try makeContext()
+        let ep = episode(in: ctx, transcriptURL: nil)
+        let engine = CountingEngine(cues: [ParsedCue(startTime: 0, endTime: 2, text: "x", speaker: nil)])
+        let svc = TranscriptService(modelContext: ctx, engine: engine,
+                                    fetch: { _ in Data() },
+                                    localURL: { _ in URL(fileURLWithPath: "/tmp/e.mp3") })
+        let a = Task { @MainActor in _ = await svc.transcript(for: ep) }
+        let b = Task { @MainActor in _ = await svc.transcript(for: ep) }
+        await a.value
+        await b.value
+        XCTAssertEqual(engine.calls, 1, "concurrent requests share one engine run, not two")
+        XCTAssertNotNil(ep.transcript, "the shared run persisted the transcript")
+        XCTAssertFalse(svc.isTranscribing(ep), "the in-flight entry is cleared after completion")
     }
 
     func test_persist_fiveThousandCues_completesQuickly() throws {

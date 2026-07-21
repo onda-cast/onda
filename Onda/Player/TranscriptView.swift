@@ -94,7 +94,8 @@ struct TranscriptView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let t = transcript, !t.cues.isEmpty { transcriptList } else if loading || transcribing { progressState } else { emptyState }
+                let showProgress = loading || transcribing || transcripts.isTranscribing(episode)
+                if let t = transcript, !t.cues.isEmpty { transcriptList } else if showProgress { progressState } else { emptyState }
             }
             .background(theme.color(.bg))
             .navigationTitle("Transcript")
@@ -262,6 +263,16 @@ struct TranscriptView: View {
 
     private func load() async {
         guard transcript == nil else { return }
+        // A backgrounded on-device run is still going (the user left the sheet and came back):
+        // reattach so its progress bar shows and we pick up the cues when it finishes, instead
+        // of falling through to the empty state and offering to start a second run.
+        if transcripts.isTranscribing(episode) {
+            transcribing = true
+            transcript = await transcripts.transcript(for: episode)   // dedupes: awaits the live run
+            snapshotCues()
+            transcribing = false
+            return
+        }
         // Only auto-load the cheap published path; on-device requires an explicit tap.
         if episode.transcript != nil || episode.transcriptURL != nil {
             loading = true
