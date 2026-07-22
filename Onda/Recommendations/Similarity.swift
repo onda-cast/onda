@@ -10,8 +10,16 @@ protocol WordEmbedding {
     func vector(for word: String) -> [Double]?
 }
 
-struct AppleWordEmbedding: WordEmbedding {
-    private let embedding = NLEmbedding.wordEmbedding(for: .english)
+// A class, not a struct: `embedding` must be `lazy` so constructing an AppleWordEmbedding is
+// cheap. It's built as a synchronous default-argument value inside RecommendationService.init(),
+// which runs on the main thread during OndaApp.init() — eagerly loading NLEmbedding's on-device
+// model there (genuinely heavy, hundreds of ms+) blocked the app's first frame. Deferring to
+// first access moves that cost to wherever scoring actually happens (already off-main, per
+// RecommendationService.refresh's Task.detached). A `lazy var` on a struct would need `vector(for:)`
+// to be `mutating`, which can't be called through the `let embedding: WordEmbedding?` this is
+// stored behind — hence class, where lazy access needs no mutating call.
+final class AppleWordEmbedding: WordEmbedding {
+    private lazy var embedding = NLEmbedding.wordEmbedding(for: .english)
     var isAvailable: Bool {
         embedding != nil
     }
