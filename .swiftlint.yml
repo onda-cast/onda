@@ -25,10 +25,10 @@ line_length:
 # plus configured skips / Smart Resume); splitting it would force exposing private state
 # module-wide. Its 1:1 test file mirrors that breadth. Bump over the 400 default.
 file_length:
-  warning: 950
+  warning: 980
 
 type_body_length:
-  warning: 390
+  warning: 400
 
 # SwiftFormat's closing-paren-on-own-line / if-else-as-expression style added a few lines to
 # OndaApp.init's multi-service wiring, pushing it just over the 50-line default.

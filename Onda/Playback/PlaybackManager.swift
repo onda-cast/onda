@@ -423,10 +423,16 @@ final class PlaybackManager {
 
     /// Seeks relative to the current position by `seconds` (negative to go back), clamped to the
     /// episode bounds. Cancels any active clip end-bound.
+    ///
+    /// Anchored on `engine.currentTimeSeconds` (a live query), not the cached `positionSeconds` —
+    /// that's only refreshed ~once a second by the periodic time observer, and skip-silence calls
+    /// this with sub-second amounts (the just-measured silence run, as little as ~0.6s). Anchoring
+    /// on a base that can itself be stale by up to ~1s meant the computed target could land BEFORE
+    /// the audio's true current position, replaying speech the listener had already heard.
     func skip(by seconds: TimeInterval) {
         clipEndBound = nil
         clipPreviewRange = nil
-        let target = max(0, min(durationSeconds, positionSeconds + seconds))
+        let target = max(0, min(durationSeconds, engine.currentTimeSeconds + seconds))
         engine.seek(to: target); positionSeconds = target
         if let ep = currentEpisode { checkForEndOfEpisode(ep, at: target, honorOutroTrim: false) }
     }

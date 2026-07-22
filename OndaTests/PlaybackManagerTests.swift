@@ -354,6 +354,28 @@ final class PlaybackManagerTests: XCTestCase {
         XCTAssertGreaterThan(engine.currentTimeSeconds, 100, "a silence skip advanced position")
     }
 
+    // Regression: skip(by:) used to anchor its target on `positionSeconds`, which only refreshes
+    // ~once a second from the periodic time observer — stale by up to that long relative to the
+    // audio's real position. Skip-silence calls skip(by:) with sub-second amounts (the just-
+    // measured silence run), so a stale base could put the computed target BEFORE where the
+    // audio actually is, replaying speech the listener had already heard. Simulates the staleness
+    // directly: advance the engine's real position without a matching tick (as real playback does
+    // between ticks), then trigger a silence skip.
+    func test_skipSilence_anchorsOnLiveEngineTime_notStalePositionTick() throws {
+        let ctx = try makeContext()
+        let engine = FakeEngine()
+        let pm = PlaybackManager(engine: engine, modelContext: ctx, appSettings: makeAppSettings())
+        let ep = makeEpisode(in: ctx, duration: 1000)
+        ep.podcast?.settings?.skipSilence = true
+        pm.play(ep)
+        engine.emitTime(100)                // last tick: positionSeconds = 100
+        engine.currentTimeSeconds = 100.9    // audio has actually moved on; no tick delivered yet
+        for _ in 0 ..< 6 { engine.onRMS?(0.001, 0.1) }   // 0.6s of silence -> Skip(seconds: 0.6)
+        XCTAssertGreaterThanOrEqual(engine.currentTimeSeconds, 101.5,
+                                    "must land past the real current position (100.9 + 0.6s skip), " +
+                                    "not the stale tick (100 + 0.6s = 100.6, which would rewind and replay 0.3s)")
+    }
+
     func test_adActive_trueInsideAdChapter_whenChaptersPresent() throws {
         let ctx = try makeContext()
         let engine = FakeEngine()
