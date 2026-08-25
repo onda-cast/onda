@@ -2,9 +2,24 @@
 
 Static GitHub Pages site for Onda. Implements the three artboards in
 `../docs/landing-page-design-prompt.md` / the Claude Design canvas: desktop light, desktop dark,
-and mobile 390. One page adapts across all three — the light/dark split is driven by
-`prefers-color-scheme`, not a toggle, so it follows the visitor's system setting the way the app
-follows the system theme.
+and mobile 390. One page adapts across all three.
+
+## Theming
+
+Three states, matching how the app's own Appearance setting works: follow the system, force
+light, force dark. The header toggle sets `data-theme` on `<html>` and persists the choice in
+`localStorage`; with nothing stored the page follows `prefers-color-scheme`.
+
+Dark tokens are therefore declared twice in `style.css` — once inside
+`@media (prefers-color-scheme: dark)` guarded by `:root:not([data-theme="light"])`, and once
+under `:root[data-theme="dark"]`. The guard is what lets an explicit *light* choice win on a
+system set to dark; without it, source order alone would lose that case.
+
+An inline script in `<head>` applies the stored choice before first paint so the other palette
+never flashes. Screenshots are plain `<img>` with `data-light`/`data-dark` rather than
+`<picture>`, because `<source media="(prefers-color-scheme: dark)">` only ever follows the OS —
+it would have flipped the page but not the images. Without JS the page still renders and follows
+the system theme; only the image swap and the toggle need it.
 
 ## Files
 

@@ -8,6 +8,15 @@
 <meta name="theme-color" content="#F2EFE4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%231F6E4E'/><rect x='6' y='13' width='3' height='6' fill='white'/><rect x='12' y='9' width='3' height='14' fill='white'/><rect x='18' y='6' width='3' height='20' fill='white'/><rect x='24' y='12' width='3' height='8' fill='white'/></svg>">
+<script>
+// Runs before first paint so an explicit theme choice never flashes the other palette.
+(function () {
+  try {
+    var t = localStorage.getItem('onda-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -16,11 +25,29 @@
 
   <header class="site-header gutter">
     <a class="wordmark" href="../">Onda</a>
-    <nav class="site-nav">
+    <div class="header-right">
+      <nav class="site-nav">
       <a href="../#features">Features</a>
       <a href="../#privacy">Privacy</a>
       <a href="../#screens">Screens</a>
-    </nav>
+      </nav>
+      <button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to dark theme">
+        <svg class="icon-moon" width="22" height="22" viewBox="0 0 26 26" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+          <path d="M21 15.5A9 9 0 0 1 10.5 5a9 9 0 1 0 10.5 10.5Z"/>
+        </svg>
+        <svg class="icon-sun" width="22" height="22" viewBox="0 0 26 26" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+          <circle cx="13" cy="13" r="4.5"/>
+          <line x1="13" y1="1.5" x2="13" y2="4.5"/>
+          <line x1="13" y1="21.5" x2="13" y2="24.5"/>
+          <line x1="1.5" y1="13" x2="4.5" y2="13"/>
+          <line x1="21.5" y1="13" x2="24.5" y2="13"/>
+          <line x1="4.9" y1="4.9" x2="7" y2="7"/>
+          <line x1="19" y1="19" x2="21.1" y2="21.1"/>
+          <line x1="4.9" y1="21.1" x2="7" y2="19"/>
+          <line x1="19" y1="7" x2="21.1" y2="4.9"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <main class="prose gutter">
@@ -105,6 +132,52 @@
   </footer>
 
 </div>
+
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('theme-toggle');
+  var system = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function resolved() {
+    var t = root.dataset.theme;
+    return t === 'light' || t === 'dark' ? t : (system.matches ? 'dark' : 'light');
+  }
+
+  // <picture media=...> only ever follows the OS, so the screenshots are swapped here
+  // instead -- otherwise an explicit choice would flip the page but not the images.
+  function paint() {
+    var dark = resolved() === 'dark';
+    if (btn) btn.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+    // Both media'd metas are set to the resolved colour, so an explicit choice wins
+    // whichever one the browser matches, while no-JS visitors keep the correct pair.
+    var metas = document.querySelectorAll('meta[name="theme-color"]');
+    for (var m = 0; m < metas.length; m++) {
+      metas[m].setAttribute('content', dark ? '#111111' : '#F2EFE4');
+    }
+    var imgs = document.querySelectorAll('img[data-dark]');
+    for (var i = 0; i < imgs.length; i++) {
+      var want = dark ? imgs[i].dataset.dark : imgs[i].dataset.light;
+      if (want && !imgs[i].src.endsWith(want)) imgs[i].src = want;
+    }
+  }
+
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = resolved() === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try { localStorage.setItem('onda-theme', next); } catch (e) {}
+      paint();
+    });
+  }
+
+  // Keep following the OS for visitors who never pressed the button.
+  system.addEventListener('change', function () { if (!root.dataset.theme) paint(); });
+
+  paint();
+})();
+</script>
 
 </body>
 </html>
