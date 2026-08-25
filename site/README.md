@@ -39,5 +39,7 @@ Published URL once Pages is on: **https://onda-cast.github.io/onda/**
   repo is private.
 - The footer `Privacy` link and the privacy band's button both point at `/privacy/`. Use
   **https://onda-cast.github.io/onda/privacy/** as the Privacy Policy URL in App Store Connect.
-- The policy lists `chase.gilliam@gmail.com` as the contact address, so that address is public on
-  the live site. Swap in an alias if that isn't wanted.
+- **The policy's Contact section is interim.** It points at GitHub issues rather than an email
+  address, to keep a personal address off a public page. Apple expects a contact route on the
+  policy, so swap in the real contact alias (in `site/privacy/index.html`, marked with a TODO)
+  before submitting to the App Store.
