@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onda — a podcast player that transcribes, searches and clips on device</title>
+<meta name="description" content="Onda is an iOS podcast player that transcribes, searches and clips every episode entirely on your iPhone. No backend, no accounts, no tracking. Coming soon to the App Store.">
+<meta name="theme-color" content="#F2EFE4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Onda">
+<meta property="og:description" content="A podcast player that transcribes, searches and clips every episode — entirely on your iPhone.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/img/player-light.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%231F6E4E'/><rect x='6' y='13' width='3' height='6' fill='white'/><rect x='12' y='9' width='3' height='14' fill='white'/><rect x='18' y='6' width='3' height='20' fill='white'/><rect x='24' y='12' width='3' height='8' fill='white'/></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="shell">
+
+  <header class="site-header gutter">
+    <div class="wordmark">Onda</div>
+    <nav class="site-nav">
+      <a href="#features">Features</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#screens">Screens</a>
+    </nav>
+  </header>
+
+  <section class="hero gutter">
+    <div class="hero-copy">
+      <div class="badge">Coming soon to the App Store</div>
+      <h1 class="display hero-title">Onda</h1>
+      <p class="hero-tagline">A podcast player that transcribes, searches and clips every episode &mdash; entirely on your iPhone.</p>
+      <div class="spec-row">
+        <div class="spec">iOS 17+</div>
+        <div class="spec">No account</div>
+        <div class="spec">Fully offline</div>
+      </div>
+    </div>
+
+    <figure class="phone">
+      <figcaption class="phone-chrome">
+        <span>9:41</span>
+        <span>Now playing</span>
+      </figcaption>
+      <picture>
+        <source srcset="assets/img/player-dark.jpg" media="(prefers-color-scheme: dark)">
+        <img src="assets/img/player-light.jpg" width="840" height="1826"
+             alt="Onda's Now Playing screen: Odd Lots episode artwork, a scrubber, speed and voice-boost chips, and skip-back and skip-forward controls.">
+      </picture>
+    </figure>
+  </section>
+
+  <section class="section gutter rule-top" id="features">
+    <div class="section-head">
+      <h2 class="display section-title">Everything runs on the phone</h2>
+      <p class="section-note">Six things Onda does differently</p>
+    </div>
+
+    <div class="feature-grid">
+      <article class="feature">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke-width="2.5" stroke-linecap="square">
+            <rect x="3" y="3" width="20" height="20"/><line x1="7" y1="9" x2="19" y2="9"/>
+            <line x1="7" y1="13" x2="19" y2="13"/><line x1="7" y1="17" x2="14" y2="17"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">On-device transcripts</h3>
+        <p class="feature-desc">Every episode transcribed and searchable. Transcription never leaves your phone.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke-width="2.5" stroke-linecap="square">
+            <circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="23" y2="23"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Natural-language search</h3>
+        <p class="feature-desc">&ldquo;That episode where they talked about sourdough.&rdquo; Ask it the way you&rsquo;d say it.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke-width="2.5" stroke-linecap="square">
+            <line x1="5" y1="3" x2="5" y2="23"/><line x1="21" y1="3" x2="21" y2="23"/>
+            <rect x="10" y="9" width="6" height="8" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Clips</h3>
+        <p class="feature-desc">Save a time range, then export the audio or the text of it.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke-width="2.5" stroke-linecap="square">
+            <polygon points="4,4 13,13 4,22"/><polygon points="13,4 22,13 13,22"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Smart skips</h3>
+        <p class="feature-desc">Skip silence, trim intros and outros, auto-skip ad chapters.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke-width="2.5" stroke-linecap="square">
+            <line x1="5" y1="15" x2="5" y2="21"/><line x1="11" y1="9" x2="11" y2="21"/>
+            <line x1="17" y1="4" x2="17" y2="21"/><line x1="22" y1="12" x2="22" y2="21"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Voice boost + per-show settings</h3>
+        <p class="feature-desc">Speed, voice boost and download rules tuned per show, not globally.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke-width="2.5" stroke-linecap="square">
+            <rect x="5" y="5" width="16" height="16" transform="rotate(45 13 13)"/>
+            <circle cx="13" cy="13" r="3" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">For You</h3>
+        <p class="feature-desc">Recommendations computed on device. Nothing is sent to a server.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="privacy gutter" id="privacy">
+    <h2 class="display privacy-title">No backend. No accounts. No tracking.</h2>
+    <p class="privacy-sub">Feeds come straight from the source. Nothing you listen to leaves your device.</p>
+  </section>
+
+  <section class="section gutter" id="screens">
+    <div class="section-head">
+      <h2 class="display section-title">Four screens</h2>
+    </div>
+
+    <div class="screens-grid">
+      <figure class="screen">
+        <div class="screen-frame">
+          <div class="eyebrow">Library</div>
+          <picture>
+            <source srcset="assets/img/library-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="assets/img/library-light.jpg" width="620" height="1348" loading="lazy"
+                 alt="Onda's library grid showing Odd Lots and the Works in Progress Podcast with unplayed-episode badges.">
+          </picture>
+        </div>
+        <figcaption class="screen-caption">Library grid</figcaption>
+      </figure>
+
+      <figure class="screen offset">
+        <div class="screen-frame">
+          <div class="eyebrow">Search</div>
+          <picture>
+            <source srcset="assets/img/search-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="assets/img/search-light.jpg" width="620" height="1348" loading="lazy"
+                 alt="Cross-transcript search for &quot;oil refinery in Odd Lots&quot;, listing matching lines with timestamps.">
+          </picture>
+        </div>
+        <figcaption class="screen-caption">Transcript search</figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="screen-frame">
+          <div class="eyebrow">Clips</div>
+          <picture>
+            <source srcset="assets/img/clips-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="assets/img/clips-light.jpg" width="620" height="1348" loading="lazy"
+                 alt="The clip editor with start and end times and the transcript excerpt for the selected range.">
+          </picture>
+        </div>
+        <figcaption class="screen-caption">Clips</figcaption>
+      </figure>
+
+      <figure class="screen offset">
+        <div class="screen-frame">
+          <div class="eyebrow">Transcript</div>
+          <picture>
+            <source srcset="assets/img/transcript-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="assets/img/transcript-light.jpg" width="620" height="1348" loading="lazy"
+                 alt="An episode transcript following playback, with speaker labels and the current line highlighted.">
+          </picture>
+        </div>
+        <figcaption class="screen-caption">Transcript</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section gutter rule-top" id="motion">
+    <div class="section-head">
+      <h2 class="display section-title">See it move</h2>
+      <p class="section-note">Recorded on an iPhone, no audio</p>
+    </div>
+
+    <div class="clip-grid">
+      <figure class="clip">
+        <div class="eyebrow">Search</div>
+        <video controls playsinline preload="none" poster="assets/img/search-light.jpg">
+          <source src="assets/video/rec-01-nl-search.mp4" type="video/mp4">
+        </video>
+        <figcaption class="clip-caption">Typing &ldquo;oil refinery in Odd Lots&rdquo; across every transcript at once.</figcaption>
+      </figure>
+
+      <figure class="clip">
+        <div class="eyebrow">Transcript</div>
+        <video controls playsinline preload="none" poster="assets/img/transcript-light.jpg">
+          <source src="assets/video/rec-02-player-transcript.mp4" type="video/mp4">
+        </video>
+        <figcaption class="clip-caption">From the mini-player into the full transcript, cue by cue.</figcaption>
+      </figure>
+
+      <figure class="clip">
+        <div class="eyebrow">Clips</div>
+        <video controls playsinline preload="none" poster="assets/img/clips-dark.jpg">
+          <source src="assets/video/rec-03-clip-flow.mp4" type="video/mp4">
+        </video>
+        <figcaption class="clip-caption">Marking a clip, trimming the range, saving it with a note.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="closing gutter">
+    <div class="badge">Coming soon to the App Store</div>
+    <h2 class="display closing-title">What you listen to is your business</h2>
+    <p class="closing-sub">Onda is finishing up in TestFlight. Follow the build log on GitHub to see when it ships.</p>
+  </section>
+
+  <footer class="site-footer gutter">
+    <div class="footer-links">
+      <a href="https://github.com/onda-cast/onda">GitHub</a>
+      <a href="#privacy">Privacy</a>
+      <a href="https://github.com/onda-cast/onda/issues">Support</a>
+    </div>
+    <div class="footer-meta">&copy; 2026 Onda &middot; Made for iOS</div>
+  </footer>
+
+</div>
+
+</body>
+</html>

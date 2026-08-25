@@ -4,3 +4,7 @@ buildServer.json
 xcuserdata/
 *.xcuserstate
 DerivedData/
+
+# Raw simulator recordings kept locally as capture sources; the web-sized copies
+# that the site actually serves live in site/assets/video/.
+docs/landing/captures/*.mp4
