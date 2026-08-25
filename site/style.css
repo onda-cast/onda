@@ -14,8 +14,12 @@
   --shadow: #111111;
 }
 
+/* Dark tokens are declared twice on purpose. The media query serves visitors on the
+   default "follow my system" setting; the [data-theme] rule serves an explicit choice
+   from the header toggle, and must win in BOTH directions -- which is why the media
+   query excludes an explicit light override rather than relying on source order. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #111111;
     --card: #1E2A24;
     --text: #FFFFFF;
@@ -27,6 +31,19 @@
     --border: #FFFFFF;
     --shadow: #FFFFFF;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #111111;
+  --card: #1E2A24;
+  --text: #FFFFFF;
+  --text-secondary: #C3C8C4;
+  --text-tertiary: #8A8F8B;
+  --accent: #3E8E68;
+  --accent-strong: #2F7A57;
+  --wash: rgba(62, 142, 104, 0.22);
+  --border: #FFFFFF;
+  --shadow: #FFFFFF;
 }
 
 * { box-sizing: border-box; }
@@ -409,4 +426,140 @@ img, video { max-width: 100%; display: block; }
 
   .site-footer { flex-direction: column; align-items: flex-start; gap: 12px; font-size: 12px; }
   .footer-links { gap: 20px; }
+}
+
+/* ---------- prose pages (privacy) ---------- */
+
+.prose {
+  max-width: 760px;
+  padding-top: clamp(44px, 5.5vw, 76px);
+  padding-bottom: clamp(48px, 6vw, 84px);
+}
+
+.prose-title { font-size: clamp(40px, 4.3vw, 62px); margin-bottom: 12px; }
+
+.prose-meta {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 32px;
+}
+
+.prose-lede {
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.4;
+  font-weight: 600;
+  text-wrap: pretty;
+  margin-bottom: 32px;
+}
+
+.prose-callout {
+  border: 2.5px solid var(--border);
+  background: var(--wash);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: clamp(20px, 2vw, 28px);
+  margin-bottom: 40px;
+}
+
+.prose-callout-title {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.prose-h2 {
+  font-size: clamp(22px, 2vw, 28px);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  line-height: 1.1;
+  margin-top: 40px;
+  margin-bottom: 14px;
+  padding-top: 20px;
+  border-top: 2.5px solid var(--border);
+}
+
+.prose p,
+.prose li {
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.prose .prose-title,
+.prose .prose-lede,
+.prose .prose-callout p,
+.prose .prose-callout-title { color: var(--text); }
+
+.prose p + p { margin-top: 14px; }
+
+.prose ul {
+  margin: 14px 0;
+  padding-left: 22px;
+  list-style: square;
+}
+
+.prose li + li { margin-top: 8px; }
+
+.prose strong { color: var(--text); font-weight: 800; }
+
+a.wordmark { color: var(--text); text-decoration: none; }
+a.wordmark:hover { text-decoration: none; }
+
+.privacy-link {
+  align-self: flex-start;
+  border: 2.5px solid #FFFFFF;
+  color: #FFFFFF;
+  padding: 12px 18px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+.privacy-link:hover { background: #FFFFFF; color: var(--accent-strong); text-decoration: none; }
+
+/* ---------- theme toggle ---------- */
+
+.header-right { display: flex; align-items: center; gap: clamp(16px, 3vw, 32px); }
+
+.theme-toggle {
+  border: 2.5px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+}
+
+.theme-toggle:hover { background: var(--wash); }
+
+.theme-toggle:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; }
+
+.theme-toggle svg { stroke: var(--text); fill: none; }
+
+/* Show the icon for the theme the button will switch TO, so the glyph reads as the
+   action rather than the current state. */
+.theme-toggle .icon-moon { display: block; }
+.theme-toggle .icon-sun { display: none; }
+
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+:root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: none; }
+  :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: block; }
 }

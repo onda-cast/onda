@@ -12,6 +12,15 @@
 <meta property="og:type" content="website">
 <meta property="og:image" content="assets/img/player-light.jpg">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%231F6E4E'/><rect x='6' y='13' width='3' height='6' fill='white'/><rect x='12' y='9' width='3' height='14' fill='white'/><rect x='18' y='6' width='3' height='20' fill='white'/><rect x='24' y='12' width='3' height='8' fill='white'/></svg>">
+<script>
+// Runs before first paint so an explicit theme choice never flashes the other palette.
+(function () {
+  try {
+    var t = localStorage.getItem('onda-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,11 +29,29 @@
 
   <header class="site-header gutter">
     <div class="wordmark">Onda</div>
-    <nav class="site-nav">
+    <div class="header-right">
+      <nav class="site-nav">
       <a href="#features">Features</a>
       <a href="#privacy">Privacy</a>
       <a href="#screens">Screens</a>
-    </nav>
+      </nav>
+      <button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to dark theme">
+        <svg class="icon-moon" width="22" height="22" viewBox="0 0 26 26" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+          <path d="M21 15.5A9 9 0 0 1 10.5 5a9 9 0 1 0 10.5 10.5Z"/>
+        </svg>
+        <svg class="icon-sun" width="22" height="22" viewBox="0 0 26 26" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+          <circle cx="13" cy="13" r="4.5"/>
+          <line x1="13" y1="1.5" x2="13" y2="4.5"/>
+          <line x1="13" y1="21.5" x2="13" y2="24.5"/>
+          <line x1="1.5" y1="13" x2="4.5" y2="13"/>
+          <line x1="21.5" y1="13" x2="24.5" y2="13"/>
+          <line x1="4.9" y1="4.9" x2="7" y2="7"/>
+          <line x1="19" y1="19" x2="21.1" y2="21.1"/>
+          <line x1="4.9" y1="21.1" x2="7" y2="19"/>
+          <line x1="19" y1="7" x2="21.1" y2="4.9"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <section class="hero gutter">
@@ -44,11 +71,8 @@
         <span>9:41</span>
         <span>Now playing</span>
       </figcaption>
-      <picture>
-        <source srcset="assets/img/player-dark.jpg" media="(prefers-color-scheme: dark)">
-        <img src="assets/img/player-light.jpg" width="840" height="1826"
+      <img src="assets/img/player-light.jpg" data-light="assets/img/player-light.jpg" data-dark="assets/img/player-dark.jpg" width="840" height="1826"
              alt="Onda's Now Playing screen: Odd Lots episode artwork, a scrubber, speed and voice-boost chips, and skip-back and skip-forward controls.">
-      </picture>
     </figure>
   </section>
 
@@ -128,22 +152,21 @@
   <section class="privacy gutter" id="privacy">
     <h2 class="display privacy-title">No backend. No accounts. No tracking.</h2>
     <p class="privacy-sub">Feeds come straight from the source. Nothing you listen to leaves your device.</p>
+    <a class="privacy-link" href="privacy/">Read the full privacy policy</a>
   </section>
 
   <section class="section gutter" id="screens">
     <div class="section-head">
-      <h2 class="display section-title">Four screens</h2>
+      <h2 class="display section-title">This is the whole app</h2>
+      <p class="section-note">Library, search, clips, transcripts</p>
     </div>
 
     <div class="screens-grid">
       <figure class="screen">
         <div class="screen-frame">
           <div class="eyebrow">Library</div>
-          <picture>
-            <source srcset="assets/img/library-dark.jpg" media="(prefers-color-scheme: dark)">
-            <img src="assets/img/library-light.jpg" width="620" height="1348" loading="lazy"
+          <img src="assets/img/library-light.jpg" data-light="assets/img/library-light.jpg" data-dark="assets/img/library-dark.jpg" width="620" height="1348" loading="lazy"
                  alt="Onda's library grid showing Odd Lots and the Works in Progress Podcast with unplayed-episode badges.">
-          </picture>
         </div>
         <figcaption class="screen-caption">Library grid</figcaption>
       </figure>
@@ -151,11 +174,8 @@
       <figure class="screen offset">
         <div class="screen-frame">
           <div class="eyebrow">Search</div>
-          <picture>
-            <source srcset="assets/img/search-dark.jpg" media="(prefers-color-scheme: dark)">
-            <img src="assets/img/search-light.jpg" width="620" height="1348" loading="lazy"
+          <img src="assets/img/search-light.jpg" data-light="assets/img/search-light.jpg" data-dark="assets/img/search-dark.jpg" width="620" height="1348" loading="lazy"
                  alt="Cross-transcript search for &quot;oil refinery in Odd Lots&quot;, listing matching lines with timestamps.">
-          </picture>
         </div>
         <figcaption class="screen-caption">Transcript search</figcaption>
       </figure>
@@ -163,11 +183,8 @@
       <figure class="screen">
         <div class="screen-frame">
           <div class="eyebrow">Clips</div>
-          <picture>
-            <source srcset="assets/img/clips-dark.jpg" media="(prefers-color-scheme: dark)">
-            <img src="assets/img/clips-light.jpg" width="620" height="1348" loading="lazy"
+          <img src="assets/img/clips-light.jpg" data-light="assets/img/clips-light.jpg" data-dark="assets/img/clips-dark.jpg" width="620" height="1348" loading="lazy"
                  alt="The clip editor with start and end times and the transcript excerpt for the selected range.">
-          </picture>
         </div>
         <figcaption class="screen-caption">Clips</figcaption>
       </figure>
@@ -175,11 +192,8 @@
       <figure class="screen offset">
         <div class="screen-frame">
           <div class="eyebrow">Transcript</div>
-          <picture>
-            <source srcset="assets/img/transcript-dark.jpg" media="(prefers-color-scheme: dark)">
-            <img src="assets/img/transcript-light.jpg" width="620" height="1348" loading="lazy"
+          <img src="assets/img/transcript-light.jpg" data-light="assets/img/transcript-light.jpg" data-dark="assets/img/transcript-dark.jpg" width="620" height="1348" loading="lazy"
                  alt="An episode transcript following playback, with speaker labels and the current line highlighted.">
-          </picture>
         </div>
         <figcaption class="screen-caption">Transcript</figcaption>
       </figure>
@@ -188,7 +202,7 @@
 
   <section class="section gutter rule-top" id="motion">
     <div class="section-head">
-      <h2 class="display section-title">See it move</h2>
+      <h2 class="display section-title">Onda in use</h2>
       <p class="section-note">Recorded on an iPhone, no audio</p>
     </div>
 
@@ -228,13 +242,59 @@
   <footer class="site-footer gutter">
     <div class="footer-links">
       <a href="https://github.com/onda-cast/onda">GitHub</a>
-      <a href="#privacy">Privacy</a>
+      <a href="privacy/">Privacy</a>
       <a href="https://github.com/onda-cast/onda/issues">Support</a>
     </div>
     <div class="footer-meta">&copy; 2026 Onda &middot; Made for iOS</div>
   </footer>
 
 </div>
+
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('theme-toggle');
+  var system = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function resolved() {
+    var t = root.dataset.theme;
+    return t === 'light' || t === 'dark' ? t : (system.matches ? 'dark' : 'light');
+  }
+
+  // <picture media=...> only ever follows the OS, so the screenshots are swapped here
+  // instead -- otherwise an explicit choice would flip the page but not the images.
+  function paint() {
+    var dark = resolved() === 'dark';
+    if (btn) btn.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+    // Both media'd metas are set to the resolved colour, so an explicit choice wins
+    // whichever one the browser matches, while no-JS visitors keep the correct pair.
+    var metas = document.querySelectorAll('meta[name="theme-color"]');
+    for (var m = 0; m < metas.length; m++) {
+      metas[m].setAttribute('content', dark ? '#111111' : '#F2EFE4');
+    }
+    var imgs = document.querySelectorAll('img[data-dark]');
+    for (var i = 0; i < imgs.length; i++) {
+      var want = dark ? imgs[i].dataset.dark : imgs[i].dataset.light;
+      if (want && !imgs[i].src.endsWith(want)) imgs[i].src = want;
+    }
+  }
+
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = resolved() === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try { localStorage.setItem('onda-theme', next); } catch (e) {}
+      paint();
+    });
+  }
+
+  // Keep following the OS for visitors who never pressed the button.
+  system.addEventListener('change', function () { if (!root.dataset.theme) paint(); });
+
+  paint();
+})();
+</script>
 
 </body>
 </html>
