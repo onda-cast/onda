@@ -8,7 +8,12 @@ follows the system theme.
 
 ## Files
 
-- `index.html` — the whole page; no build step, no framework, no external requests
+- `index.html` — the landing page; no build step, no framework, no external requests
+- `privacy/index.html` — the privacy policy, served at `/privacy/`. This is the URL App Store
+  Connect requires in the app's listing, so it has to stay publicly reachable without a login.
+  It is the canonical copy of the policy — `docs/PRIVACY.md` on the
+  `claude/app-store-privacy-policy-88f783` branch is the same text in Markdown, and the two will
+  drift if both are kept
 - `style.css` — palette tokens copied verbatim from `Onda/Theme/Palette.swift`
 - `assets/img/*.jpg` — real app screenshots (light + dark pairs), 620px wide (840 for the hero)
 - `assets/video/*.mp4` — screen recordings, H.264, silent, click-to-play (`preload="none"`)
@@ -32,6 +37,7 @@ Published URL once Pages is on: **https://onda-cast.github.io/onda/**
   Enterprise Cloud; on the Free plan the repo has to be public for the site to build and serve.
 - Footer `GitHub` → the repo, `Support` → its issues. Both 404 for logged-out visitors while the
   repo is private.
-- `Privacy` links to the on-page privacy band. There is a fuller policy on the
-  `claude/app-store-privacy-policy-88f783` branch — point the link at that once it lands and is
-  published.
+- The footer `Privacy` link and the privacy band's button both point at `/privacy/`. Use
+  **https://onda-cast.github.io/onda/privacy/** as the Privacy Policy URL in App Store Connect.
+- The policy lists `chase.gilliam@gmail.com` as the contact address, so that address is public on
+  the live site. Swap in an alias if that isn't wanted.
